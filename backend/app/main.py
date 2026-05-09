@@ -25,9 +25,8 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting Social Listening Platform...")
     
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Create database tables (sync engine)
+    Base.metadata.create_all(bind=engine)
     
     print("✅ Database tables created")
     print(f"📡 API running on http://localhost:8000")
