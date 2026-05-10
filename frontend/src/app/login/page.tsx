@@ -17,11 +17,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await auth.login(email, password);
-      router.push('/dashboard');
+      const result = await auth.login(email, password);
+      console.log('Login successful:', result);
+      
+      // Force redirect
+      window.location.href = '/dashboard';
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.response?.data?.detail || 'Đăng nhập thất bại');
-    } finally {
       setLoading(false);
     }
   };
