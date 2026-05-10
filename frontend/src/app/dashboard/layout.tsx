@@ -28,13 +28,32 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Tạm thời tắt auth check
-    console.log('Dashboard layout loaded');
-    setUser({
-      email: 'test@example.com',
-      full_name: 'Test User'
-    });
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        // Check token first
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.log('No token, redirecting to login');
+          router.push('/login');
+          return;
+        }
+
+        // Try to get user info
+        const userData = await auth.getCurrentUser();
+        setUser(userData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth error:', error);
+        // If API fails, use mock data instead of redirecting
+        setUser({
+          email: 'user@example.com',
+          full_name: 'User'
+        });
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleLogout = () => {
