@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, delete
 from typing import List
@@ -35,18 +35,22 @@ def list_keyword_groups(
     result = db.execute(query)
     groups = result.scalars().all()
     
-    # Get keyword counts
+    # Get keyword counts — explicit mapping avoids SQLAlchemy __dict__ pollution
     response = []
     for group in groups:
-        count_query = select(func.count(Keyword.id)).where(Keyword.group_id == group.id)
-        count_result = db.execute(count_query)
-        keyword_count = count_result.scalar()
-        
+        keyword_count = db.execute(
+            select(func.count(Keyword.id)).where(Keyword.group_id == group.id)
+        ).scalar() or 0
         response.append(KeywordGroupListResponse(
-            **group.__dict__,
-            keyword_count=keyword_count
+            id=group.id,
+            name=group.name,
+            description=group.description,
+            priority=group.priority,
+            alert_threshold=group.alert_threshold,
+            is_active=group.is_active,
+            created_at=group.created_at,
+            keyword_count=keyword_count,
         ))
-    
     return response
 
 
@@ -57,12 +61,21 @@ def create_keyword_group(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new keyword group"""
-    group = KeywordGroup(**group_data.dict())
+    group = KeywordGroup(**group_data.model_dump())
     db.add(group)
     db.commit()
     db.refresh(group)
-    
-    return KeywordGroupResponse(**group.__dict__, keywords=[])
+    return KeywordGroupResponse(
+        id=group.id,
+        name=group.name,
+        description=group.description,
+        priority=group.priority,
+        alert_threshold=group.alert_threshold,
+        is_active=group.is_active,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        keywords=[],
+    )
 
 
 @router.get("/groups/{group_id}", response_model=KeywordGroupResponse)
@@ -98,7 +111,7 @@ def update_keyword_group(
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
     # Update fields
-    for field, value in group_data.dict(exclude_unset=True).items():
+    for field, value in group_data.model_dump(exclude_unset=True).items():
         setattr(group, field, value)
     
     db.commit()
@@ -162,7 +175,7 @@ def create_keyword(
     if not group:
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
-    keyword = Keyword(**keyword_data.dict())
+    keyword = Keyword(**keyword_data.model_dump())
     db.add(keyword)
     db.commit()
     db.refresh(keyword)
@@ -203,7 +216,7 @@ def update_keyword(
         raise HTTPException(status_code=404, detail="Keyword not found")
     
     # Update fields
-    for field, value in keyword_data.dict(exclude_unset=True).items():
+    for field, value in keyword_data.model_dump(exclude_unset=True).items():
         setattr(keyword, field, value)
     
     db.commit()

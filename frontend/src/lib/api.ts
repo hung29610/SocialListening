@@ -2,6 +2,13 @@ import axios, { AxiosError } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Dev-only: log API base so we know where requests go
+if (process.env.NODE_ENV !== 'production') {
+  console.log('[API] API_BASE_URL =', API_URL);
+} else if (!process.env.NEXT_PUBLIC_API_URL) {
+  console.error('[API] NEXT_PUBLIC_API_URL is not configured! Falling back to localhost.');
+}
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -18,29 +25,33 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: log backend error detail for debugging
+// Response interceptor: log full backend error detail for debugging
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ detail?: string | any[] }>) => {
-    if (error.response?.data?.detail) {
-      const detail = error.response.data.detail;
-      const msg = typeof detail === 'string' ? detail : JSON.stringify(detail);
-      console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, msg);
-    }
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail;
+    const url = error.config?.url;
+    const method = error.config?.method?.toUpperCase();
+    const msg = typeof detail === 'string' ? detail : JSON.stringify(detail);
+    console.error(`[API Error] ${method} ${url} → ${status}:`, msg || error.message);
     return Promise.reject(error);
   }
 );
 
-/** Extract human-readable error message from axios error */
-export function getErrorMessage(error: any): string {
-  if (error?.response?.data?.detail) {
-    const detail = error.response.data.detail;
-    if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) {
-      return detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
-    }
+/** Extract readable error message from axios error, including HTTP status. */
+export function getErrorMessage(error: any, fallback = 'Lỗi không xác định'): string {
+  const status = error?.response?.status;
+  const detail = error?.response?.data?.detail;
+  let msg = fallback;
+  if (typeof detail === 'string' && detail) {
+    msg = detail;
+  } else if (Array.isArray(detail) && detail.length > 0) {
+    msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
+  } else if (error?.message) {
+    msg = error.message;
   }
-  return error?.message || 'Đã xảy ra lỗi không xác định';
+  return status ? `${msg} (HTTP ${status})` : msg;
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

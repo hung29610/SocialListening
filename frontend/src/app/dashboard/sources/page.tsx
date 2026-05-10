@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Search, Globe, Facebook, Youtube, Clock } from 'lucide-react';
-import { sources as sourcesApi } from '@/lib/api';
+import { sources as sourcesApi, getErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface Source {
@@ -48,7 +48,7 @@ export default function SourcesPage() {
       setSources(data);
     } catch (error: any) {
       console.error('Error fetching sources:', error);
-      toast.error('Lỗi khi tải danh sách nguồn');
+      toast.error(`Lỗi khi tải danh sách nguồn: ${getErrorMessage(error)}`);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export default function SourcesPage() {
       fetchSources();
     } catch (error: any) {
       console.error('Error adding source:', error);
-      toast.error('Lỗi khi thêm nguồn');
+      toast.error(`Lỗi khi thêm nguồn: ${getErrorMessage(error)}`);
     }
   };
 
@@ -114,7 +114,7 @@ export default function SourcesPage() {
       fetchSources();
     } catch (error: any) {
       console.error('Error deleting source:', error);
-      toast.error('Lỗi khi xóa nguồn');
+      toast.error(`Lỗi khi xóa nguồn: ${getErrorMessage(error)}`);
     }
   };
 
@@ -127,7 +127,7 @@ export default function SourcesPage() {
       toast.success(`Đã ${!source.is_active ? 'bật' : 'tắt'} nguồn`);
     } catch (error: any) {
       console.error('Error toggling source:', error);
-      toast.error('Lỗi khi cập nhật nguồn');
+      toast.error(`Lỗi khi cập nhật nguồn: ${getErrorMessage(error)}`);
     }
   };
 

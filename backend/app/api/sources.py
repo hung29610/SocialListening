@@ -1,54 +1,94 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, selectinload
+import traceback
+import logging
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
 from sqlalchemy import select, func
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
-from app.models.source import Source, SourceGroup, SourceType
+from app.models.source import Source, SourceGroup, SourceType, CrawlFrequency
 from app.schemas.source import (
     SourceCreate, SourceUpdate, SourceResponse,
     SourceGroupCreate, SourceGroupUpdate, SourceGroupResponse, SourceGroupListResponse
 )
 from app.services.scheduler_service import calculate_next_crawl_time
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Source Group Endpoints
+def _source_to_response(source: Source) -> SourceResponse:
+    """Safely convert Source SQLAlchemy object to SourceResponse Pydantic model."""
+    # Convert crawl_time (datetime.time) to "HH:MM" string if needed
+    crawl_time_str = None
+    if source.crawl_time is not None:
+        try:
+            crawl_time_str = source.crawl_time.strftime("%H:%M")
+        except Exception:
+            crawl_time_str = str(source.crawl_time)
+
+    return SourceResponse(
+        id=source.id,
+        group_id=source.group_id,
+        name=source.name,
+        source_type=source.source_type,
+        url=source.url,
+        platform_id=source.platform_id,
+        meta_data=source.meta_data,
+        is_active=source.is_active,
+        crawl_frequency=source.crawl_frequency,
+        crawl_time=crawl_time_str,
+        crawl_day_of_week=source.crawl_day_of_week,
+        crawl_day_of_month=source.crawl_day_of_month,
+        crawl_month=source.crawl_month,
+        next_crawl_at=source.next_crawl_at,
+        last_crawled_at=source.last_crawled_at,
+        last_success_at=source.last_success_at,
+        last_error=source.last_error,
+        crawl_count=source.crawl_count or 0,
+        error_count=source.error_count or 0,
+        created_at=source.created_at,
+        updated_at=source.updated_at,
+    )
+
+
+# ─── Source Group Endpoints ───────────────────────────────────────────────────
+
 @router.get("/groups", response_model=List[SourceGroupListResponse])
 def list_source_groups(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    is_active: bool | None = None,
+    is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """List all source groups"""
-    query = select(SourceGroup)
-    
-    if is_active is not None:
-        query = query.where(SourceGroup.is_active == is_active)
-    
-    query = query.offset(skip).limit(limit).order_by(SourceGroup.created_at.desc())
-    
-    result = db.execute(query)
-    groups = result.scalars().all()
-    
-    # Get source counts
-    response = []
-    for group in groups:
-        count_query = select(func.count(Source.id)).where(Source.group_id == group.id)
-        count_result = db.execute(count_query)
-        source_count = count_result.scalar()
-        
-        response.append(SourceGroupListResponse(
-            **group.__dict__,
-            source_count=source_count
-        ))
-    
-    return response
+    """List all source groups with source counts."""
+    try:
+        query = select(SourceGroup)
+        if is_active is not None:
+            query = query.where(SourceGroup.is_active == is_active)
+        query = query.offset(skip).limit(limit).order_by(SourceGroup.created_at.desc())
+        groups = db.execute(query).scalars().all()
+
+        response = []
+        for group in groups:
+            count = db.execute(
+                select(func.count(Source.id)).where(Source.group_id == group.id)
+            ).scalar() or 0
+            response.append(SourceGroupListResponse(
+                id=group.id,
+                name=group.name,
+                description=group.description,
+                is_active=group.is_active,
+                created_at=group.created_at,
+                source_count=count,
+            ))
+        return response
+    except Exception as e:
+        logger.error(f"Error listing source groups: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tải nhóm nguồn: {str(e)}")
 
 
 @router.post("/groups", response_model=SourceGroupResponse, status_code=status.HTTP_201_CREATED)
@@ -57,13 +97,25 @@ def create_source_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Create a new source group"""
-    group = SourceGroup(**group_data.dict())
-    db.add(group)
-    db.commit()
-    db.refresh(group)
-    
-    return SourceGroupResponse(**group.__dict__, sources=[])
+    """Create a new source group."""
+    try:
+        group = SourceGroup(**group_data.model_dump())
+        db.add(group)
+        db.commit()
+        db.refresh(group)
+        return SourceGroupResponse(
+            id=group.id,
+            name=group.name,
+            description=group.description,
+            is_active=group.is_active,
+            created_at=group.created_at,
+            updated_at=group.updated_at,
+            sources=[],
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating source group: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo nhóm nguồn: {str(e)}")
 
 
 @router.get("/groups/{group_id}", response_model=SourceGroupResponse)
@@ -72,15 +124,19 @@ def get_source_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get a source group by ID"""
-    query = select(SourceGroup).where(SourceGroup.id == group_id).options(selectinload(SourceGroup.sources))
-    result = db.execute(query)
-    group = result.scalar_one_or_none()
-    
+    group = db.execute(select(SourceGroup).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
-    
-    return SourceGroupResponse.model_validate(group)
+    sources_in_group = db.execute(select(Source).where(Source.group_id == group_id)).scalars().all()
+    return SourceGroupResponse(
+        id=group.id,
+        name=group.name,
+        description=group.description,
+        is_active=group.is_active,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        sources=[_source_to_response(s) for s in sources_in_group],
+    )
 
 
 @router.put("/groups/{group_id}", response_model=SourceGroupResponse)
@@ -90,22 +146,23 @@ def update_source_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Update a source group"""
-    query = select(SourceGroup).where(SourceGroup.id == group_id)
-    result = db.execute(query)
-    group = result.scalar_one_or_none()
-    
+    group = db.execute(select(SourceGroup).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
-    
-    # Update fields
-    for field, value in group_data.dict(exclude_unset=True).items():
+    for field, value in group_data.model_dump(exclude_unset=True).items():
         setattr(group, field, value)
-    
     db.commit()
     db.refresh(group)
-    
-    return SourceGroupResponse.model_validate(group)
+    sources_in_group = db.execute(select(Source).where(Source.group_id == group_id)).scalars().all()
+    return SourceGroupResponse(
+        id=group.id,
+        name=group.name,
+        description=group.description,
+        is_active=group.is_active,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        sources=[_source_to_response(s) for s in sources_in_group],
+    )
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -114,47 +171,40 @@ def delete_source_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Delete a source group"""
-    query = select(SourceGroup).where(SourceGroup.id == group_id)
-    result = db.execute(query)
-    group = result.scalar_one_or_none()
-    
+    group = db.execute(select(SourceGroup).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
-    
     db.delete(group)
     db.commit()
 
 
-# Source Endpoints
+# ─── Source Endpoints ─────────────────────────────────────────────────────────
+
 @router.get("", response_model=List[SourceResponse])
 def list_sources(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    group_id: int | None = None,
-    source_type: SourceType | None = None,
-    is_active: bool | None = None,
+    group_id: Optional[int] = None,
+    source_type: Optional[SourceType] = None,
+    is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """List all sources"""
-    query = select(Source)
-    
-    if group_id is not None:
-        query = query.where(Source.group_id == group_id)
-    
-    if source_type is not None:
-        query = query.where(Source.source_type == source_type)
-    
-    if is_active is not None:
-        query = query.where(Source.is_active == is_active)
-    
-    query = query.offset(skip).limit(limit).order_by(Source.created_at.desc())
-    
-    result = db.execute(query)
-    sources = result.scalars().all()
-    
-    return [SourceResponse.model_validate(s) for s in sources]
+    """List all sources. Returns [] if none exist."""
+    try:
+        query = select(Source)
+        if group_id is not None:
+            query = query.where(Source.group_id == group_id)
+        if source_type is not None:
+            query = query.where(Source.source_type == source_type)
+        if is_active is not None:
+            query = query.where(Source.is_active == is_active)
+        query = query.offset(skip).limit(limit).order_by(Source.created_at.desc())
+        sources = db.execute(query).scalars().all()
+        return [_source_to_response(s) for s in sources]
+    except Exception as e:
+        logger.error(f"Error listing sources: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tải danh sách nguồn: {str(e)}")
 
 
 @router.post("", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
@@ -163,38 +213,47 @@ def create_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Create a new source"""
-    # Verify group exists if provided
-    if source_data.group_id:
-        group_query = select(SourceGroup).where(SourceGroup.id == source_data.group_id)
-        group_result = db.execute(group_query)
-        group = group_result.scalar_one_or_none()
-        
-        if not group:
-            raise HTTPException(status_code=404, detail="Source group not found")
-    
-    source_dict = source_data.dict()
+    """Create a new source."""
+    try:
+        if source_data.group_id:
+            group = db.execute(select(SourceGroup).where(SourceGroup.id == source_data.group_id)).scalar_one_or_none()
+            if not group:
+                raise HTTPException(status_code=404, detail="Source group not found")
 
-    # Fix field name: schema uses 'metadata' but model column is 'meta_data'
-    if 'metadata' in source_dict:
-        source_dict['meta_data'] = source_dict.pop('metadata')
+        data = source_data.model_dump()
 
-    # Calculate next crawl time
-    next_crawl_at = calculate_next_crawl_time(
-        frequency=source_dict['crawl_frequency'],
-        crawl_time=source_dict.get('crawl_time'),
-        crawl_day_of_week=source_dict.get('crawl_day_of_week'),
-        crawl_day_of_month=source_dict.get('crawl_day_of_month'),
-        crawl_month=source_dict.get('crawl_month')
-    )
-    source_dict['next_crawl_at'] = next_crawl_at
-    
-    source = Source(**source_dict)
-    db.add(source)
-    db.commit()
-    db.refresh(source)
-    
-    return SourceResponse.model_validate(source)
+        # Parse crawl_time string → datetime.time for DB column
+        crawl_time_obj = None
+        if data.get('crawl_time'):
+            try:
+                from datetime import time as dtime
+                parts = data['crawl_time'].split(':')
+                crawl_time_obj = dtime(int(parts[0]), int(parts[1]))
+            except Exception:
+                crawl_time_obj = None
+        data['crawl_time'] = crawl_time_obj
+
+        # Calculate next crawl time
+        from datetime import time as dtime
+        data['next_crawl_at'] = calculate_next_crawl_time(
+            frequency=data['crawl_frequency'],
+            crawl_time=crawl_time_obj,
+            crawl_day_of_week=data.get('crawl_day_of_week'),
+            crawl_day_of_month=data.get('crawl_day_of_month'),
+            crawl_month=data.get('crawl_month'),
+        )
+
+        source = Source(**data)
+        db.add(source)
+        db.commit()
+        db.refresh(source)
+        return _source_to_response(source)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating source: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo nguồn: {str(e)}")
 
 
 @router.get("/{source_id}", response_model=SourceResponse)
@@ -203,15 +262,10 @@ def get_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get a source by ID"""
-    query = select(Source).where(Source.id == source_id)
-    result = db.execute(query)
-    source = result.scalar_one_or_none()
-    
+    source = db.execute(select(Source).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    
-    return SourceResponse.model_validate(source)
+    return _source_to_response(source)
 
 
 @router.put("/{source_id}", response_model=SourceResponse)
@@ -221,44 +275,43 @@ def update_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Update a source"""
-    query = select(Source).where(Source.id == source_id)
-    result = db.execute(query)
-    source = result.scalar_one_or_none()
-    
+    source = db.execute(select(Source).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    
-    # Verify group exists if being updated
-    if source_data.group_id is not None:
-        group_query = select(SourceGroup).where(SourceGroup.id == source_data.group_id)
-        group_result = db.execute(group_query)
-        group = group_result.scalar_one_or_none()
-        
-        if not group:
-            raise HTTPException(status_code=404, detail="Source group not found")
-    
-    # Update fields
-    update_dict = source_data.dict(exclude_unset=True)
-    for field, value in update_dict.items():
-        setattr(source, field, value)
-    
-    # Recalculate next crawl time if schedule-related fields were updated
-    schedule_fields = ['crawl_frequency', 'crawl_time', 'crawl_day_of_week', 'crawl_day_of_month', 'crawl_month']
-    if any(field in update_dict for field in schedule_fields):
-        next_crawl_at = calculate_next_crawl_time(
-            frequency=source.crawl_frequency,
-            crawl_time=source.crawl_time,
-            crawl_day_of_week=source.crawl_day_of_week,
-            crawl_day_of_month=source.crawl_day_of_month,
-            crawl_month=source.crawl_month
-        )
-        source.next_crawl_at = next_crawl_at
-    
-    db.commit()
-    db.refresh(source)
-    
-    return SourceResponse.model_validate(source)
+
+    try:
+        update_dict = source_data.model_dump(exclude_unset=True)
+
+        # Parse crawl_time string if provided
+        if 'crawl_time' in update_dict and update_dict['crawl_time']:
+            try:
+                from datetime import time as dtime
+                parts = update_dict['crawl_time'].split(':')
+                update_dict['crawl_time'] = dtime(int(parts[0]), int(parts[1]))
+            except Exception:
+                update_dict['crawl_time'] = None
+
+        for field, value in update_dict.items():
+            setattr(source, field, value)
+
+        # Recalculate next crawl if schedule fields changed
+        schedule_fields = {'crawl_frequency', 'crawl_time', 'crawl_day_of_week', 'crawl_day_of_month', 'crawl_month'}
+        if update_dict.keys() & schedule_fields:
+            source.next_crawl_at = calculate_next_crawl_time(
+                frequency=source.crawl_frequency,
+                crawl_time=source.crawl_time,
+                crawl_day_of_week=source.crawl_day_of_week,
+                crawl_day_of_month=source.crawl_day_of_month,
+                crawl_month=source.crawl_month,
+            )
+
+        db.commit()
+        db.refresh(source)
+        return _source_to_response(source)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating source: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi cập nhật nguồn: {str(e)}")
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -267,14 +320,9 @@ def delete_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Delete a source"""
-    query = select(Source).where(Source.id == source_id)
-    result = db.execute(query)
-    source = result.scalar_one_or_none()
-    
+    source = db.execute(select(Source).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    
     db.delete(source)
     db.commit()
 
@@ -285,76 +333,46 @@ def test_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Test if a source URL is reachable"""
+    """Test if a source URL is reachable."""
     import httpx
-    source = db.execute(
-        select(Source).where(Source.id == source_id)
-    ).scalar_one_or_none()
-
+    source = db.execute(select(Source).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-
     try:
         resp = httpx.get(source.url, timeout=10, follow_redirects=True)
-        return {
-            "success": True,
-            "status_code": resp.status_code,
-            "reachable": resp.status_code < 400,
-            "url": source.url
-        }
+        return {"success": True, "status_code": resp.status_code, "reachable": resp.status_code < 400, "url": source.url}
     except Exception as e:
-        return {
-            "success": False,
-            "reachable": False,
-            "error": str(e),
-            "url": source.url
-        }
+        return {"success": False, "reachable": False, "error": str(e), "url": source.url}
 
 
 @router.post("/{source_id}/scan")
 def scan_source(
     source_id: int,
-    keyword_group_ids: list = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Trigger a scan on a specific source"""
-    source = db.execute(
-        select(Source).where(Source.id == source_id)
-    ).scalar_one_or_none()
-
+    """Trigger a manual scan on a specific source."""
+    source = db.execute(select(Source).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    # Import and reuse manual scan logic
-    from app.api.crawl import ManualScanRequest, manual_scan
-    from unittest.mock import MagicMock
-
-    # Use crawl directly
-    from app.models.keyword import Keyword, KeywordGroup
-    from app.models.mention import Mention, AIAnalysis
-    from app.models.alert import Alert, AlertSeverity, AlertStatus
-    from app.services.ai_service import analyze_mention_with_dummy_ai
+    from app.models.keyword import Keyword
+    from app.models.mention import Mention
     from app.api.crawl import crawl_source
     import hashlib
+    from datetime import datetime
 
-    all_keywords = db.execute(
-        select(Keyword).where(Keyword.is_active == True)
-    ).scalars().all()
-
+    all_keywords = db.execute(select(Keyword).where(Keyword.is_active == True)).scalars().all()
     if not all_keywords:
-        return {"success": False, "message": "KhÃ´ng cÃ³ tá»« khÃ³a nÃ o Ä‘Æ°á»£c kÃ­ch hoáº¡t"}
+        return {"success": False, "message": "Không có từ khóa nào được kích hoạt"}
 
     keyword_texts = [kw.keyword.lower() for kw in all_keywords]
-
     try:
-        mentions = crawl_source(source, keyword_texts, all_keywords, db)
+        mentions_data = crawl_source(source, keyword_texts, all_keywords, db)
         new_count = 0
-        for mention_data in mentions:
+        for mention_data in mentions_data:
             content_hash = hashlib.sha256(mention_data['content'].encode()).hexdigest()
-            existing = db.execute(
-                select(Mention).where(Mention.content_hash == content_hash)
-            ).scalar_one_or_none()
+            existing = db.execute(select(Mention).where(Mention.content_hash == content_hash)).scalar_one_or_none()
             if existing:
                 continue
             mention = Mention(
@@ -365,25 +383,20 @@ def scan_source(
                 url=mention_data['url'],
                 author=mention_data.get('author'),
                 published_at=mention_data.get('published_at'),
-                matched_keywords=mention_data.get('matched_keywords', [])
+                matched_keywords=mention_data.get('matched_keywords', []),
             )
             db.add(mention)
             db.commit()
             db.refresh(mention)
             new_count += 1
 
-        source.last_crawled_at = __import__('datetime').datetime.utcnow()
+        source.last_crawled_at = datetime.utcnow()
         source.crawl_count = (source.crawl_count or 0) + 1
         db.commit()
-
-        return {
-            "success": True,
-            "new_mentions": new_count,
-            "source_id": source_id
-        }
+        return {"success": True, "new_mentions": new_count, "source_id": source_id}
     except Exception as e:
+        db.rollback()
         source.last_error = str(e)
         source.error_count = (source.error_count or 0) + 1
         db.commit()
-        raise HTTPException(status_code=500, detail=f"Lá»—i quÃ©t nguá»“n: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Lỗi quét nguồn: {str(e)}")

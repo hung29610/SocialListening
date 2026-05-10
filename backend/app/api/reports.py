@@ -171,7 +171,7 @@ def create_report(
 ):
     """Create a new report and generate it inline"""
     report = Report(
-        **report_data.dict(),
+        **report_data.model_dump(),
         generated_by=current_user.id,
         status=ReportStatus.GENERATING
     )
@@ -223,4 +223,5 @@ def delete_report(
 
     db.delete(report)
     db.commit()
+
 

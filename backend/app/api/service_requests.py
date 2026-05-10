@@ -109,7 +109,7 @@ def create_service_request(
     approval_status = ApprovalStatus.PENDING if service.requires_approval else ApprovalStatus.NOT_REQUIRED
 
     sr = ServiceRequest(
-        **request_data.dict(),
+        **request_data.model_dump(),
         requester_id=current_user.id,
         approval_status=approval_status
     )
@@ -174,7 +174,7 @@ def update_service_request(
         raise HTTPException(status_code=404, detail="YÃªu cáº§u dá»‹ch vá»¥ khÃ´ng tá»“n táº¡i")
 
     old_status = sr.status
-    for field, value in request_data.dict(exclude_unset=True).items():
+    for field, value in request_data.model_dump(exclude_unset=True).items():
         setattr(sr, field, value)
 
     db.commit()
@@ -473,7 +473,7 @@ def create_service_request_log(
     log = ServiceRequestLog(
         service_request_id=request_id,
         created_by=current_user.id,
-        **log_data.dict()
+        **log_data.model_dump()
     )
     db.add(log)
     db.commit()
@@ -520,11 +520,12 @@ def create_service_deliverable(
 
     deliverable = ServiceDeliverable(
         service_request_id=request_id,
-        **deliverable_data.dict()
+        **deliverable_data.model_dump()
     )
     db.add(deliverable)
     db.commit()
     db.refresh(deliverable)
 
     return ServiceDeliverableResponse.model_validate(deliverable)
+
 

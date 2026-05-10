@@ -57,7 +57,7 @@ def create_service_category(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new service category"""
-    category = ServiceCategory(**category_data.dict())
+    category = ServiceCategory(**category_data.model_dump())
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -97,7 +97,7 @@ def update_service_category(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    for field, value in category_data.dict(exclude_unset=True).items():
+    for field, value in category_data.model_dump(exclude_unset=True).items():
         setattr(category, field, value)
     
     db.commit()
@@ -282,7 +282,7 @@ def create_service(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    service = Service(**service_data.dict())
+    service = Service(**service_data.model_dump())
     db.add(service)
     db.commit()
     db.refresh(service)
@@ -334,7 +334,7 @@ def update_service(
         if not category:
             raise HTTPException(status_code=404, detail="Service category not found")
     
-    for field, value in service_data.dict(exclude_unset=True).items():
+    for field, value in service_data.model_dump(exclude_unset=True).items():
         setattr(service, field, value)
     
     db.commit()
@@ -419,7 +419,7 @@ def create_service_request(
     approval_status = ApprovalStatus.PENDING if service.requires_approval else ApprovalStatus.NOT_REQUIRED
     
     service_request = ServiceRequest(
-        **request_data.dict(),
+        **request_data.model_dump(),
         requester_id=current_user.id,
         approval_status=approval_status
     )
@@ -482,7 +482,7 @@ def update_service_request(
     
     old_status = service_request.status
     
-    for field, value in request_data.dict(exclude_unset=True).items():
+    for field, value in request_data.model_dump(exclude_unset=True).items():
         setattr(service_request, field, value)
     
     db.commit()
@@ -761,7 +761,7 @@ def create_service_request_log(
     log = ServiceRequestLog(
         service_request_id=request_id,
         created_by=current_user.id,
-        **log_data.dict()
+        **log_data.model_dump()
     )
     db.add(log)
     db.commit()
@@ -814,7 +814,7 @@ def create_service_deliverable(
     
     deliverable = ServiceDeliverable(
         service_request_id=request_id,
-        **deliverable_data.dict()
+        **deliverable_data.model_dump()
     )
     db.add(deliverable)
     db.commit()
@@ -838,10 +838,11 @@ def update_service_deliverable(
     if not deliverable:
         raise HTTPException(status_code=404, detail="Service deliverable not found")
     
-    for field, value in deliverable_data.dict(exclude_unset=True).items():
+    for field, value in deliverable_data.model_dump(exclude_unset=True).items():
         setattr(deliverable, field, value)
     
     db.commit()
     db.refresh(deliverable)
     
     return ServiceDeliverableResponse.model_validate(deliverable)
+
