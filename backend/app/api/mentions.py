@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, or_
-from typing import List
-from math import ceil
+from sqlalchemy import select, func
+from typing import List, Optional
+from pydantic import BaseModel
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.mention import Mention, AIAnalysis
+from app.models.alert import Alert, AlertStatus, AlertSeverity
+from app.models.incident import Incident, IncidentStatus, IncidentLog
+from app.services.ai_service import analyze_mention_with_dummy_ai
+from math import ceil
 
 router = APIRouter()
 
@@ -16,19 +21,20 @@ router = APIRouter()
 def list_mentions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    source_id: int | None = None,
-    sentiment: str | None = None,
-    min_risk_score: float | None = Query(None, ge=0, le=100),
-    search_query: str | None = None,
+    source_id: Optional[int] = None,
+    sentiment: Optional[str] = None,
+    min_risk_score: Optional[float] = Query(None, ge=0, le=100),
+    search_query: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """List mentions with filtering and pagination"""
+    from sqlalchemy import or_
     query = select(Mention)
-    
+
     if source_id:
         query = query.where(Mention.source_id == source_id)
-    
+
     if search_query:
         search_pattern = f"%{search_query}%"
         query = query.where(
@@ -37,23 +43,20 @@ def list_mentions(
                 Mention.content.ilike(search_pattern)
             )
         )
-    
-    # Get total count
-    total = db.execute(select(func.count()).select_from(query.subquery())).scalar()
-    
-    # Apply pagination
+
+    total = db.execute(select(func.count()).select_from(query.subquery())).scalar() or 0
+
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size).order_by(Mention.collected_at.desc())
-    
+
     mentions = db.execute(query).scalars().all()
-    
-    # Get AI analysis for each mention
+
     result_items = []
     for m in mentions:
         analysis = db.execute(
             select(AIAnalysis).where(AIAnalysis.mention_id == m.id)
         ).scalar_one_or_none()
-        
+
         result_items.append({
             "id": m.id,
             "source_id": m.source_id,
@@ -65,16 +68,16 @@ def list_mentions(
             "collected_at": m.collected_at.isoformat() if m.collected_at else None,
             "matched_keywords": m.matched_keywords,
             "ai_analysis": {
-                "sentiment": analysis.sentiment if analysis else None,
+                "sentiment": analysis.sentiment.value if analysis and hasattr(analysis.sentiment, 'value') else (analysis.sentiment if analysis else None),
                 "risk_score": analysis.risk_score if analysis else None,
                 "crisis_level": analysis.crisis_level if analysis else None,
                 "summary_vi": analysis.summary_vi if analysis else None,
                 "suggested_action": analysis.suggested_action if analysis else None
             } if analysis else None
         })
-    
+
     total_pages = ceil(total / page_size) if total > 0 else 1
-    
+
     return {
         "items": result_items,
         "total": total,
@@ -94,14 +97,14 @@ def get_mention(
     mention = db.execute(
         select(Mention).where(Mention.id == mention_id)
     ).scalar_one_or_none()
-    
+
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
-    
+
     analysis = db.execute(
         select(AIAnalysis).where(AIAnalysis.mention_id == mention.id)
     ).scalar_one_or_none()
-    
+
     return {
         "id": mention.id,
         "source_id": mention.source_id,
@@ -116,7 +119,7 @@ def get_mention(
         "metadata": mention.meta_data,
         "ai_analysis": {
             "id": analysis.id,
-            "sentiment": analysis.sentiment,
+            "sentiment": analysis.sentiment.value if hasattr(analysis.sentiment, 'value') else analysis.sentiment,
             "risk_score": analysis.risk_score,
             "crisis_level": analysis.crisis_level,
             "summary_vi": analysis.summary_vi,
@@ -126,6 +129,174 @@ def get_mention(
             "ai_provider": analysis.ai_provider,
             "analyzed_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None
         } if analysis else None
+    }
+
+
+@router.post("/{mention_id}/analyze")
+def analyze_mention(
+    mention_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Run AI analysis on a mention"""
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
+
+    if not mention:
+        raise HTTPException(status_code=404, detail="Mention not found")
+
+    # Check if analysis already exists
+    existing = db.execute(
+        select(AIAnalysis).where(AIAnalysis.mention_id == mention_id)
+    ).scalar_one_or_none()
+
+    analysis_result = analyze_mention_with_dummy_ai(mention.content, mention.title)
+
+    if existing:
+        # Update existing analysis
+        existing.sentiment = analysis_result['sentiment']
+        existing.risk_score = analysis_result['risk_score']
+        existing.crisis_level = analysis_result['crisis_level']
+        existing.summary_vi = analysis_result['summary_vi']
+        existing.suggested_action = analysis_result['suggested_action']
+        existing.responsible_department = analysis_result['responsible_department']
+        existing.confidence_score = analysis_result['confidence_score']
+        existing.processing_time_ms = analysis_result['processing_time_ms']
+        db.commit()
+        db.refresh(existing)
+        analysis = existing
+    else:
+        analysis = AIAnalysis(
+            mention_id=mention.id,
+            sentiment=analysis_result['sentiment'],
+            risk_score=analysis_result['risk_score'],
+            crisis_level=analysis_result['crisis_level'],
+            summary_vi=analysis_result['summary_vi'],
+            suggested_action=analysis_result['suggested_action'],
+            responsible_department=analysis_result['responsible_department'],
+            confidence_score=analysis_result['confidence_score'],
+            ai_provider="dummy_ai",
+            model_version="1.0",
+            processing_time_ms=analysis_result['processing_time_ms']
+        )
+        db.add(analysis)
+        db.commit()
+        db.refresh(analysis)
+
+    return {
+        "mention_id": mention_id,
+        "sentiment": analysis.sentiment.value if hasattr(analysis.sentiment, 'value') else analysis.sentiment,
+        "risk_score": analysis.risk_score,
+        "crisis_level": analysis.crisis_level,
+        "summary_vi": analysis.summary_vi,
+        "suggested_action": analysis.suggested_action,
+        "responsible_department": analysis.responsible_department,
+        "confidence_score": analysis.confidence_score
+    }
+
+
+@router.post("/{mention_id}/create-alert", status_code=201)
+def create_alert_from_mention(
+    mention_id: int,
+    title: Optional[str] = None,
+    severity: Optional[str] = "high",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Create an alert from a mention"""
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
+
+    if not mention:
+        raise HTTPException(status_code=404, detail="Mention not found")
+
+    # Get analysis for auto-severity
+    analysis = db.execute(
+        select(AIAnalysis).where(AIAnalysis.mention_id == mention_id)
+    ).scalar_one_or_none()
+
+    if not severity and analysis:
+        if analysis.risk_score >= 85:
+            severity = "critical"
+        elif analysis.risk_score >= 70:
+            severity = "high"
+        elif analysis.risk_score >= 50:
+            severity = "medium"
+        else:
+            severity = "low"
+
+    alert_title = title or f"Alert tá»« mention: {mention.title or mention.url}"
+    message = None
+    if analysis:
+        message = f"Risk score: {analysis.risk_score}, Crisis level: {analysis.crisis_level}"
+
+    alert = Alert(
+        mention_id=mention_id,
+        title=alert_title,
+        severity=severity or "high",
+        message=message,
+        status=AlertStatus.NEW
+    )
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+
+    return {
+        "id": alert.id,
+        "mention_id": alert.mention_id,
+        "title": alert.title,
+        "severity": alert.severity.value if hasattr(alert.severity, 'value') else alert.severity,
+        "status": alert.status.value if hasattr(alert.status, 'value') else alert.status,
+        "created_at": alert.created_at.isoformat() if alert.created_at else None
+    }
+
+
+@router.post("/{mention_id}/create-incident", status_code=201)
+def create_incident_from_mention(
+    mention_id: int,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Create an incident from a mention"""
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
+
+    if not mention:
+        raise HTTPException(status_code=404, detail="Mention not found")
+
+    incident_title = title or f"Sá»± cá»‘ tá»« mention: {mention.title or mention.url}"
+    incident = Incident(
+        mention_id=mention_id,
+        owner_id=current_user.id,
+        title=incident_title,
+        description=description or f"Sá»± cá»‘ Ä‘Æ°á»£c táº¡o tá»« mention: {mention.url}",
+        status=IncidentStatus.NEW
+    )
+    db.add(incident)
+    db.commit()
+    db.refresh(incident)
+
+    log = IncidentLog(
+        incident_id=incident.id,
+        user_id=current_user.id,
+        action="created",
+        new_status=incident.status.value,
+        notes=f"Sá»± cá»‘ Ä‘Æ°á»£c táº¡o tá»« mention #{mention_id}"
+    )
+    db.add(log)
+    db.commit()
+
+    return {
+        "id": incident.id,
+        "mention_id": incident.mention_id,
+        "title": incident.title,
+        "status": incident.status.value,
+        "created_at": incident.created_at.isoformat() if incident.created_at else None
     }
 
 
@@ -139,9 +310,10 @@ def delete_mention(
     mention = db.execute(
         select(Mention).where(Mention.id == mention_id)
     ).scalar_one_or_none()
-    
+
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
-    
+
     db.delete(mention)
     db.commit()
+

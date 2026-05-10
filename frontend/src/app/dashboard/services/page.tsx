@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Search, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, FileText, DollarSign } from 'lucide-react';
-import { services as servicesApi } from '@/lib/api';
+import { services as servicesApi, serviceRequests as serviceRequestsApi, getErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface ServiceCategory {
@@ -87,15 +87,15 @@ export default function ServicesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [servicesData, requestsData, summaryData] = await Promise.all([
+      const [servicesData, requestsData, summaryData] = await Promise.allSettled([
         servicesApi.list({ is_active: true }),
-        servicesApi.listRequests({ limit: 50 }),
+        serviceRequestsApi.list({ limit: 50 }),
         servicesApi.getDashboardSummary()
       ]);
       
-      setServices(servicesData);
-      setServiceRequests(requestsData);
-      setDashboardSummary(summaryData);
+      if (servicesData.status === 'fulfilled') setServices(servicesData.value);
+      if (requestsData.status === 'fulfilled') setServiceRequests(requestsData.value);
+      if (summaryData.status === 'fulfilled') setDashboardSummary(summaryData.value);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast.error('Lỗi khi tải dữ liệu dịch vụ');
@@ -124,14 +124,18 @@ export default function ServicesPage() {
   };
   
   const handleSubmitRequest = async () => {
+    if (!requestForm.request_reason || !requestForm.desired_outcome) {
+      toast.error('Vui lòng điền đầy đủ lý do và kết quả mong muốn');
+      return;
+    }
     try {
-      await servicesApi.createRequest(requestForm);
+      await serviceRequestsApi.create(requestForm);
       toast.success('Tạo yêu cầu dịch vụ thành công!');
       setShowCreateRequest(false);
-      fetchData(); // Refresh data
+      fetchData();
     } catch (error: any) {
       console.error('Error creating request:', error);
-      toast.error('Lỗi khi tạo yêu cầu dịch vụ');
+      toast.error(getErrorMessage(error) || 'Lỗi khi tạo yêu cầu dịch vụ');
     }
   };
 

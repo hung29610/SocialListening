@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from app.models.alert import AlertSeverity, AlertStatus
@@ -44,8 +44,7 @@ class AlertResponse(AlertBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class AlertFilter(BaseModel):
@@ -87,5 +86,5 @@ class NotificationChannelResponse(NotificationChannelBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
+

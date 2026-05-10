@@ -94,10 +94,10 @@ export default function KeywordsPage() {
     try {
       await keywordsApi.createGroup({
         name: newGroup.name,
-        description: newGroup.description || null,
+        description: newGroup.description || undefined,
         priority: newGroup.priority,
         is_active: true
-      });
+      } as any);
       
       setShowAddGroupModal(false);
       setNewGroup({ name: '', description: '', priority: 3 });
@@ -118,10 +118,9 @@ export default function KeywordsPage() {
     try {
       await keywordsApi.createKeyword({
         keyword: newKeyword.keyword,
-        keyword_type: newKeyword.keyword_type,
         group_id: selectedGroupId,
-        is_active: true
-      });
+        is_active: true,
+      } as any);
       
       setShowAddKeywordModal(false);
       setNewKeyword({ keyword: '', keyword_type: 'general' });

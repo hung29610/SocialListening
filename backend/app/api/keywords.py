@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, delete
 from typing import List
@@ -79,7 +79,7 @@ def get_keyword_group(
     if not group:
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
-    return KeywordGroupResponse.from_orm(group)
+    return KeywordGroupResponse.model_validate(group)
 
 
 @router.put("/groups/{group_id}", response_model=KeywordGroupResponse)
@@ -104,7 +104,7 @@ def update_keyword_group(
     db.commit()
     db.refresh(group)
     
-    return KeywordGroupResponse.from_orm(group)
+    return KeywordGroupResponse.model_validate(group)
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -144,7 +144,7 @@ def list_keywords_in_group(
     result = db.execute(query)
     keywords = result.scalars().all()
     
-    return [KeywordResponse.from_orm(k) for k in keywords]
+    return [KeywordResponse.model_validate(k) for k in keywords]
 
 
 @router.post("/keywords", response_model=KeywordResponse, status_code=status.HTTP_201_CREATED)
@@ -167,7 +167,7 @@ def create_keyword(
     db.commit()
     db.refresh(keyword)
     
-    return KeywordResponse.from_orm(keyword)
+    return KeywordResponse.model_validate(keyword)
 
 
 @router.get("/keywords/{keyword_id}", response_model=KeywordResponse)
@@ -184,7 +184,7 @@ def get_keyword(
     if not keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
     
-    return KeywordResponse.from_orm(keyword)
+    return KeywordResponse.model_validate(keyword)
 
 
 @router.put("/keywords/{keyword_id}", response_model=KeywordResponse)
@@ -209,7 +209,7 @@ def update_keyword(
     db.commit()
     db.refresh(keyword)
     
-    return KeywordResponse.from_orm(keyword)
+    return KeywordResponse.model_validate(keyword)
 
 
 @router.delete("/keywords/{keyword_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -248,3 +248,4 @@ def delete_all_keywords_in_group(
     # Delete all keywords
     db.execute(delete(Keyword).where(Keyword.group_id == group_id))
     db.commit()
+

@@ -1,484 +1,374 @@
-#!/usr/bin/env python3
 """
-Seed Service Catalog Data
+Seed Services — chạy khi startup nếu bảng services trống.
+Chỉ chứa dịch vụ hợp pháp, tuân thủ pháp luật.
 """
-
-import sys
-import os
-
-# Add the backend directory to Python path
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, backend_dir)
-
 from sqlalchemy.orm import Session
-from app.core.database import SessionLocal
-from app.models.service import (
-    ServiceCategory, Service, ServiceType, Platform, RiskLevel
-)
-from decimal import Decimal
+from sqlalchemy import select, func
 
 
-def seed_service_categories(db: Session):
-    """Seed service categories"""
-    categories = [
-        {
-            "name": "Crisis Consulting & Handling",
-            "description": "Professional crisis assessment, response planning, and executive briefing services"
-        },
-        {
-            "name": "Negative Content Monitoring",
-            "description": "Continuous monitoring and analysis of negative mentions and high-risk content"
-        },
-        {
-            "name": "Legal Takedown & Correction Request",
-            "description": "Legal compliance services for takedown requests, corrections, and evidence collection"
-        },
-        {
-            "name": "Press/Media Handling",
-            "description": "Professional media response, correction letters, and press monitoring services"
-        },
-        {
-            "name": "Copyright & Brand Protection",
-            "description": "Brand asset monitoring and copyright violation evidence preparation"
-        },
-        {
-            "name": "Community Response Planning",
-            "description": "Public and private response drafting, comment guides, and reputation management"
-        },
-        {
-            "name": "Monthly Reputation Management",
-            "description": "Ongoing reputation health monitoring and action plan reviews"
-        }
+def seed_services_if_empty(db: Session):
+    """Seed service categories and services if tables are empty."""
+    from app.models.service import ServiceCategory, Service, ServiceType, Platform, RiskLevel
+
+    # Check if already seeded
+    count = db.execute(select(func.count(Service.id))).scalar() or 0
+    if count > 0:
+        return  # Already seeded
+
+    print("🌱 Seeding service categories and services...")
+
+    # ── Categories ────────────────────────────────────────────────────────────
+    categories_data = [
+        {"name": "Tư vấn & Xử lý khủng hoảng", "description": "Dịch vụ tư vấn và lập phương án xử lý khủng hoảng truyền thông"},
+        {"name": "Giám sát & Phân tích", "description": "Theo dõi và phân tích đề cập trên mạng xã hội và báo chí"},
+        {"name": "Pháp lý & Gỡ nội dung", "description": "Soạn thảo văn bản pháp lý, yêu cầu đính chính và gỡ bỏ nội dung vi phạm"},
+        {"name": "Báo chí & Truyền thông", "description": "Quản lý quan hệ báo chí và soạn thảo phản hồi truyền thông"},
+        {"name": "Bản quyền & Sở hữu trí tuệ", "description": "Bảo vệ thương hiệu và xử lý vi phạm bản quyền"},
+        {"name": "Phản hồi cộng đồng", "description": "Soạn thảo phản hồi công khai và riêng tư cho khách hàng"},
+        {"name": "Báo cáo & Phân tích sức khỏe thương hiệu", "description": "Báo cáo định kỳ về sức khỏe thương hiệu và hoạt động thương hiệu"},
     ]
-    
-    for cat_data in categories:
-        existing = db.query(ServiceCategory).filter(ServiceCategory.name == cat_data["name"]).first()
-        if not existing:
-            category = ServiceCategory(**cat_data)
-            db.add(category)
-    
+
+    categories = {}
+    for cat_data in categories_data:
+        cat = db.execute(
+            select(ServiceCategory).where(ServiceCategory.name == cat_data["name"])
+        ).scalar_one_or_none()
+        if not cat:
+            cat = ServiceCategory(**cat_data, is_active=True)
+            db.add(cat)
+            db.flush()
+        categories[cat_data["name"]] = cat
+
     db.commit()
-    print(f"✅ Seeded {len(categories)} service categories")
 
-
-def seed_services(db: Session):
-    """Seed services"""
-    # Get categories
-    categories = {cat.name: cat.id for cat in db.query(ServiceCategory).all()}
-    
-    services = [
-        # Crisis Consulting & Handling
+    # ── Services ──────────────────────────────────────────────────────────────
+    services_data = [
+        # Tư vấn & Xử lý khủng hoảng
         {
-            "category_id": categories["Crisis Consulting & Handling"],
-            "code": "CRISIS_ASSESS",
-            "name": "Crisis Situation Assessment",
-            "description": "Analyze risk level from collected mentions, classify crisis level 1-5, identify key sources and recommended actions",
+            "category": "Tư vấn & Xử lý khủng hoảng",
+            "code": "CRI-001",
+            "name": "Đánh giá tình huống khủng hoảng",
+            "description": "Phân tích và đánh giá mức độ nghiêm trọng của tình huống khủng hoảng truyền thông",
             "service_type": ServiceType.CRISIS_CONSULTING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Professional consulting and risk assessment services",
-            "workflow_template": {
-                "steps": [
-                    "Collect and review all related mentions",
-                    "Analyze risk level and crisis severity",
-                    "Identify key sources and influencers",
-                    "Classify crisis level (1-5)",
-                    "Prepare recommended action plan",
-                    "Generate executive summary"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Risk assessment report",
-                    "Crisis timeline analysis",
-                    "Recommended action plan",
-                    "Key stakeholder identification"
-                ]
-            },
-            "estimated_duration": "4-8 hours",
+            "risk_level": RiskLevel.HIGH,
+            "estimated_duration": "4-8 giờ",
             "sla_hours": 8,
-            "base_price": Decimal("5000000"),  # 5M VND
-            "min_quantity": 1,
-            "unit": "assessment",
-            "risk_level": RiskLevel.MEDIUM,
-            "requires_approval": True
+            "unit": "lần",
+            "requires_approval": False,
         },
         {
-            "category_id": categories["Crisis Consulting & Handling"],
-            "code": "CRISIS_PLAN",
-            "name": "Crisis Response Plan",
-            "description": "Create comprehensive response strategy with department assignments and communication framework",
+            "category": "Tư vấn & Xử lý khủng hoảng",
+            "code": "CRI-002",
+            "name": "Lập phương án xử lý khủng hoảng",
+            "description": "Xây dựng kế hoạch chi tiết để xử lý và kiểm soát khủng hoảng truyền thông",
             "service_type": ServiceType.CRISIS_CONSULTING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Strategic consulting and communication planning",
-            "workflow_template": {
-                "steps": [
-                    "Review crisis assessment",
-                    "Define response strategy",
-                    "Assign department responsibilities",
-                    "Create communication messages",
-                    "Define approval workflow",
-                    "Prepare implementation timeline"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Crisis response strategy",
-                    "RACI matrix",
-                    "Message framework",
-                    "Implementation timeline"
-                ]
-            },
-            "estimated_duration": "1-2 days",
-            "sla_hours": 48,
-            "base_price": Decimal("8000000"),  # 8M VND
-            "min_quantity": 1,
-            "unit": "plan",
             "risk_level": RiskLevel.HIGH,
-            "requires_approval": True
+            "estimated_duration": "1-2 ngày",
+            "sla_hours": 48,
+            "unit": "lần",
+            "requires_approval": True,
         },
         {
-            "category_id": categories["Crisis Consulting & Handling"],
-            "code": "EXEC_BRIEF",
-            "name": "Executive Crisis Briefing",
-            "description": "Generate concise executive report summarizing situation, risk, timeline, and proposed actions",
-            "service_type": ServiceType.CRISIS_CONSULTING,
+            "category": "Tư vấn & Xử lý khủng hoảng",
+            "code": "CRI-003",
+            "name": "Báo cáo nhanh cho lãnh đạo",
+            "description": "Tổng hợp và trình bày tình hình khủng hoảng cho cấp lãnh đạo",
+            "service_type": ServiceType.AI_REPORTING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Executive reporting and strategic briefing",
-            "workflow_template": {
-                "steps": [
-                    "Compile situation summary",
-                    "Assess risk and impact",
-                    "Create timeline of events",
-                    "Propose immediate actions",
-                    "Prepare executive presentation",
-                    "Include action checklist"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Executive brief document",
-                    "Action checklist",
-                    "Risk summary",
-                    "Timeline visualization"
-                ]
-            },
-            "estimated_duration": "2-4 hours",
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "2-4 giờ",
             "sla_hours": 4,
-            "base_price": Decimal("3000000"),  # 3M VND
-            "min_quantity": 1,
-            "unit": "briefing",
-            "risk_level": RiskLevel.MEDIUM,
-            "requires_approval": True
+            "unit": "báo cáo",
+            "requires_approval": False,
         },
-        
-        # Negative Content Monitoring
+        # Giám sát & Phân tích
         {
-            "category_id": categories["Negative Content Monitoring"],
-            "code": "MONTHLY_MONITOR",
-            "name": "Monthly Negative Mention Monitoring",
-            "description": "Continuous monitoring of negative mentions by configured keywords and sources with regular reporting",
+            "category": "Giám sát & Phân tích",
+            "code": "MON-001",
+            "name": "Theo dõi mention tiêu cực hằng tháng",
+            "description": "Giám sát và phân tích các đề cập tiêu cực về thương hiệu trên các nền tảng mạng xã hội",
             "service_type": ServiceType.MONITORING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Public content monitoring and analysis services",
-            "workflow_template": {
-                "steps": [
-                    "Configure monitoring parameters",
-                    "Collect mentions daily",
-                    "Analyze sentiment and risk",
-                    "Categorize by severity",
-                    "Generate weekly summaries",
-                    "Compile monthly report"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Weekly monitoring reports",
-                    "Monthly comprehensive analysis",
-                    "Trend analysis",
-                    "Risk alerts"
-                ]
-            },
-            "estimated_duration": "Ongoing",
-            "sla_hours": 168,  # Weekly reporting
-            "base_price": Decimal("12000000"),  # 12M VND per month
-            "min_quantity": 1,
-            "unit": "month",
-            "risk_level": RiskLevel.LOW,
-            "requires_approval": False
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "1 tháng",
+            "sla_hours": 720,
+            "unit": "tháng",
+            "requires_approval": False,
         },
         {
-            "category_id": categories["Negative Content Monitoring"],
-            "code": "HIGH_RISK_REVIEW",
-            "name": "High-Risk Mention Review",
-            "description": "Detailed analysis of specific high-risk mentions including accuracy assessment and response recommendations",
+            "category": "Giám sát & Phân tích",
+            "code": "MON-002",
+            "name": "Rà soát mention rủi ro cao",
+            "description": "Phân tích chuyên sâu các đề cập có chỉ số rủi ro cao",
             "service_type": ServiceType.MONITORING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Content analysis and risk assessment",
-            "workflow_template": {
-                "steps": [
-                    "Review mention content",
-                    "Verify factual accuracy",
-                    "Assess source credibility",
-                    "Analyze potential impact",
-                    "Recommend response strategy",
-                    "Prepare detailed report"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Detailed mention analysis",
-                    "Accuracy assessment",
-                    "Source influence report",
-                    "Response recommendations"
-                ]
-            },
-            "estimated_duration": "2-6 hours",
-            "sla_hours": 6,
-            "base_price": Decimal("2000000"),  # 2M VND
-            "min_quantity": 1,
-            "unit": "review",
-            "risk_level": RiskLevel.MEDIUM,
-            "requires_approval": False
-        },
-        
-        # Legal Takedown & Correction Request
-        {
-            "category_id": categories["Legal Takedown & Correction Request"],
-            "code": "LEGAL_TAKEDOWN",
-            "name": "Legal Takedown Request Draft",
-            "description": "Prepare legal and compliant takedown request drafts with evidence and legal basis",
-            "service_type": ServiceType.LEGAL_TAKEDOWN,
-            "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Legal document preparation and compliance review",
-            "workflow_template": {
-                "steps": [
-                    "Review content and evidence",
-                    "Identify legal basis",
-                    "Draft takedown request",
-                    "Include supporting evidence",
-                    "Legal compliance review",
-                    "Prepare for human approval"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Legal takedown request draft",
-                    "Evidence package",
-                    "Legal basis documentation",
-                    "Compliance checklist"
-                ]
-            },
-            "estimated_duration": "1-2 days",
-            "sla_hours": 48,
-            "base_price": Decimal("15000000"),  # 15M VND
-            "min_quantity": 1,
-            "unit": "request",
             "risk_level": RiskLevel.HIGH,
-            "requires_approval": True
+            "estimated_duration": "1-3 ngày",
+            "sla_hours": 72,
+            "unit": "lần",
+            "requires_approval": False,
         },
         {
-            "category_id": categories["Legal Takedown & Correction Request"],
-            "code": "CORRECTION_REQ",
-            "name": "Correction Request Draft",
-            "description": "Create professional correction requests for false or misleading information",
-            "service_type": ServiceType.LEGAL_TAKEDOWN,
+            "category": "Giám sát & Phân tích",
+            "code": "MON-003",
+            "name": "Theo dõi nguồn rủi ro",
+            "description": "Giám sát các nguồn tin có khả năng phát sinh nội dung tiêu cực",
+            "service_type": ServiceType.MONITORING,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Factual correction and clarification requests",
-            "workflow_template": {
-                "steps": [
-                    "Identify inaccurate information",
-                    "Gather correct facts",
-                    "Draft correction request",
-                    "Include supporting evidence",
-                    "Review tone and approach",
-                    "Prepare for approval"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Correction request draft",
-                    "Fact verification report",
-                    "Supporting documentation",
-                    "Communication strategy"
-                ]
-            },
-            "estimated_duration": "4-8 hours",
-            "sla_hours": 24,
-            "base_price": Decimal("8000000"),  # 8M VND
-            "min_quantity": 1,
-            "unit": "request",
             "risk_level": RiskLevel.MEDIUM,
-            "requires_approval": True
+            "estimated_duration": "Liên tục",
+            "sla_hours": None,
+            "unit": "tháng",
+            "requires_approval": False,
         },
+        # Pháp lý & Gỡ nội dung
         {
-            "category_id": categories["Legal Takedown & Correction Request"],
-            "code": "EVIDENCE_DOSSIER",
-            "name": "Evidence Dossier",
-            "description": "Comprehensive evidence collection including URLs, screenshots, metadata, and analysis",
+            "category": "Pháp lý & Gỡ nội dung",
+            "code": "LEG-001",
+            "name": "Lập hồ sơ bằng chứng",
+            "description": "Thu thập và tổ chức bằng chứng vi phạm để phục vụ quy trình pháp lý",
             "service_type": ServiceType.EVIDENCE_COLLECTION,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Evidence collection and documentation services",
-            "workflow_template": {
-                "steps": [
-                    "Collect all relevant URLs",
-                    "Capture screenshots",
-                    "Extract metadata",
-                    "Document timestamps",
-                    "Organize evidence",
-                    "Prepare analysis summary"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Evidence collection report",
-                    "Screenshot archive",
-                    "Metadata documentation",
-                    "Timeline analysis"
-                ]
-            },
-            "estimated_duration": "4-12 hours",
-            "sla_hours": 24,
-            "base_price": Decimal("5000000"),  # 5M VND
-            "min_quantity": 1,
-            "unit": "dossier",
-            "risk_level": RiskLevel.LOW,
-            "requires_approval": False
+            "risk_level": RiskLevel.HIGH,
+            "estimated_duration": "1-3 ngày",
+            "sla_hours": 72,
+            "unit": "hồ sơ",
+            "requires_approval": True,
         },
-        
-        # Press/Media Handling
         {
-            "category_id": categories["Press/Media Handling"],
-            "code": "PRESS_RESPONSE",
-            "name": "Press Response Draft",
-            "description": "Professional press response drafts for media inquiries with appropriate tone and messaging",
+            "category": "Pháp lý & Gỡ nội dung",
+            "code": "LEG-002",
+            "name": "Soạn yêu cầu đính chính",
+            "description": "Soạn thảo văn bản yêu cầu đính chính thông tin sai lệch gửi tới cơ quan báo chí hoặc nền tảng",
+            "service_type": ServiceType.LEGAL_TAKEDOWN,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.HIGH,
+            "legal_basis": "Luật Báo chí 2016, Luật An ninh mạng 2018",
+            "estimated_duration": "1-2 ngày",
+            "sla_hours": 48,
+            "unit": "văn bản",
+            "requires_approval": True,
+        },
+        {
+            "category": "Pháp lý & Gỡ nội dung",
+            "code": "LEG-003",
+            "name": "Soạn yêu cầu gỡ bỏ hợp pháp",
+            "description": "Soạn thảo văn bản pháp lý yêu cầu gỡ bỏ nội dung vi phạm pháp luật",
+            "service_type": ServiceType.LEGAL_TAKEDOWN,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.CRITICAL,
+            "legal_basis": "Luật An ninh mạng 2018, Nghị định 13/2023/NĐ-CP",
+            "estimated_duration": "2-5 ngày",
+            "sla_hours": 120,
+            "unit": "văn bản",
+            "requires_approval": True,
+        },
+        {
+            "category": "Pháp lý & Gỡ nội dung",
+            "code": "LEG-004",
+            "name": "Chuẩn bị bộ hồ sơ báo cáo nền tảng",
+            "description": "Chuẩn bị đầy đủ hồ sơ để báo cáo vi phạm lên nền tảng mạng xã hội theo đúng quy trình",
+            "service_type": ServiceType.LEGAL_TAKEDOWN,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.HIGH,
+            "estimated_duration": "1-3 ngày",
+            "sla_hours": 72,
+            "unit": "bộ hồ sơ",
+            "requires_approval": True,
+        },
+        # Báo chí & Truyền thông
+        {
+            "category": "Báo chí & Truyền thông",
+            "code": "MED-001",
+            "name": "Soạn phản hồi báo chí",
+            "description": "Soạn thảo tuyên bố báo chí chính thức để phản hồi các thông tin tiêu cực",
             "service_type": ServiceType.PRESS_MEDIA,
             "platform": Platform.NEWS_MEDIA,
-            "legal_basis": "Media relations and public communication",
-            "workflow_template": {
-                "steps": [
-                    "Analyze media inquiry",
-                    "Determine response tone",
-                    "Draft response message",
-                    "Review legal implications",
-                    "Ensure brand consistency",
-                    "Prepare for approval"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Press response draft",
-                    "Tone and messaging guide",
-                    "Key points summary",
-                    "Risk assessment"
-                ]
-            },
-            "estimated_duration": "2-6 hours",
-            "sla_hours": 12,
-            "base_price": Decimal("6000000"),  # 6M VND
-            "min_quantity": 1,
-            "unit": "response",
             "risk_level": RiskLevel.HIGH,
-            "requires_approval": True
+            "estimated_duration": "4-24 giờ",
+            "sla_hours": 24,
+            "unit": "văn bản",
+            "requires_approval": True,
         },
-        
-        # Community Response Planning
         {
-            "category_id": categories["Community Response Planning"],
-            "code": "PUBLIC_RESPONSE",
-            "name": "Public Response Draft",
-            "description": "Generate appropriate public responses to negative posts, comments, or articles",
+            "category": "Báo chí & Truyền thông",
+            "code": "MED-002",
+            "name": "Soạn công văn yêu cầu báo chí đính chính",
+            "description": "Soạn thảo công văn chính thức yêu cầu cơ quan báo chí đính chính thông tin",
+            "service_type": ServiceType.PRESS_MEDIA,
+            "platform": Platform.NEWS_MEDIA,
+            "risk_level": RiskLevel.HIGH,
+            "legal_basis": "Luật Báo chí 2016 Điều 42",
+            "estimated_duration": "1-2 ngày",
+            "sla_hours": 48,
+            "unit": "công văn",
+            "requires_approval": True,
+        },
+        {
+            "category": "Báo chí & Truyền thông",
+            "code": "MED-003",
+            "name": "Theo dõi bài báo liên quan",
+            "description": "Giám sát các bài báo liên quan đến thương hiệu trên các tờ báo điện tử",
+            "service_type": ServiceType.PRESS_MEDIA,
+            "platform": Platform.NEWS_MEDIA,
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "Liên tục",
+            "sla_hours": None,
+            "unit": "tháng",
+            "requires_approval": False,
+        },
+        # Bản quyền & Sở hữu trí tuệ
+        {
+            "category": "Bản quyền & Sở hữu trí tuệ",
+            "code": "CPR-001",
+            "name": "Theo dõi sử dụng tài sản thương hiệu",
+            "description": "Giám sát việc sử dụng logo, tên thương hiệu và tài sản trí tuệ trên các nền tảng",
+            "service_type": ServiceType.COPYRIGHT_PROTECTION,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "Liên tục",
+            "sla_hours": None,
+            "unit": "tháng",
+            "requires_approval": False,
+        },
+        {
+            "category": "Bản quyền & Sở hữu trí tuệ",
+            "code": "CPR-002",
+            "name": "Hồ sơ bằng chứng vi phạm bản quyền",
+            "description": "Lập hồ sơ bằng chứng vi phạm bản quyền theo quy trình pháp lý",
+            "service_type": ServiceType.COPYRIGHT_PROTECTION,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.HIGH,
+            "legal_basis": "Luật Sở hữu trí tuệ 2005 (sửa đổi 2022)",
+            "estimated_duration": "2-5 ngày",
+            "sla_hours": 120,
+            "unit": "hồ sơ",
+            "requires_approval": True,
+        },
+        {
+            "category": "Bản quyền & Sở hữu trí tuệ",
+            "code": "CPR-003",
+            "name": "Soạn yêu cầu xử lý vi phạm bản quyền",
+            "description": "Soạn thảo văn bản pháp lý yêu cầu xử lý vi phạm bản quyền",
+            "service_type": ServiceType.COPYRIGHT_PROTECTION,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.HIGH,
+            "legal_basis": "Luật Sở hữu trí tuệ 2005, DMCA",
+            "estimated_duration": "1-3 ngày",
+            "sla_hours": 72,
+            "unit": "văn bản",
+            "requires_approval": True,
+        },
+        # Phản hồi cộng đồng
+        {
+            "category": "Phản hồi cộng đồng",
+            "code": "COM-001",
+            "name": "Soạn phản hồi công khai",
+            "description": "Soạn thảo phản hồi công khai để đăng tải trên mạng xã hội hoặc website",
             "service_type": ServiceType.COMMUNITY_RESPONSE,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Public communication and community management",
-            "workflow_template": {
-                "steps": [
-                    "Analyze original content",
-                    "Determine response approach",
-                    "Draft public response",
-                    "Review tone and messaging",
-                    "Ensure compliance",
-                    "Prepare for approval"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Public response draft",
-                    "Messaging strategy",
-                    "Tone guidelines",
-                    "Compliance review"
-                ]
-            },
-            "estimated_duration": "1-3 hours",
-            "sla_hours": 6,
-            "base_price": Decimal("3000000"),  # 3M VND
-            "min_quantity": 1,
-            "unit": "response",
             "risk_level": RiskLevel.MEDIUM,
-            "requires_approval": True
+            "estimated_duration": "4-8 giờ",
+            "sla_hours": 8,
+            "unit": "bài viết",
+            "requires_approval": True,
         },
-        
-        # Monthly Reputation Management
         {
-            "category_id": categories["Monthly Reputation Management"],
-            "code": "REPUTATION_REPORT",
-            "name": "Monthly Reputation Health Report",
-            "description": "Comprehensive monthly analysis of mentions, sentiment, risks, and response outcomes",
+            "category": "Phản hồi cộng đồng",
+            "code": "COM-002",
+            "name": "Soạn phản hồi riêng cho khách hàng",
+            "description": "Soạn thảo phản hồi cá nhân hóa gửi riêng cho từng khách hàng hoặc nhóm khách hàng",
+            "service_type": ServiceType.COMMUNITY_RESPONSE,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "2-4 giờ",
+            "sla_hours": 4,
+            "unit": "phản hồi",
+            "requires_approval": False,
+        },
+        {
+            "category": "Phản hồi cộng đồng",
+            "code": "COM-003",
+            "name": "Bộ hướng dẫn phản hồi bình luận",
+            "description": "Xây dựng bộ hướng dẫn và mẫu phản hồi cho đội ngũ quản lý cộng đồng",
+            "service_type": ServiceType.COMMUNITY_RESPONSE,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.LOW,
+            "estimated_duration": "2-5 ngày",
+            "sla_hours": 120,
+            "unit": "bộ tài liệu",
+            "requires_approval": False,
+        },
+        {
+            "category": "Phản hồi cộng đồng",
+            "code": "COM-004",
+            "name": "Kế hoạch truyền thông pha loãng hợp pháp",
+            "description": "Lập kế hoạch đăng tải nội dung tích cực hợp pháp để cân bằng thông tin trên mạng",
             "service_type": ServiceType.REPUTATION_MANAGEMENT,
             "platform": Platform.ALL_PLATFORMS,
-            "legal_basis": "Reputation analysis and reporting services",
-            "workflow_template": {
-                "steps": [
-                    "Compile monthly data",
-                    "Analyze sentiment trends",
-                    "Assess risk patterns",
-                    "Review incident outcomes",
-                    "Generate insights",
-                    "Prepare recommendations"
-                ]
-            },
-            "deliverables": {
-                "items": [
-                    "Monthly reputation report",
-                    "Sentiment analysis",
-                    "Risk assessment",
-                    "Action recommendations"
-                ]
-            },
-            "estimated_duration": "1-2 days",
-            "sla_hours": 48,
-            "base_price": Decimal("10000000"),  # 10M VND
-            "min_quantity": 1,
-            "unit": "report",
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "3-7 ngày",
+            "sla_hours": 168,
+            "unit": "kế hoạch",
+            "requires_approval": True,
+        },
+        # Báo cáo & Phân tích sức khỏe thương hiệu
+        {
+            "category": "Báo cáo & Phân tích sức khỏe thương hiệu",
+            "code": "RPT-001",
+            "name": "Báo cáo sức khỏe thương hiệu hằng tháng",
+            "description": "Báo cáo toàn diện về sức khỏe thương hiệu được lập hằng tháng",
+            "service_type": ServiceType.AI_REPORTING,
+            "platform": Platform.ALL_PLATFORMS,
             "risk_level": RiskLevel.LOW,
-            "requires_approval": False
-        }
+            "estimated_duration": "2-3 ngày",
+            "sla_hours": 72,
+            "unit": "báo cáo",
+            "requires_approval": False,
+        },
+        {
+            "category": "Báo cáo & Phân tích sức khỏe thương hiệu",
+            "code": "RPT-002",
+            "name": "Theo dõi điểm sức khỏe thương hiệu",
+            "description": "Giám sát chỉ số sức khỏe thương hiệu theo thời gian thực",
+            "service_type": ServiceType.MONITORING,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.LOW,
+            "estimated_duration": "Liên tục",
+            "sla_hours": None,
+            "unit": "tháng",
+            "requires_approval": False,
+        },
+        {
+            "category": "Báo cáo & Phân tích sức khỏe thương hiệu",
+            "code": "RPT-003",
+            "name": "Rà soát kế hoạch hành động",
+            "description": "Đánh giá và cập nhật kế hoạch hành động dựa trên dữ liệu phân tích",
+            "service_type": ServiceType.AI_REPORTING,
+            "platform": Platform.ALL_PLATFORMS,
+            "risk_level": RiskLevel.MEDIUM,
+            "estimated_duration": "1-2 ngày",
+            "sla_hours": 48,
+            "unit": "lần",
+            "requires_approval": False,
+        },
     ]
-    
-    for service_data in services:
-        existing = db.query(Service).filter(Service.code == service_data["code"]).first()
+
+    for svc_data in services_data:
+        category_name = svc_data.pop("category")
+        cat = categories.get(category_name)
+        if not cat:
+            continue
+
+        existing = db.execute(
+            select(Service).where(Service.code == svc_data["code"])
+        ).scalar_one_or_none()
+
         if not existing:
-            service = Service(**service_data)
-            db.add(service)
-    
+            svc = Service(category_id=cat.id, is_active=True, **svc_data)
+            db.add(svc)
+
     db.commit()
-    print(f"✅ Seeded {len(services)} services")
-
-
-def main():
-    """Main seeding function"""
-    print("🌱 Seeding Service Catalog...")
-    
-    db = SessionLocal()
-    try:
-        seed_service_categories(db)
-        seed_services(db)
-        print("✅ Service catalog seeding completed!")
-    except Exception as e:
-        print(f"❌ Error seeding data: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-
-if __name__ == "__main__":
-    main()
+    print(f"✅ Seeded {len(services_data)} services across {len(categories_data)} categories")

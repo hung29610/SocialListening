@@ -1,9 +1,10 @@
 # Core FastAPI - Essential only
-fastapi==0.103.0
-uvicorn==0.23.2
-python-multipart==0.0.6
-pydantic==1.10.13
-email-validator==2.0.0
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9
+pydantic==2.7.4
+pydantic-settings==2.3.4
+email-validator==2.2.0
 
 # Database - Use pre-compiled wheels
 sqlalchemy==2.0.23

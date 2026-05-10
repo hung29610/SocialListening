@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, and_, or_
 from typing import List, Optional
@@ -62,7 +62,7 @@ def create_service_category(
     db.commit()
     db.refresh(category)
     
-    return ServiceCategoryResponse.from_orm(category)
+    return ServiceCategoryResponse.model_validate(category)
 
 
 @router.get("/categories/{category_id}", response_model=ServiceCategoryResponse)
@@ -79,7 +79,7 @@ def get_service_category(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    return ServiceCategoryResponse.from_orm(category)
+    return ServiceCategoryResponse.model_validate(category)
 
 
 @router.put("/categories/{category_id}", response_model=ServiceCategoryResponse)
@@ -103,7 +103,7 @@ def update_service_category(
     db.commit()
     db.refresh(category)
     
-    return ServiceCategoryResponse.from_orm(category)
+    return ServiceCategoryResponse.model_validate(category)
 
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -124,7 +124,9 @@ def delete_service_category(
     db.commit()
 
 
-# Services
+# â”€â”€ IMPORTANT: all named sub-routes MUST come before /{service_id} â”€â”€
+
+# Services â€” Dashboard Summary (must be before GET "" and GET /{service_id})
 @router.get("/dashboard-summary", response_model=ServiceDashboardSummary)
 def get_service_dashboard_summary(
     db: Session = Depends(get_db),
@@ -288,7 +290,7 @@ def create_service(
     # Load category relationship
     db.refresh(service, ['category'])
     
-    return ServiceResponse.from_orm(service)
+    return ServiceResponse.model_validate(service)
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)
@@ -305,7 +307,7 @@ def get_service(
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     
-    return ServiceResponse.from_orm(service)
+    return ServiceResponse.model_validate(service)
 
 
 @router.put("/{service_id}", response_model=ServiceResponse)
@@ -338,7 +340,7 @@ def update_service(
     db.commit()
     db.refresh(service)
     
-    return ServiceResponse.from_orm(service)
+    return ServiceResponse.model_validate(service)
 
 
 @router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -439,7 +441,7 @@ def create_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.get("/requests/{request_id}", response_model=ServiceRequestResponse)
@@ -458,7 +460,7 @@ def get_service_request(
     if not service_request:
         raise HTTPException(status_code=404, detail="Service request not found")
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.put("/requests/{request_id}", response_model=ServiceRequestResponse)
@@ -499,7 +501,7 @@ def update_service_request(
         db.add(log)
         db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 # Service Request Actions
@@ -541,7 +543,7 @@ def submit_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.post("/requests/{request_id}/approve", response_model=ServiceRequestResponse)
@@ -586,7 +588,7 @@ def approve_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.post("/requests/{request_id}/reject", response_model=ServiceRequestResponse)
@@ -628,7 +630,7 @@ def reject_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.post("/requests/{request_id}/complete", response_model=ServiceRequestResponse)
@@ -670,7 +672,7 @@ def complete_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 @router.post("/requests/{request_id}/cancel", response_model=ServiceRequestResponse)
@@ -711,7 +713,7 @@ def cancel_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.from_orm(service_request)
+    return ServiceRequestResponse.model_validate(service_request)
 
 
 # Service Request Logs
@@ -765,7 +767,7 @@ def create_service_request_log(
     db.commit()
     db.refresh(log)
     
-    return ServiceRequestLogResponse.from_orm(log)
+    return ServiceRequestLogResponse.model_validate(log)
 
 
 # Service Deliverables
@@ -818,7 +820,7 @@ def create_service_deliverable(
     db.commit()
     db.refresh(deliverable)
     
-    return ServiceDeliverableResponse.from_orm(deliverable)
+    return ServiceDeliverableResponse.model_validate(deliverable)
 
 
 @router.put("/deliverables/{deliverable_id}", response_model=ServiceDeliverableResponse)
@@ -842,4 +844,4 @@ def update_service_deliverable(
     db.commit()
     db.refresh(deliverable)
     
-    return ServiceDeliverableResponse.from_orm(deliverable)
+    return ServiceDeliverableResponse.model_validate(deliverable)

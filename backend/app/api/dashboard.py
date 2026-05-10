@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+﻿from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
 from datetime import datetime, timedelta
@@ -106,3 +106,4 @@ def get_dashboard(
             for a in latest_alerts
         ]
     }
+

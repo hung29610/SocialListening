@@ -19,27 +19,39 @@ from app.api import (
     services,
     admin
 )
+from app.api import service_requests
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    # Startup
     print("🚀 Starting Social Listening Platform...")
-    
-    # Create database tables (sync engine) - skip if already exists
+
+    # Create database tables
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created")
+        print("✅ Database tables created/verified")
     except Exception as e:
         print(f"⚠️  Database tables may already exist: {e}")
-    
+
+    # Seed service categories and services if empty
+    try:
+        from app.scripts.seed_services import seed_services_if_empty
+        from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            seed_services_if_empty(db)
+        finally:
+            db.close()
+        print("✅ Service seed check complete")
+    except Exception as e:
+        print(f"⚠️  Service seed skipped: {e}")
+
     print(f"📡 API running on http://localhost:8000")
     print(f"📚 API docs available at http://localhost:8000/docs")
-    
+
     yield
-    
-    # Shutdown
+
     print("👋 Shutting down...")
 
 
@@ -50,10 +62,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS - Allow all origins for now
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins temporarily
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,11 +86,14 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
-app.include_router(takedown.router, prefix="/api/takedown", tags=["Takedown"])
+app.include_router(takedown.router, prefix="/api/takedown", tags=["Legal Response"])
 app.include_router(services.router, prefix="/api/services", tags=["Services"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
-# Root endpoint
+# Service Requests on separate prefix to avoid path conflict with /api/services/{service_id}
+app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
+
+
 @app.get("/")
 async def root():
     return {

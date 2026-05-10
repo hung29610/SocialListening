@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from app.models.crawl import CrawlJobStatus
@@ -28,8 +28,7 @@ class CrawlJobResponse(CrawlJobBase):
     completed_at: Optional[datetime]
     metadata: Optional[Dict[str, Any]]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class CrawlJobFilter(BaseModel):
@@ -79,5 +78,5 @@ class ScanScheduleResponse(ScanScheduleBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
+

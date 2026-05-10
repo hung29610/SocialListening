@@ -30,8 +30,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class Token(BaseModel):
@@ -64,7 +63,7 @@ def register(user_data: UserCreate, db = Depends(get_db)):
     db.commit()
     db.refresh(user)
     
-    return UserResponse.from_orm(user)
+    return UserResponse.model_validate(user)
 
 
 @router.post("/login", response_model=Token)
@@ -102,4 +101,5 @@ def login(
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
+

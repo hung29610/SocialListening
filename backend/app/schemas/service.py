@@ -95,8 +95,7 @@ class ServiceCategoryResponse(ServiceCategoryBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Service Schemas
@@ -150,12 +149,7 @@ class ServiceResponse(ServiceBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
-        json_encoders = {
-            Decimal: lambda v: float(v) if v else None,
-            datetime: lambda v: v.isoformat() if v else None
-        }
+    model_config = {'from_attributes': True}
 
 
 # Service Request Schemas
@@ -206,8 +200,7 @@ class ServiceRequestResponse(ServiceRequestBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Service Request Action Schemas
@@ -251,8 +244,7 @@ class ServiceRequestLogResponse(ServiceRequestLogBase):
     created_by: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Service Deliverable Schemas
@@ -282,8 +274,7 @@ class ServiceDeliverableResponse(ServiceDeliverableBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Dashboard Schemas

@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+﻿from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import hashlib
 import requests
 from bs4 import BeautifulSoup
 import feedparser
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
@@ -20,11 +21,15 @@ from app.services.ai_service import analyze_mention_with_dummy_ai
 router = APIRouter()
 
 
+class ManualScanRequest(BaseModel):
+    keyword_group_ids: List[int]
+    source_ids: Optional[List[int]] = None
+    url: Optional[str] = None
+
+
 @router.post("/manual-scan")
 def manual_scan(
-    keyword_group_ids: List[int] = Body(...),
-    source_ids: List[int] = Body(default=None),
-    url: str = Body(default=None),
+    body: ManualScanRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -36,12 +41,12 @@ def manual_scan(
     
     # Get keyword groups and keywords
     keyword_groups = db.execute(
-        select(KeywordGroup).where(KeywordGroup.id.in_(keyword_group_ids))
+        select(KeywordGroup).where(KeywordGroup.id.in_(body.keyword_group_ids))
     ).scalars().all()
-    
+
     if not keyword_groups:
-        raise HTTPException(status_code=404, detail="No keyword groups found")
-    
+        raise HTTPException(status_code=404, detail="KhÃ´ng tÃ¬m tháº¥y nhÃ³m tá»« khÃ³a")
+
     # Get all keywords from these groups
     all_keywords = []
     for group in keyword_groups:
@@ -49,20 +54,19 @@ def manual_scan(
             select(Keyword).where(Keyword.group_id == group.id, Keyword.is_active == True)
         ).scalars().all()
         all_keywords.extend(keywords)
-    
+
     if not all_keywords:
-        raise HTTPException(status_code=400, detail="No active keywords found in selected groups")
-    
+        raise HTTPException(status_code=400, detail="KhÃ´ng cÃ³ tá»« khÃ³a hoáº¡t Ä‘á»™ng trong nhÃ³m Ä‘Ã£ chá»n")
+
     keyword_texts = [kw.keyword.lower() for kw in all_keywords]
-    
+
     # Determine sources to scan
     sources_to_scan = []
-    
-    if url:
-        # Create temporary source for custom URL
+
+    if body.url:
         temp_source = Source(
-            name=f"Manual scan: {url}",
-            url=url,
+            name=f"Manual scan: {body.url}",
+            url=body.url,
             source_type="website",
             is_active=True
         )
@@ -70,15 +74,15 @@ def manual_scan(
         db.commit()
         db.refresh(temp_source)
         sources_to_scan.append(temp_source)
-    elif source_ids:
+    elif body.source_ids:
         sources_to_scan = db.execute(
-            select(Source).where(Source.id.in_(source_ids), Source.is_active == True)
+            select(Source).where(Source.id.in_(body.source_ids), Source.is_active == True)
         ).scalars().all()
     else:
-        raise HTTPException(status_code=400, detail="Must provide either source_ids or url")
-    
+        raise HTTPException(status_code=400, detail="Pháº£i cung cáº¥p source_ids hoáº·c url")
+
     if not sources_to_scan:
-        raise HTTPException(status_code=404, detail="No active sources found")
+        raise HTTPException(status_code=404, detail="KhÃ´ng tÃ¬m tháº¥y nguá»“n hoáº¡t Ä‘á»™ng")
     
     # Scan each source
     total_mentions = 0
@@ -295,3 +299,4 @@ def get_scan_history(
         "page_size": page_size,
         "total_pages": ceil(total / page_size) if total > 0 else 1
     }
+

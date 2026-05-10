@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from app.models.incident import IncidentStatus
@@ -39,8 +39,7 @@ class IncidentResponse(IncidentBase):
     resolved_at: Optional[datetime]
     closed_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Incident Log Schemas
@@ -61,8 +60,7 @@ class IncidentLogResponse(BaseModel):
     notes: Optional[str]
     created_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Evidence File Schemas
@@ -82,8 +80,7 @@ class EvidenceFileResponse(EvidenceFileCreate):
     captured_by: Optional[int]
     captured_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Takedown Request Schemas
@@ -120,8 +117,7 @@ class TakedownRequestResponse(TakedownRequestBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Response Template Schemas
@@ -152,8 +148,7 @@ class ResponseTemplateResponse(ResponseTemplateBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Filters
@@ -171,3 +166,4 @@ class IncidentListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+

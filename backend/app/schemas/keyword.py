@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 from app.models.keyword import KeywordType, LogicOperator
@@ -31,8 +31,7 @@ class KeywordResponse(KeywordBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Keyword Group Schemas
@@ -62,8 +61,7 @@ class KeywordGroupResponse(KeywordGroupBase):
     updated_at: Optional[datetime] = None
     keywords: List[KeywordResponse] = []
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class KeywordGroupListResponse(KeywordGroupBase):
@@ -71,5 +69,5 @@ class KeywordGroupListResponse(KeywordGroupBase):
     created_at: datetime
     keyword_count: int = 0
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
+

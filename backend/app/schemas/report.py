@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from app.models.report import ReportType, ReportStatus
@@ -32,8 +32,7 @@ class ReportResponse(ReportBase):
     email_recipients: Optional[str]
     email_sent_at: Optional[datetime]
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class ReportFilter(BaseModel):
@@ -135,5 +134,5 @@ class SystemSettingResponse(SystemSettingBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
+

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+﻿from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from app.models.mention import SentimentScore
@@ -35,8 +35,7 @@ class MentionResponse(MentionBase):
     metadata: Optional[Dict[str, Any]]
     collected_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class MentionWithAnalysis(MentionResponse):
@@ -70,8 +69,7 @@ class AIAnalysisResponse(AIAnalysisBase):
     processing_time_ms: Optional[int]
     analyzed_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Search and Filter
@@ -93,3 +91,4 @@ class MentionListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+

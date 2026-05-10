@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+﻿from pydantic import BaseModel, Field, HttpUrl
 from datetime import datetime, time
 from typing import Optional, List, Dict, Any
 from app.models.source import SourceType, CrawlFrequency
@@ -50,8 +50,7 @@ class SourceResponse(SourceBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 # Source Group Schemas
@@ -77,8 +76,7 @@ class SourceGroupResponse(SourceGroupBase):
     updated_at: Optional[datetime] = None
     sources: List[SourceResponse] = []
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class SourceGroupListResponse(SourceGroupBase):
@@ -86,5 +84,5 @@ class SourceGroupListResponse(SourceGroupBase):
     created_at: datetime
     source_count: int = 0
     
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
+
