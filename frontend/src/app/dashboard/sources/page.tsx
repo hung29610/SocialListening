@@ -137,23 +137,25 @@ export default function SourcesPage() {
   );
 
   const getSourceIcon = (type: string) => {
-    switch (type) {
-      case 'facebook': return <Facebook className="w-5 h-5 text-blue-600" />;
-      case 'youtube': return <Youtube className="w-5 h-5 text-red-600" />;
-      default: return <Globe className="w-5 h-5 text-gray-600" />;
-    }
+    if (type.includes('facebook')) return <Facebook className="w-5 h-5 text-blue-600" />;
+    if (type.includes('youtube')) return <Youtube className="w-5 h-5 text-red-600" />;
+    return <Globe className="w-5 h-5 text-gray-600" />;
   };
 
   const getSourceTypeText = (type: string) => {
-    switch (type) {
-      case 'facebook': return 'Facebook';
-      case 'youtube': return 'YouTube';
-      case 'website': return 'Website';
-      case 'rss': return 'RSS Feed';
-      case 'twitter': return 'Twitter';
-      case 'instagram': return 'Instagram';
-      default: return type;
-    }
+    const typeMap: Record<string, string> = {
+      'facebook_page': 'Facebook Page',
+      'facebook_group': 'Facebook Group',
+      'facebook_profile': 'Facebook Profile',
+      'youtube_channel': 'YouTube Channel',
+      'youtube_video': 'YouTube Video',
+      'website': 'Website',
+      'news': 'News',
+      'rss': 'RSS Feed',
+      'forum': 'Forum',
+      'manual_url': 'Manual URL'
+    };
+    return typeMap[type] || type;
   };
 
   const getFrequencyText = (frequency: string) => {
@@ -352,11 +354,15 @@ export default function SourcesPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="website">Website</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="twitter">Twitter</option>
-                  <option value="instagram">Instagram</option>
+                  <option value="facebook_page">Facebook Page</option>
+                  <option value="facebook_group">Facebook Group</option>
+                  <option value="facebook_profile">Facebook Profile</option>
+                  <option value="youtube_channel">YouTube Channel</option>
+                  <option value="youtube_video">YouTube Video</option>
+                  <option value="news">News</option>
                   <option value="rss">RSS Feed</option>
+                  <option value="forum">Forum</option>
+                  <option value="manual_url">Manual URL</option>
                 </select>
               </div>
 
