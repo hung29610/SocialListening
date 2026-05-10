@@ -20,14 +20,20 @@ interface Service {
   description: string;
   service_type: string;
   platform: string;
+  legal_basis?: string;
+  workflow_template?: any;
+  deliverables?: any;
   estimated_duration: string;
   sla_hours: number;
   base_price: number;
+  min_quantity?: number;
   unit: string;
   risk_level: string;
   requires_approval: boolean;
   is_active: boolean;
   category: ServiceCategory;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface ServiceRequest {
