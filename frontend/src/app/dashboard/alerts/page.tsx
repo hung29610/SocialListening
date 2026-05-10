@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check, X } from 'lucide-react';
 import { alerts as alertsApi } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -32,20 +33,20 @@ export default function AlertsPage() {
   const handleAcknowledge = async (id: number) => {
     try {
       await alertsApi.acknowledge(id);
-      alert('Đã xác nhận cảnh báo');
+      toast.success('Đã xác nhận cảnh báo');
       fetchAlerts();
     } catch (error: any) {
-      alert('Lỗi: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi xác nhận cảnh báo');
     }
   };
 
   const handleResolve = async (id: number) => {
     try {
       await alertsApi.resolve(id);
-      alert('Đã giải quyết cảnh báo');
+      toast.success('Đã giải quyết cảnh báo');
       fetchAlerts();
     } catch (error: any) {
-      alert('Lỗi: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi giải quyết cảnh báo');
     }
   };
 
@@ -62,6 +63,8 @@ export default function AlertsPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Cảnh Báo</h1>
         <p className="text-sm text-gray-500 mt-1">Quản lý các cảnh báo từ hệ thống</p>

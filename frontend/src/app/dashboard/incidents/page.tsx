@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Eye } from 'lucide-react';
 import { incidents as incidentsApi } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<any[]>([]);
@@ -39,6 +40,8 @@ export default function IncidentsPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Sự Cố</h1>
         <p className="text-sm text-gray-500 mt-1">Quản lý các sự cố cần xử lý</p>

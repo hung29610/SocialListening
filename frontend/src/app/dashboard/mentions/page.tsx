@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Eye, Trash2, AlertTriangle, FileText } from 'lucide-react';
+import { Search, Eye, Trash2, AlertTriangle, FileText, X } from 'lucide-react';
 import { mentions as mentionsApi, alerts as alertsApi, incidents as incidentsApi } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function MentionsPage() {
   const [mentions, setMentions] = useState<any[]>([]);
@@ -29,7 +30,7 @@ export default function MentionsPage() {
       setTotalPages(data.total_pages);
     } catch (error: any) {
       console.error('Error fetching mentions:', error);
-      alert('Lỗi khi tải mentions: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi tải mentions');
     } finally {
       setLoading(false);
     }
@@ -42,7 +43,7 @@ export default function MentionsPage() {
       setShowDetailModal(true);
     } catch (error: any) {
       console.error('Error fetching mention detail:', error);
-      alert('Lỗi khi tải chi tiết mention');
+      toast.error('Lỗi khi tải chi tiết mention');
     }
   };
 
@@ -56,11 +57,11 @@ export default function MentionsPage() {
         severity: selectedMention.ai_analysis?.risk_score >= 70 ? 'high' : 'medium',
         message: `Risk score: ${selectedMention.ai_analysis?.risk_score}`
       });
-      alert('Tạo cảnh báo thành công!');
+      toast.success('Tạo cảnh báo thành công!');
       setShowDetailModal(false);
     } catch (error: any) {
       console.error('Error creating alert:', error);
-      alert('Lỗi khi tạo cảnh báo: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi tạo cảnh báo');
     }
   };
 
@@ -73,11 +74,11 @@ export default function MentionsPage() {
         title: `Incident: ${selectedMention.title || 'No title'}`,
         description: selectedMention.ai_analysis?.summary_vi || ''
       });
-      alert('Tạo sự cố thành công!');
+      toast.success('Tạo sự cố thành công!');
       setShowDetailModal(false);
     } catch (error: any) {
       console.error('Error creating incident:', error);
-      alert('Lỗi khi tạo sự cố: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi tạo sự cố');
     }
   };
 
@@ -86,11 +87,11 @@ export default function MentionsPage() {
     
     try {
       await mentionsApi.delete(id);
-      alert('Xóa mention thành công!');
+      toast.success('Xóa mention thành công!');
       fetchMentions();
     } catch (error: any) {
       console.error('Error deleting mention:', error);
-      alert('Lỗi khi xóa mention');
+      toast.error('Lỗi khi xóa mention');
     }
   };
 
@@ -120,6 +121,8 @@ export default function MentionsPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mentions</h1>
@@ -227,107 +230,138 @@ export default function MentionsPage() {
       {/* Detail Modal */}
       {showDetailModal && selectedMention && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b sticky top-0 bg-white">
-              <h2 className="text-xl font-bold">Chi tiết Mention</h2>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Basic Info */}
-              <div>
-                <h3 className="font-semibold text-lg">{selectedMention.title || 'No title'}</h3>
-                <p className="text-sm text-gray-600 mt-2">{selectedMention.content}</p>
-                <a 
-                  href={selectedMention.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline text-sm mt-2 inline-block"
-                >
-                  {selectedMention.url}
-                </a>
-              </div>
-
-              {/* AI Analysis */}
-              {selectedMention.ai_analysis && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-3">AI Analysis</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-sm text-gray-600">Sentiment:</span>
-                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getSentimentColor(selectedMention.ai_analysis.sentiment)}`}>
-                        {selectedMention.ai_analysis.sentiment}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">Risk Score:</span>
-                      <span className={`ml-2 font-semibold ${getRiskColor(selectedMention.ai_analysis.risk_score)}`}>
-                        {selectedMention.ai_analysis.risk_score}/100
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">Crisis Level:</span>
-                      <span className="ml-2 font-semibold">{selectedMention.ai_analysis.crisis_level}/5</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">Suggested Action:</span>
-                      <span className="ml-2 font-semibold">{selectedMention.ai_analysis.suggested_action}</span>
-                    </div>
-                  </div>
-                  {selectedMention.ai_analysis.summary_vi && (
-                    <div className="mt-4">
-                      <span className="text-sm text-gray-600">Summary:</span>
-                      <p className="text-sm mt-1">{selectedMention.ai_analysis.summary_vi}</p>
-                    </div>
-                  )}
-                  {selectedMention.ai_analysis.responsible_department && (
-                    <div className="mt-2">
-                      <span className="text-sm text-gray-600">Department:</span>
-                      <span className="ml-2 text-sm font-medium">{selectedMention.ai_analysis.responsible_department}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Matched Keywords */}
-              {selectedMention.matched_keywords && selectedMention.matched_keywords.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Matched Keywords</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMention.matched_keywords.map((kw: any, idx: number) => (
-                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                        {kw.keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleCreateAlert}
-                  className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Tạo Cảnh Báo
-                </button>
-                <button
-                  onClick={handleCreateIncident}
-                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Tạo Sự Cố
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 border-t bg-gray-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b sticky top-0 bg-white rounded-t-xl flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Chi tiết Mention</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
               >
-                Đóng
+                <X className="w-6 h-6" />
               </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Basic Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-3">{selectedMention.title || 'No title'}</h3>
+                    <p className="text-gray-700 mb-4 leading-relaxed">{selectedMention.content}</p>
+                    <a 
+                      href={selectedMention.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Xem nguồn gốc →
+                    </a>
+                  </div>
+
+                  {/* Matched Keywords */}
+                  {selectedMention.matched_keywords && selectedMention.matched_keywords.length > 0 && (
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h4 className="font-semibold mb-3 text-blue-900">Từ khóa khớp</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMention.matched_keywords.map((kw: any, idx: number) => (
+                          <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                            {kw.keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar */}
+                <div className="space-y-6">
+                  {/* AI Analysis */}
+                  {selectedMention.ai_analysis && (
+                    <div className="bg-white border rounded-lg p-4">
+                      <h4 className="font-semibold mb-4 text-gray-900">AI Analysis</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Sentiment:</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSentimentColor(selectedMention.ai_analysis.sentiment)}`}>
+                            {selectedMention.ai_analysis.sentiment}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Risk Score:</span>
+                          <span className={`font-bold ${getRiskColor(selectedMention.ai_analysis.risk_score)}`}>
+                            {selectedMention.ai_analysis.risk_score}/100
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Crisis Level:</span>
+                          <span className="font-bold text-gray-900">{selectedMention.ai_analysis.crisis_level}/5</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Action:</span>
+                          <span className="text-sm font-medium text-gray-900">{selectedMention.ai_analysis.suggested_action}</span>
+                        </div>
+                        {selectedMention.ai_analysis.responsible_department && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Department:</span>
+                            <span className="text-sm font-medium text-gray-900">{selectedMention.ai_analysis.responsible_department}</span>
+                          </div>
+                        )}
+                      </div>
+                      {selectedMention.ai_analysis.summary_vi && (
+                        <div className="mt-4 pt-4 border-t">
+                          <span className="text-sm text-gray-600 block mb-2">Tóm tắt:</span>
+                          <p className="text-sm text-gray-800 bg-gray-50 p-3 rounded">{selectedMention.ai_analysis.summary_vi}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="bg-white border rounded-lg p-4">
+                    <h4 className="font-semibold mb-4 text-gray-900">Hành động</h4>
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleCreateAlert}
+                        className="w-full flex items-center justify-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Tạo Cảnh Báo
+                      </button>
+                      <button
+                        onClick={handleCreateIncident}
+                        className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Tạo Sự Cố
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Meta Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold mb-3 text-gray-900">Thông tin</h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Thu thập:</span>
+                        <span className="ml-2 text-gray-900">{new Date(selectedMention.collected_at).toLocaleString('vi-VN')}</span>
+                      </div>
+                      {selectedMention.published_at && (
+                        <div>
+                          <span className="text-gray-600">Xuất bản:</span>
+                          <span className="ml-2 text-gray-900">{new Date(selectedMention.published_at).toLocaleString('vi-VN')}</span>
+                        </div>
+                      )}
+                      {selectedMention.author && (
+                        <div>
+                          <span className="text-gray-600">Tác giả:</span>
+                          <span className="ml-2 text-gray-900">{selectedMention.author}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

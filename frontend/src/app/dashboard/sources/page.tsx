@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Search, Globe, Facebook, Youtube } from 'lucide-react';
 import { sources as sourcesApi } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Source {
   id: number;
@@ -36,7 +37,7 @@ export default function SourcesPage() {
       setSources(data);
     } catch (error: any) {
       console.error('Error fetching sources:', error);
-      alert('Lỗi khi tải danh sách nguồn: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi tải danh sách nguồn');
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ export default function SourcesPage() {
 
   const handleAddSource = async () => {
     if (!newSource.name.trim() || !newSource.url.trim()) {
-      alert('Vui lòng nhập đầy đủ thông tin');
+      toast.error('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
@@ -58,11 +59,11 @@ export default function SourcesPage() {
       
       setShowAddModal(false);
       setNewSource({ name: '', url: '', source_type: 'website' });
-      alert('Thêm nguồn thành công!');
+      toast.success('Thêm nguồn thành công!');
       fetchSources();
     } catch (error: any) {
       console.error('Error adding source:', error);
-      alert('Lỗi khi thêm nguồn: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi thêm nguồn');
     }
   };
 
@@ -71,11 +72,11 @@ export default function SourcesPage() {
 
     try {
       await sourcesApi.delete(id);
-      alert('Xóa nguồn thành công!');
+      toast.success('Xóa nguồn thành công!');
       fetchSources();
     } catch (error: any) {
       console.error('Error deleting source:', error);
-      alert('Lỗi khi xóa nguồn: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi xóa nguồn');
     }
   };
 
@@ -85,9 +86,10 @@ export default function SourcesPage() {
         is_active: !source.is_active
       });
       fetchSources();
+      toast.success(`Đã ${!source.is_active ? 'bật' : 'tắt'} nguồn`);
     } catch (error: any) {
       console.error('Error toggling source:', error);
-      alert('Lỗi khi cập nhật nguồn: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi cập nhật nguồn');
     }
   };
 
@@ -126,6 +128,8 @@ export default function SourcesPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -136,7 +140,7 @@ export default function SourcesPage() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5 mr-2" />
           Thêm nguồn
@@ -158,8 +162,8 @@ export default function SourcesPage() {
       {/* Sources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSources.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">Không có nguồn nào. Hãy thêm nguồn đầu tiên!</p>
+          <div className="col-span-full bg-white rounded-lg shadow p-8 text-center text-gray-500">
+            Không có nguồn nào. Hãy thêm nguồn đầu tiên!
           </div>
         ) : (
           filteredSources.map((source) => (
@@ -174,10 +178,10 @@ export default function SourcesPage() {
                 </div>
                 <button
                   onClick={() => handleToggleActive(source)}
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
                     source.is_active
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                   }`}
                 >
                   {source.is_active ? 'ON' : 'OFF'}
@@ -201,10 +205,10 @@ export default function SourcesPage() {
                 </p>
               </div>
 
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end">
                 <button
                   onClick={() => handleDeleteSource(source.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -216,45 +220,48 @@ export default function SourcesPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Thêm nguồn mới</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Thêm nguồn mới</h2>
+            </div>
             
-            <div className="space-y-4">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tên nguồn *
                 </label>
                 <input
                   type="text"
                   value={newSource.name}
                   onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ví dụ: VnExpress"
+                  autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   URL *
                 </label>
                 <input
                   type="url"
                   value={newSource.url}
                   onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Loại nguồn
                 </label>
                 <select
                   value={newSource.source_type}
                   onChange={(e) => setNewSource({ ...newSource, source_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="website">Website</option>
                   <option value="facebook">Facebook</option>
@@ -266,16 +273,16 @@ export default function SourcesPage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddSource}
-                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Thêm
               </button>

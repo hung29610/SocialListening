@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BarChart3, AlertTriangle, FileText, Database, TrendingUp, TrendingDown } from 'lucide-react';
 import { dashboard } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -19,6 +20,7 @@ export default function DashboardPage() {
       setMetrics(data);
     } catch (error: any) {
       console.error('Error fetching dashboard:', error);
+      toast.error('Lỗi khi tải dashboard');
     } finally {
       setLoading(false);
     }
@@ -79,6 +81,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>

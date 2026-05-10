@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Play, Link as LinkIcon, History } from 'lucide-react';
 import { crawl, keywords as keywordsApi, sources as sourcesApi } from '@/lib/api';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function ScanPage() {
   const [keywordGroups, setKeywordGroups] = useState<any[]>([]);
@@ -42,24 +43,27 @@ export default function ScanPage() {
 
   const handleScan = async () => {
     if (selectedGroups.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 nhóm từ khóa');
+      toast.error('Vui lòng chọn ít nhất 1 nhóm từ khóa');
       return;
     }
 
     if (selectedSources.length === 0 && !customUrl) {
-      alert('Vui lòng chọn nguồn hoặc nhập URL');
+      toast.error('Vui lòng chọn nguồn hoặc nhập URL');
       return;
     }
 
     try {
       setScanning(true);
+      const loadingToast = toast.loading('Đang scan...');
+      
       const result = await crawl.manualScan({
         keyword_group_ids: selectedGroups,
         source_ids: selectedSources.length > 0 ? selectedSources : undefined,
         url: customUrl || undefined
       });
       
-      alert(`Scan thành công!\nTìm thấy ${result.total_mentions_found} mentions mới`);
+      toast.dismiss(loadingToast);
+      toast.success(`Scan thành công! Tìm thấy ${result.total_mentions_found} mentions mới`);
       
       // Reset form
       setSelectedGroups([]);
@@ -70,7 +74,7 @@ export default function ScanPage() {
       fetchScanHistory();
     } catch (error: any) {
       console.error('Error scanning:', error);
-      alert('Lỗi khi scan: ' + (error.response?.data?.detail || error.message));
+      toast.error('Lỗi khi scan: ' + (error.response?.data?.detail || error.message));
     } finally {
       setScanning(false);
     }
@@ -78,6 +82,8 @@ export default function ScanPage() {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-right" />
+      
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Scan Center</h1>
