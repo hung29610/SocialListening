@@ -81,8 +81,11 @@ export default function LoginPage() {
         </form>
 
         <div className="text-center text-sm text-gray-500">
-          <p>Tài khoản mặc định:</p>
-          <p className="font-mono">admin@example.com / admin123</p>
+          <p>Chưa có tài khoản?{' '}
+            <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              Đăng ký ngay
+            </a>
+          </p>
         </div>
       </div>
     </div>
