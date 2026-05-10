@@ -1,128 +1,75 @@
-# Social Listening & Reputation Protection Platform
+# Social Listening Platform - MVP
 
-A comprehensive web application for monitoring, analyzing, and managing brand reputation across social media and news sources in Vietnamese.
+Full-stack Social Listening Platform với FastAPI backend và Next.js frontend.
 
-## 🎯 Features
+## 🚀 Features
 
-### 1. Multi-Source Monitoring
-- Public websites and news
-- RSS feeds
-- YouTube public content (integration-ready)
-- Facebook public sources (integration-ready)
-- Manual URL input
-- Custom source groups
+### ✅ Đã Hoàn Thành
+- **Authentication**: Đăng ký, đăng nhập, logout
+- **Dashboard**: Metrics thời gian thực (mentions, alerts, incidents, sources)
+- **Keywords Management**: Quản lý nhóm từ khóa và từ khóa
+- **Sources Management**: Quản lý nguồn dữ liệu (Website, RSS, Social Media)
+- **Scan Center**: Quét thủ công nguồn dữ liệu
+  - Chọn nhóm từ khóa
+  - Chọn nguồn có sẵn HOẶC nhập URL tùy chỉnh
+  - Hỗ trợ: Website, RSS Feed, Blog
+- **AI Analysis** (Dummy AI):
+  - Phân tích sentiment (positive, neutral, negative_low/medium/high)
+  - Risk score (0-100)
+  - Crisis level (1-5)
+  - Suggested action (monitor, respond, escalate, legal_review)
+  - Responsible department
+- **Mentions**: Danh sách mentions với AI analysis
+  - View detail modal
+  - Create alert from mention
+  - Create incident from mention
+- **Alerts**: Quản lý cảnh báo
+  - Auto-create khi risk score >= 70
+  - Acknowledge/Resolve alerts
+- **Incidents**: Quản lý sự cố
+  - Create from mentions
+  - Track status
+  - Incident logs
 
-### 2. Keyword Management
-- Keyword groups
-- Positive/negative keywords
-- Excluded keywords
-- Match types (exact, contains, starts with, ends with)
-- Priority levels
+## 🏗️ Tech Stack
 
-### 3. AI-Powered Analysis
-- Vietnamese sentiment analysis
-- Risk scoring (0-100)
-- Crisis level detection (1-5)
-- Automated summaries
-- Suggested actions
-- Department recommendations
-
-### 4. Alert System
-- Real-time dashboard alerts
-- Email notifications (ready)
-- Telegram integration (ready)
-- Webhook support (ready)
-- Zalo integration (ready)
-- Severity levels: LOW, MEDIUM, HIGH, CRITICAL
-
-### 5. Incident Management
-- Create incidents from mentions
-- Assign owners and deadlines
-- Status tracking
-- Timeline logs
-- Evidence collection
-- Internal notes
-
-### 6. Legal Takedown Workflow
-- Evidence collection
-- Takedown request drafts
-- Correction request templates
-- Platform report checklists
-- Legal escalation workflow
-- Human approval required
-
-### 7. Reporting
-- Daily/weekly/monthly reports
-- Crisis reports
-- Keyword performance
-- Source risk analysis
-- Export-ready formats
-
-## 🏗️ Architecture
+**Backend:**
+- FastAPI (Python 3.11)
+- PostgreSQL
+- SQLAlchemy (Sync)
+- Pydantic v1
+- BeautifulSoup4 + Feedparser (Web scraping)
+- Dummy AI Service (rule-based)
 
 **Frontend:**
 - Next.js 14
 - TypeScript
 - Tailwind CSS
-- shadcn/ui components
-- Recharts for analytics
+- Axios
 
-**Backend:**
-- FastAPI (Python)
-- SQLAlchemy ORM
-- Alembic migrations
-- Pydantic validation
-- Async/await support
+**Deployment:**
+- Backend: Render Web Service
+- Frontend: Vercel
+- Database: Render PostgreSQL
 
-**Database:**
-- PostgreSQL 14+
-- 22 tables with proper relationships
-- Full-text search
-- Optimized indexes
+## 📦 Installation
 
-**AI Integration:**
-- Pluggable provider interface
-- OpenAI GPT-4
-- Google Gemini
-- DeepSeek
-- Dummy provider for testing
+### Backend (Local)
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 14+
-- Git
-
-### Local Development
-
-**1. Clone Repository**
 ```bash
-git clone https://github.com/yourusername/SocialListening.git
-cd SocialListening
-```
-
-**2. Start PostgreSQL**
-```cmd
-# Windows: Start PostgreSQL service
-Win + R → services.msc → postgresql → Start
-
-# Or use command line
-net start postgresql-x64-16
-```
-
-**3. Setup Backend**
-```cmd
 cd backend
+
+# Create virtual environment
 python -m venv venv
-.\venv\Scripts\activate
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Configure .env file
+# Setup environment
 copy .env.example .env
-# Edit .env with your settings
+# Edit .env with your DATABASE_URL
 
 # Run migrations
 alembic upgrade head
@@ -130,319 +77,287 @@ alembic upgrade head
 # Create admin user
 python -m app.scripts.create_admin
 
-# Start server
-uvicorn app.main:app --reload
+# Run server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend runs at: http://localhost:8000
+### Frontend (Local)
 
-**4. Setup Frontend**
-```cmd
+```bash
 cd frontend
+
+# Install dependencies
 npm install
 
-# Configure environment
+# Setup environment
 copy .env.example .env.local
-# Edit .env.local
+# Edit .env.local:
+# NEXT_PUBLIC_API_URL=http://localhost:8000
 
-# Start server
+# Run dev server
 npm run dev
 ```
 
-Frontend runs at: http://localhost:3000
+## 🧪 Testing Workflow
 
-**5. Login**
-- Email: `admin@example.com`
-- Password: `admin123`
-
-### Using Batch Files (Windows)
-
-**First Time Setup:**
-```cmd
-setup-step-by-step.bat
+### 1. Đăng Ký & Đăng Nhập
+```
+1. Mở http://localhost:3000
+2. Click "Đăng ký" → Nhập email, password, full name
+3. Đăng nhập với tài khoản vừa tạo
 ```
 
-**Run Application:**
-```cmd
-RUN.bat
+### 2. Tạo Keyword Groups & Keywords
+```
+1. Vào "Từ khóa"
+2. Click "Thêm nhóm" → Nhập tên (vd: "Chất lượng sản phẩm"), priority: 3
+3. Click "Thêm từ khóa" → Nhập từ khóa (vd: "sản phẩm lỗi", "chất lượng tệ")
+4. Tạo thêm vài keywords khác
 ```
 
-## 📚 Documentation
+### 3. Tạo Sources
+```
+1. Vào "Nguồn"
+2. Click "Thêm nguồn"
+3. Nhập:
+   - Tên: VnExpress
+   - URL: https://vnexpress.net/rss/tin-moi-nhat.rss
+   - Loại: RSS Feed
+4. Tạo thêm vài sources khác
+```
 
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
-- **[START_HERE.txt](START_HERE.txt)** - Quick start guide
-- **[QUICK_START.txt](QUICK_START.txt)** - Fast reference
-- **[PROJECT_STATUS.txt](PROJECT_STATUS.txt)** - Current status
+### 4. Thực Hiện Scan
+```
+1. Vào "Scan Center"
+2. Chọn keyword groups (check boxes)
+3. OPTION A: Chọn sources có sẵn
+   OPTION B: Nhập URL tùy chỉnh (vd: https://vnexpress.net/rss/tin-moi-nhat.rss)
+4. Click "Bắt Đầu Scan"
+5. Đợi kết quả (sẽ hiện alert với số mentions tìm thấy)
+```
 
-## 🌐 Production Deployment
+### 5. Xem Mentions
+```
+1. Vào "Mentions"
+2. Click icon "Eye" để xem chi tiết mention
+3. Xem AI Analysis:
+   - Sentiment
+   - Risk Score
+   - Crisis Level
+   - Summary
+   - Suggested Action
+4. Click "Tạo Cảnh Báo" hoặc "Tạo Sự Cố"
+```
 
-### Frontend (Vercel)
+### 6. Quản Lý Alerts
+```
+1. Vào "Cảnh báo"
+2. Xem danh sách alerts (auto-created nếu risk >= 70)
+3. Click "Check" để Acknowledge
+4. Click "X" để Resolve
+5. Filter theo status: new, acknowledged, resolved
+```
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Set root directory: `frontend`
-4. Add environment variable:
-   ```
-   NEXT_PUBLIC_API_URL=https://your-api.onrender.com
-   ```
-5. Deploy
+### 7. Quản Lý Incidents
+```
+1. Vào "Sự cố"
+2. Xem danh sách incidents
+3. View detail để xem logs, status
+```
+
+### 8. Dashboard
+```
+1. Vào "Dashboard"
+2. Xem metrics:
+   - Tổng mentions
+   - Mentions hôm nay
+   - Mentions tiêu cực
+   - Alerts
+   - Incidents
+   - Sources
+3. Xem "Mentions Mới Nhất"
+4. Xem "Cảnh Báo Mới Nhất"
+```
+
+## 🌐 Production URLs
+
+- **Frontend**: https://social-listening-azure.vercel.app
+- **Backend**: https://social-listening-backend.onrender.com
+- **API Docs**: https://social-listening-backend.onrender.com/docs
+
+## 🔑 Test Account
+
+```
+Email: admin@sociallistening.com
+Password: Admin@123456
+```
+
+## 📝 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Đăng ký
+- `POST /api/auth/login` - Đăng nhập
+- `GET /api/auth/me` - Get current user
+
+### Dashboard
+- `GET /api/dashboard` - Get dashboard metrics
+
+### Keywords
+- `GET /api/keywords/groups` - List keyword groups
+- `POST /api/keywords/groups` - Create keyword group
+- `POST /api/keywords/keywords` - Create keyword
+- `PUT /api/keywords/keywords/{id}` - Update keyword
+- `DELETE /api/keywords/keywords/{id}` - Delete keyword
+
+### Sources
+- `GET /api/sources` - List sources
+- `POST /api/sources` - Create source
+- `PUT /api/sources/{id}` - Update source
+- `DELETE /api/sources/{id}` - Delete source
+
+### Scan/Crawl
+- `POST /api/crawl/manual-scan` - Manual scan
+- `GET /api/crawl/scan-history` - Get scan history
+
+### Mentions
+- `GET /api/mentions` - List mentions (with pagination, filters)
+- `GET /api/mentions/{id}` - Get mention detail
+- `DELETE /api/mentions/{id}` - Delete mention
+
+### Alerts
+- `GET /api/alerts` - List alerts
+- `POST /api/alerts` - Create alert
+- `POST /api/alerts/{id}/acknowledge` - Acknowledge alert
+- `POST /api/alerts/{id}/resolve` - Resolve alert
+- `DELETE /api/alerts/{id}` - Delete alert
+
+### Incidents
+- `GET /api/incidents` - List incidents
+- `POST /api/incidents` - Create incident
+- `PUT /api/incidents/{id}` - Update incident
+- `GET /api/incidents/{id}/logs` - Get incident logs
+- `DELETE /api/incidents/{id}` - Delete incident
+
+## 🤖 AI Analysis (Dummy)
+
+Hiện tại sử dụng Dummy AI (rule-based) để phân tích:
+
+**Negative Keywords** (Vietnamese + English):
+- tệ, kém, dở, tồi, lừa đảo, scam, fake, giả mạo
+- bad, terrible, awful, worst, fraud, cheat
+- không tốt, thất vọng, disappointed, angry
+- lỗi, error, bug, broken, hỏng, sai
+- chậm, slow, delay, trễ
+
+**Crisis Keywords** (High Risk):
+- chết, death, die, tử vong, nguy hiểm, danger
+- bệnh viện, hospital, cấp cứu, emergency
+- kiện, lawsuit, sue, court, tòa án
+- scandal, bê bối, rò rỉ, leak, hack
+- virus, nhiễm độc, poison, toxic
+
+**Risk Calculation**:
+- Base risk: 30
+- +10 per negative keyword
+- +20 per crisis keyword
+- Max: 100
+
+**Crisis Level**:
+- Level 5: Crisis keywords detected
+- Level 4: Risk >= 80
+- Level 3: Risk >= 60
+- Level 2: Risk >= 40
+- Level 1: Risk < 40
+
+**Suggested Actions**:
+- `legal_review`: Crisis level >= 4
+- `escalate`: Crisis level >= 3
+- `respond`: Risk >= 50
+- `monitor`: Risk < 50
+
+## 🚀 Deployment
 
 ### Backend (Render)
 
-1. Create PostgreSQL database on Render
-2. Create Web Service
-3. Set root directory: `backend`
-4. Build command: `pip install -r requirements.txt`
-5. Start command: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-6. Add environment variables:
-   ```
-   DATABASE_URL=<render-postgresql-url>
-   FRONTEND_URL=https://your-app.vercel.app
-   SECRET_KEY=<strong-random-key>
-   ENVIRONMENT=production
-   ```
-7. Deploy
+```bash
+# Push to GitHub
+git add -A
+git commit -m "Update backend"
+git push origin main
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
-
-## 🗂️ Project Structure
-
-```
-SocialListening/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # API endpoints
-│   │   ├── core/             # Config, database, security
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic schemas
-│   │   ├── services/         # Business logic
-│   │   ├── workers/          # Background tasks
-│   │   └── scripts/          # Utility scripts
-│   ├── alembic/              # Database migrations
-│   ├── requirements.txt      # Python dependencies
-│   └── .env                  # Environment variables
-│
-├── frontend/
-│   ├── src/
-│   │   ├── app/              # Next.js pages
-│   │   │   ├── dashboard/    # Dashboard pages
-│   │   │   └── login/        # Login page
-│   │   └── lib/              # Utilities
-│   ├── package.json          # Node dependencies
-│   └── .env.local            # Environment variables
-│
-├── DEPLOYMENT.md             # Deployment guide
-├── README.md                 # This file
-└── RUN.bat                   # Windows launcher
+# Render will auto-deploy
+# Check logs at: https://dashboard.render.com
 ```
 
-## 🔧 Configuration
-
-### Backend Environment Variables
-
-```env
-# App
-ENVIRONMENT=development
-DEBUG=True
-FRONTEND_URL=http://localhost:3000
-
-# Database
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
-
-# Security
+**Environment Variables** (Render):
+```
+DATABASE_URL=postgresql://...
 SECRET_KEY=your-secret-key
-
-# AI Provider
-AI_PROVIDER=dummy
-OPENAI_API_KEY=
-GEMINI_API_KEY=
-DEEPSEEK_API_KEY=
-
-# Notifications (optional)
-TELEGRAM_BOT_TOKEN=
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=
-SMTP_PASSWORD=
+FRONTEND_URL=https://social-listening-azure.vercel.app
+PYTHON_VERSION=3.11.9
 ```
 
-### Frontend Environment Variables
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+**Start Command**:
+```
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-## 🧪 Testing
+### Frontend (Vercel)
 
-### Backend Tests
-```cmd
-cd backend
-.\venv\Scripts\activate
-pytest
+```bash
+# Push to GitHub
+git add -A
+git commit -m "Update frontend"
+git push origin main
+
+# Vercel will auto-deploy
 ```
 
-### Frontend Tests
-```cmd
-cd frontend
-npm test
+**Environment Variables** (Vercel):
 ```
-
-### End-to-End Tests
-1. Create keyword group
-2. Add keywords
-3. Add sources
-4. Run manual scan
-5. View mentions
-6. Create alerts
-7. Manage incidents
+NEXT_PUBLIC_API_URL=https://social-listening-backend.onrender.com
+```
 
 ## 📊 Database Schema
 
-22 tables including:
-- `users`, `roles`, `permissions` - Authentication & RBAC
-- `keyword_groups`, `keywords` - Keyword management
-- `source_groups`, `sources` - Source management
-- `mentions`, `ai_analysis` - Content collection & analysis
-- `alerts`, `incidents` - Alert & incident management
-- `reports`, `takedown_requests` - Reporting & legal workflow
-- `audit_logs` - Audit trail
+**Main Tables**:
+- `users` - User accounts
+- `keyword_groups` - Keyword groups
+- `keywords` - Keywords for monitoring
+- `source_groups` - Source groups
+- `sources` - Data sources (websites, RSS, social media)
+- `mentions` - Collected mentions
+- `ai_analysis` - AI analysis results
+- `alerts` - System alerts
+- `incidents` - Incidents to handle
+- `incident_logs` - Incident activity logs
 
-## 🤖 AI Integration
+## ⚠️ Important Notes
 
-Pluggable AI provider system:
+1. **No Docker** - Direct installation only
+2. **Legal Compliance** - Only public source monitoring, no hacking/DDoS/spam
+3. **Dummy AI** - Current AI is rule-based, replace with real AI (OpenAI, Gemini) in production
+4. **Manual Approval** - All legal responses require human approval
+5. **Sync Database** - Using sync SQLAlchemy (not async)
+6. **CORS** - Currently allows all origins (`["*"]`) for development
 
-```python
-# Configure in .env
-AI_PROVIDER=openai  # or gemini, deepseek, dummy
+## 🔄 Future Enhancements
 
-# Add API key
-OPENAI_API_KEY=sk-...
-```
-
-Supported providers:
-- **OpenAI**: GPT-4, GPT-3.5
-- **Google Gemini**: gemini-pro
-- **DeepSeek**: deepseek-chat
-- **Dummy**: For testing without API costs
-
-## 🔒 Security
-
-- JWT authentication
-- Role-based access control (RBAC)
-- Password hashing (bcrypt)
-- SQL injection protection (ORM)
-- CORS configuration
-- Environment-based secrets
-- Audit logging
-- Human approval for legal actions
-
-## 🌍 Internationalization
-
-- Primary language: Vietnamese
-- AI prompts optimized for Vietnamese
-- Sentiment analysis for Vietnamese text
-- Vietnamese UI labels (ready)
-
-## 📈 Performance
-
-- Async/await for I/O operations
-- Database connection pooling
-- Optimized queries with indexes
-- CDN delivery (Vercel)
-- Caching ready (Redis optional)
-
-## 🛠️ Development
-
-### Adding New Features
-
-1. Update database models in `backend/app/models/`
-2. Create migration: `alembic revision --autogenerate -m "description"`
-3. Apply migration: `alembic upgrade head`
-4. Add API endpoints in `backend/app/api/`
-5. Create frontend pages in `frontend/src/app/`
-6. Test locally
-7. Deploy
-
-### Code Style
-
-**Backend:**
-- Follow PEP 8
-- Use type hints
-- Async/await for I/O
-- Pydantic for validation
-
-**Frontend:**
-- TypeScript strict mode
-- Functional components
-- Tailwind for styling
-- ESLint + Prettier
-
-## 🐛 Troubleshooting
-
-### PostgreSQL not running
-```cmd
-Win + R → services.msc → postgresql → Start
-```
-
-### Port already in use
-```cmd
-# Kill process on port 8000
-netstat -ano | findstr :8000
-taskkill /PID <pid> /F
-```
-
-### CORS errors
-Check `FRONTEND_URL` in backend `.env` matches frontend URL.
-
-### Database connection failed
-Verify `DATABASE_URL` and PostgreSQL is running.
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for more troubleshooting.
-
-## 📝 License
-
-Proprietary - All rights reserved
-
-## 👥 Team
-
-- Product Architect
-- Full-Stack Engineer
-- Backend Engineer
-- Frontend Engineer
-- DevOps Engineer
-- QA Engineer
-- AI Integration Engineer
+- [ ] Real AI integration (OpenAI, Gemini, Claude)
+- [ ] Automated scheduled scans
+- [ ] Email/Telegram notifications
+- [ ] Response templates
+- [ ] Legal takedown workflow
+- [ ] Evidence file uploads
+- [ ] Advanced analytics & charts
+- [ ] Export reports (PDF, Excel)
+- [ ] Multi-user roles & permissions
+- [ ] Webhook integrations
 
 ## 📞 Support
 
-For issues and questions:
-1. Check [DEPLOYMENT.md](DEPLOYMENT.md)
-2. Review [PROJECT_STATUS.txt](PROJECT_STATUS.txt)
-3. Check GitHub Issues
-4. Contact support team
+For issues or questions, please create an issue on GitHub.
 
-## 🗺️ Roadmap
+## 📄 License
 
-- [ ] Mobile app (React Native)
-- [ ] Advanced analytics dashboard
-- [ ] Machine learning for trend prediction
-- [ ] Multi-language support
-- [ ] API rate limiting
-- [ ] Webhook integrations
-- [ ] Custom report templates
-- [ ] Automated response suggestions
-
-## 🎉 Acknowledgments
-
-Built with:
-- FastAPI
-- Next.js
-- PostgreSQL
-- Tailwind CSS
-- shadcn/ui
-- Recharts
-
----
-
-**Version:** 1.0.0  
-**Last Updated:** May 9, 2026  
-**Status:** Production Ready ✅
+MIT License
