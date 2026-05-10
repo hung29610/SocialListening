@@ -77,7 +77,7 @@ async def create_report(
     from app.workers.tasks import generate_report
     generate_report.delay(report.id)
     
-    return report
+    return ReportResponse.model_validate(report)
 
 
 @router.get("/{report_id}", response_model=ReportResponse)
@@ -94,7 +94,7 @@ async def get_report(
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    return report
+    return ReportResponse.model_validate(report)
 
 
 @router.delete("/{report_id}", status_code=204)
@@ -165,4 +165,4 @@ async def send_report_email(
     await db.commit()
     await db.refresh(report)
     
-    return report
+    return ReportResponse.model_validate(report)
