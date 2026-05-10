@@ -133,7 +133,7 @@ class SystemSettingUpdate(BaseModel):
 class SystemSettingResponse(SystemSettingBase):
     id: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

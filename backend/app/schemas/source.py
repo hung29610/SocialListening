@@ -41,14 +41,14 @@ class SourceUpdate(BaseModel):
 class SourceResponse(SourceBase):
     id: int
     group_id: Optional[int]
-    next_crawl_at: Optional[datetime]
-    last_crawled_at: Optional[datetime]
-    last_success_at: Optional[datetime]
-    last_error: Optional[str]
+    next_crawl_at: Optional[datetime] = None
+    last_crawled_at: Optional[datetime] = None
+    last_success_at: Optional[datetime] = None
+    last_error: Optional[str] = None
     crawl_count: int
     error_count: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -74,7 +74,7 @@ class SourceGroupUpdate(BaseModel):
 class SourceGroupResponse(SourceGroupBase):
     id: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     sources: List[SourceResponse] = []
     
     class Config:

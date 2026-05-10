@@ -29,7 +29,7 @@ class KeywordResponse(KeywordBase):
     id: int
     group_id: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -59,7 +59,7 @@ class KeywordGroupUpdate(BaseModel):
 class KeywordGroupResponse(KeywordGroupBase):
     id: int
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
     keywords: List[KeywordResponse] = []
     
     class Config:

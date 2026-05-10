@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import timedelta, datetime
+from typing import Optional
 
 from app.core.database import get_db
 from app.core.security import (
@@ -26,6 +27,8 @@ class UserResponse(BaseModel):
     full_name: str | None
     is_active: bool
     is_superuser: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
