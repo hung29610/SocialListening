@@ -7,21 +7,14 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('access_token');
-    console.log('Token in dashboard:', token);
+    // Tạm thời tắt auth check để test
+    console.log('Dashboard loaded');
     
-    if (!token) {
-      console.log('No token found, redirecting to login');
-      window.location.href = '/login';
-      return;
-    }
-
-    // Set user data without API call
+    // Set user data without checking token
     setUser({
-      email: 'user@example.com',
-      full_name: 'User Name',
-      token: token
+      email: 'test@example.com',
+      full_name: 'Test User',
+      token: 'test-token'
     });
   }, []);
 
