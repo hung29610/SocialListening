@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Search, Globe, Facebook, Youtube } from 'lucide-react';
+import { Plus, Trash2, Search, Globe, Facebook, Youtube, Clock } from 'lucide-react';
 import { sources as sourcesApi } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -11,6 +11,12 @@ interface Source {
   url: string;
   source_type: string;
   is_active: boolean;
+  crawl_frequency: string;
+  crawl_time: string | null;
+  crawl_day_of_week: number | null;
+  crawl_day_of_month: number | null;
+  crawl_month: number | null;
+  next_crawl_at: string | null;
   last_crawled_at: string | null;
   created_at: string;
 }
@@ -23,7 +29,12 @@ export default function SourcesPage() {
   const [newSource, setNewSource] = useState({
     name: '',
     url: '',
-    source_type: 'website'
+    source_type: 'website',
+    crawl_frequency: 'manual',
+    crawl_time: '09:00',
+    crawl_day_of_week: 0,
+    crawl_day_of_month: 1,
+    crawl_month: 1
   });
 
   useEffect(() => {
@@ -50,15 +61,42 @@ export default function SourcesPage() {
     }
 
     try {
-      await sourcesApi.create({
+      const payload: any = {
         name: newSource.name,
         url: newSource.url,
         source_type: newSource.source_type,
-        is_active: true
-      });
+        is_active: true,
+        crawl_frequency: newSource.crawl_frequency
+      };
+
+      // Add schedule fields based on frequency
+      if (newSource.crawl_frequency === 'daily') {
+        payload.crawl_time = newSource.crawl_time;
+      } else if (newSource.crawl_frequency === 'weekly') {
+        payload.crawl_time = newSource.crawl_time;
+        payload.crawl_day_of_week = newSource.crawl_day_of_week;
+      } else if (newSource.crawl_frequency === 'monthly') {
+        payload.crawl_time = newSource.crawl_time;
+        payload.crawl_day_of_month = newSource.crawl_day_of_month;
+      } else if (newSource.crawl_frequency === 'yearly') {
+        payload.crawl_time = newSource.crawl_time;
+        payload.crawl_day_of_month = newSource.crawl_day_of_month;
+        payload.crawl_month = newSource.crawl_month;
+      }
+
+      await sourcesApi.create(payload);
       
       setShowAddModal(false);
-      setNewSource({ name: '', url: '', source_type: 'website' });
+      setNewSource({ 
+        name: '', 
+        url: '', 
+        source_type: 'website',
+        crawl_frequency: 'manual',
+        crawl_time: '09:00',
+        crawl_day_of_week: 0,
+        crawl_day_of_month: 1,
+        crawl_month: 1
+      });
       toast.success('Thêm nguồn thành công!');
       fetchSources();
     } catch (error: any) {
@@ -116,6 +154,39 @@ export default function SourcesPage() {
       case 'instagram': return 'Instagram';
       default: return type;
     }
+  };
+
+  const getFrequencyText = (frequency: string) => {
+    switch (frequency) {
+      case 'daily': return 'Hằng ngày';
+      case 'weekly': return 'Hằng tuần';
+      case 'monthly': return 'Hằng tháng';
+      case 'yearly': return 'Hằng năm';
+      default: return 'Thủ công';
+    }
+  };
+
+  const getScheduleDescription = (source: Source) => {
+    if (source.crawl_frequency === 'manual') return 'Quét thủ công';
+    
+    const time = source.crawl_time || '09:00';
+    
+    if (source.crawl_frequency === 'daily') {
+      return `Hằng ngày lúc ${time}`;
+    } else if (source.crawl_frequency === 'weekly') {
+      const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+      const dayName = days[source.crawl_day_of_week || 0];
+      return `Hằng tuần vào ${dayName} lúc ${time}`;
+    } else if (source.crawl_frequency === 'monthly') {
+      return `Hằng tháng ngày ${source.crawl_day_of_month || 1} lúc ${time}`;
+    } else if (source.crawl_frequency === 'yearly') {
+      const months = ['', 'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                     'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+      const monthName = months[source.crawl_month || 1];
+      return `Hằng năm ${monthName} ngày ${source.crawl_day_of_month || 1} lúc ${time}`;
+    }
+    
+    return 'Không xác định';
   };
 
   if (loading) {
@@ -192,6 +263,23 @@ export default function SourcesPage() {
                 <p className="text-sm text-gray-600 truncate">
                   <span className="font-medium">URL:</span> {source.url}
                 </p>
+                
+                {/* Schedule Info */}
+                <div className="flex items-center space-x-2 text-sm">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <div>
+                    <span className="font-medium text-gray-700">Lịch:</span>
+                    <span className="text-gray-600 ml-1">{getScheduleDescription(source)}</span>
+                  </div>
+                </div>
+                
+                {source.next_crawl_at && (
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Lần tiếp theo:</span>{' '}
+                    {new Date(source.next_crawl_at).toLocaleString('vi-VN')}
+                  </p>
+                )}
+                
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Lần cuối:</span>{' '}
                   {source.last_crawled_at 
@@ -221,7 +309,7 @@ export default function SourcesPage() {
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-900">Thêm nguồn mới</h2>
             </div>
@@ -270,6 +358,110 @@ export default function SourcesPage() {
                   <option value="instagram">Instagram</option>
                   <option value="rss">RSS Feed</option>
                 </select>
+              </div>
+
+              {/* Crawl Schedule */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Lịch Quét</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tần suất quét
+                  </label>
+                  <select
+                    value={newSource.crawl_frequency}
+                    onChange={(e) => setNewSource({ ...newSource, crawl_frequency: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="manual">Thủ công</option>
+                    <option value="daily">Hằng ngày</option>
+                    <option value="weekly">Hằng tuần</option>
+                    <option value="monthly">Hằng tháng</option>
+                    <option value="yearly">Hằng năm</option>
+                  </select>
+                </div>
+
+                {/* Time picker for all scheduled frequencies */}
+                {newSource.crawl_frequency !== 'manual' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Giờ quét
+                    </label>
+                    <input
+                      type="time"
+                      value={newSource.crawl_time}
+                      onChange={(e) => setNewSource({ ...newSource, crawl_time: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {/* Day of week picker for weekly */}
+                {newSource.crawl_frequency === 'weekly' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Thứ trong tuần
+                    </label>
+                    <select
+                      value={newSource.crawl_day_of_week}
+                      onChange={(e) => setNewSource({ ...newSource, crawl_day_of_week: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={0}>Thứ 2</option>
+                      <option value={1}>Thứ 3</option>
+                      <option value={2}>Thứ 4</option>
+                      <option value={3}>Thứ 5</option>
+                      <option value={4}>Thứ 6</option>
+                      <option value={5}>Thứ 7</option>
+                      <option value={6}>Chủ nhật</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Day of month picker for monthly and yearly */}
+                {(newSource.crawl_frequency === 'monthly' || newSource.crawl_frequency === 'yearly') && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ngày trong tháng
+                    </label>
+                    <select
+                      value={newSource.crawl_day_of_month}
+                      onChange={(e) => setNewSource({ ...newSource, crawl_day_of_month: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                        <option key={day} value={day}>Ngày {day}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Month picker for yearly */}
+                {newSource.crawl_frequency === 'yearly' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tháng
+                    </label>
+                    <select
+                      value={newSource.crawl_month}
+                      onChange={(e) => setNewSource({ ...newSource, crawl_month: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={1}>Tháng 1</option>
+                      <option value={2}>Tháng 2</option>
+                      <option value={3}>Tháng 3</option>
+                      <option value={4}>Tháng 4</option>
+                      <option value={5}>Tháng 5</option>
+                      <option value={6}>Tháng 6</option>
+                      <option value={7}>Tháng 7</option>
+                      <option value={8}>Tháng 8</option>
+                      <option value={9}>Tháng 9</option>
+                      <option value={10}>Tháng 10</option>
+                      <option value={11}>Tháng 11</option>
+                      <option value={12}>Tháng 12</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

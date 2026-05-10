@@ -11,6 +11,7 @@ from app.schemas.source import (
     SourceCreate, SourceUpdate, SourceResponse,
     SourceGroupCreate, SourceGroupUpdate, SourceGroupResponse, SourceGroupListResponse
 )
+from app.services.scheduler_service import calculate_next_crawl_time
 
 router = APIRouter()
 
@@ -172,7 +173,19 @@ def create_source(
         if not group:
             raise HTTPException(status_code=404, detail="Source group not found")
     
-    source = Source(**source_data.model_dump())
+    source_dict = source_data.model_dump()
+    
+    # Calculate next crawl time
+    next_crawl_at = calculate_next_crawl_time(
+        frequency=source_dict['crawl_frequency'],
+        crawl_time=source_dict.get('crawl_time'),
+        crawl_day_of_week=source_dict.get('crawl_day_of_week'),
+        crawl_day_of_month=source_dict.get('crawl_day_of_month'),
+        crawl_month=source_dict.get('crawl_month')
+    )
+    source_dict['next_crawl_at'] = next_crawl_at
+    
+    source = Source(**source_dict)
     db.add(source)
     db.commit()
     db.refresh(source)
@@ -222,8 +235,21 @@ def update_source(
             raise HTTPException(status_code=404, detail="Source group not found")
     
     # Update fields
-    for field, value in source_data.model_dump(exclude_unset=True).items():
+    update_dict = source_data.model_dump(exclude_unset=True)
+    for field, value in update_dict.items():
         setattr(source, field, value)
+    
+    # Recalculate next crawl time if schedule-related fields were updated
+    schedule_fields = ['crawl_frequency', 'crawl_time', 'crawl_day_of_week', 'crawl_day_of_month', 'crawl_month']
+    if any(field in update_dict for field in schedule_fields):
+        next_crawl_at = calculate_next_crawl_time(
+            frequency=source.crawl_frequency,
+            crawl_time=source.crawl_time,
+            crawl_day_of_week=source.crawl_day_of_week,
+            crawl_day_of_month=source.crawl_day_of_month,
+            crawl_month=source.crawl_month
+        )
+        source.next_crawl_at = next_crawl_at
     
     db.commit()
     db.refresh(source)

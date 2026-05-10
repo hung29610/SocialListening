@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum, JSON, Time
 from sqlalchemy.sql import func
 from enum import Enum
 from app.core.database import Base
@@ -15,6 +15,14 @@ class SourceType(str, Enum):
     RSS = "rss"
     FORUM = "forum"
     MANUAL_URL = "manual_url"
+
+
+class CrawlFrequency(str, Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+    MANUAL = "manual"
 
 
 class SourceGroup(Base):
@@ -41,6 +49,14 @@ class Source(Base):
     # Metadata
     platform_id = Column(String(255))  # Facebook ID, YouTube channel ID, etc.
     meta_data = Column(JSON)  # Additional platform-specific data (renamed from metadata)
+    
+    # Crawl Schedule
+    crawl_frequency = Column(SQLEnum(CrawlFrequency), default=CrawlFrequency.MANUAL, index=True)
+    crawl_time = Column(Time)  # For daily: specific time (e.g., 09:00)
+    crawl_day_of_week = Column(Integer)  # For weekly: 0=Monday, 6=Sunday
+    crawl_day_of_month = Column(Integer)  # For monthly: 1-31
+    crawl_month = Column(Integer)  # For yearly: 1-12
+    next_crawl_at = Column(DateTime(timezone=True))  # Calculated next crawl time
     
     # Status
     is_active = Column(Boolean, default=True, index=True)
