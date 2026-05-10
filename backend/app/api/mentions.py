@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, func, or_
-from sqlalchemy.orm import selectinload
 from typing import List
 from math import ceil
 
@@ -9,31 +8,24 @@ from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.mention import Mention, AIAnalysis
-from app.schemas.mention import (
-    MentionResponse, MentionWithAnalysis, MentionFilter, MentionListResponse
-)
 
 router = APIRouter()
 
 
-@router.get("", response_model=MentionListResponse)
-async def list_mentions(
+@router.get("")
+def list_mentions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     source_id: int | None = None,
     sentiment: str | None = None,
     min_risk_score: float | None = Query(None, ge=0, le=100),
-    max_risk_score: float | None = Query(None, ge=0, le=100),
-    crisis_level: int | None = Query(None, ge=1, le=5),
     search_query: str | None = None,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """List mentions with filtering and pagination"""
-    # Base query
-    query = select(Mention).options(selectinload(Mention.ai_analysis))
+    query = select(Mention)
     
-    # Apply filters
     if source_id:
         query = query.where(Mention.source_id == source_id)
     
@@ -46,77 +38,110 @@ async def list_mentions(
             )
         )
     
-    # Join with AI analysis for sentiment/risk filtering
-    if sentiment or min_risk_score or max_risk_score or crisis_level:
-        query = query.join(AIAnalysis, Mention.id == AIAnalysis.mention_id)
-        
-        if sentiment:
-            query = query.where(AIAnalysis.sentiment == sentiment)
-        
-        if min_risk_score is not None:
-            query = query.where(AIAnalysis.risk_score >= min_risk_score)
-        
-        if max_risk_score is not None:
-            query = query.where(AIAnalysis.risk_score <= max_risk_score)
-        
-        if crisis_level is not None:
-            query = query.where(AIAnalysis.crisis_level == crisis_level)
-    
     # Get total count
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar()
+    total = db.execute(select(func.count()).select_from(query.subquery())).scalar()
     
     # Apply pagination
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size).order_by(Mention.collected_at.desc())
     
-    # Execute query
-    result = await db.execute(query)
-    mentions = result.scalars().all()
+    mentions = db.execute(query).scalars().all()
     
-    # Calculate total pages
+    # Get AI analysis for each mention
+    result_items = []
+    for m in mentions:
+        analysis = db.execute(
+            select(AIAnalysis).where(AIAnalysis.mention_id == m.id)
+        ).scalar_one_or_none()
+        
+        result_items.append({
+            "id": m.id,
+            "source_id": m.source_id,
+            "title": m.title,
+            "content": m.content,
+            "url": m.url,
+            "author": m.author,
+            "published_at": m.published_at.isoformat() if m.published_at else None,
+            "collected_at": m.collected_at.isoformat() if m.collected_at else None,
+            "matched_keywords": m.matched_keywords,
+            "ai_analysis": {
+                "sentiment": analysis.sentiment if analysis else None,
+                "risk_score": analysis.risk_score if analysis else None,
+                "crisis_level": analysis.crisis_level if analysis else None,
+                "summary_vi": analysis.summary_vi if analysis else None,
+                "suggested_action": analysis.suggested_action if analysis else None
+            } if analysis else None
+        })
+    
     total_pages = ceil(total / page_size) if total > 0 else 1
     
-    return MentionListResponse(
-        items=[MentionWithAnalysis.model_validate(m) for m in mentions],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages
-    )
+    return {
+        "items": result_items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
 
 
-@router.get("/{mention_id}", response_model=MentionWithAnalysis)
-async def get_mention(
+@router.get("/{mention_id}")
+def get_mention(
     mention_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get a mention by ID"""
-    query = select(Mention).where(Mention.id == mention_id).options(selectinload(Mention.ai_analysis))
-    result = await db.execute(query)
-    mention = result.scalar_one_or_none()
+    """Get a mention by ID with AI analysis"""
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
     
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
     
-    return mention
+    analysis = db.execute(
+        select(AIAnalysis).where(AIAnalysis.mention_id == mention.id)
+    ).scalar_one_or_none()
+    
+    return {
+        "id": mention.id,
+        "source_id": mention.source_id,
+        "title": mention.title,
+        "content": mention.content,
+        "url": mention.url,
+        "author": mention.author,
+        "published_at": mention.published_at.isoformat() if mention.published_at else None,
+        "collected_at": mention.collected_at.isoformat() if mention.collected_at else None,
+        "matched_keywords": mention.matched_keywords,
+        "platform_post_id": mention.platform_post_id,
+        "metadata": mention.meta_data,
+        "ai_analysis": {
+            "id": analysis.id,
+            "sentiment": analysis.sentiment,
+            "risk_score": analysis.risk_score,
+            "crisis_level": analysis.crisis_level,
+            "summary_vi": analysis.summary_vi,
+            "suggested_action": analysis.suggested_action,
+            "responsible_department": analysis.responsible_department,
+            "confidence_score": analysis.confidence_score,
+            "ai_provider": analysis.ai_provider,
+            "analyzed_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None
+        } if analysis else None
+    }
 
 
 @router.delete("/{mention_id}", status_code=204)
-async def delete_mention(
+def delete_mention(
     mention_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a mention"""
-    query = select(Mention).where(Mention.id == mention_id)
-    result = await db.execute(query)
-    mention = result.scalar_one_or_none()
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
     
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
     
-    await db.delete(mention)
-    await db.commit()
+    db.delete(mention)
+    db.commit()

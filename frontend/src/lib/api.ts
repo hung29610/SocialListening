@@ -36,12 +36,29 @@ export const auth = {
     return response.data;
   },
   
+  register: async (email: string, password: string, full_name: string) => {
+    const response = await api.post('/api/auth/register', {
+      email,
+      password,
+      full_name
+    });
+    return response.data;
+  },
+  
   logout: () => {
     localStorage.removeItem('access_token');
   },
   
   getCurrentUser: async () => {
     const response = await api.get('/api/auth/me');
+    return response.data;
+  },
+};
+
+// Dashboard
+export const dashboard = {
+  get: async () => {
+    const response = await api.get('/api/dashboard');
     return response.data;
   },
 };
@@ -102,10 +119,15 @@ export const sources = {
   },
 };
 
-// Crawl
+// Crawl/Scan
 export const crawl = {
-  manual: async (data: { source_ids: number[]; keyword_group_ids: number[] }) => {
-    const response = await api.post('/api/crawl/manual', data);
+  manualScan: async (data: { keyword_group_ids: number[]; source_ids?: number[]; url?: string }) => {
+    const response = await api.post('/api/crawl/manual-scan', data);
+    return response.data;
+  },
+  
+  getScanHistory: async (page: number = 1, page_size: number = 20) => {
+    const response = await api.get('/api/crawl/scan-history', { params: { page, page_size } });
     return response.data;
   },
 };
@@ -121,6 +143,11 @@ export const mentions = {
     const response = await api.get(`/api/mentions/${id}`);
     return response.data;
   },
+  
+  delete: async (id: number) => {
+    const response = await api.delete(`/api/mentions/${id}`);
+    return response.data;
+  },
 };
 
 // Alerts
@@ -130,13 +157,28 @@ export const alerts = {
     return response.data;
   },
   
+  get: async (id: number) => {
+    const response = await api.get(`/api/alerts/${id}`);
+    return response.data;
+  },
+  
+  create: async (data: any) => {
+    const response = await api.post('/api/alerts', data);
+    return response.data;
+  },
+  
   acknowledge: async (id: number) => {
     const response = await api.post(`/api/alerts/${id}/acknowledge`);
     return response.data;
   },
   
   resolve: async (id: number) => {
-    const response = await api.post(`/api/alerts/${id}/resolve`, {});
+    const response = await api.post(`/api/alerts/${id}/resolve`);
+    return response.data;
+  },
+  
+  delete: async (id: number) => {
+    const response = await api.delete(`/api/alerts/${id}`);
     return response.data;
   },
 };
@@ -145,6 +187,11 @@ export const alerts = {
 export const incidents = {
   list: async (params?: any) => {
     const response = await api.get('/api/incidents', { params });
+    return response.data;
+  },
+  
+  get: async (id: number) => {
+    const response = await api.get(`/api/incidents/${id}`);
     return response.data;
   },
   
@@ -157,12 +204,14 @@ export const incidents = {
     const response = await api.put(`/api/incidents/${id}`, data);
     return response.data;
   },
-};
-
-// Dashboard
-export const dashboard = {
-  get: async (days?: number) => {
-    const response = await api.get('/api/dashboard', { params: { days } });
+  
+  delete: async (id: number) => {
+    const response = await api.delete(`/api/incidents/${id}`);
+    return response.data;
+  },
+  
+  getLogs: async (id: number) => {
+    const response = await api.get(`/api/incidents/${id}/logs`);
     return response.data;
   },
 };

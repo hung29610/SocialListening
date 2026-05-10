@@ -1,141 +1,297 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Body
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List
-from pydantic import BaseModel, HttpUrl
+from datetime import datetime
+import hashlib
+import requests
+from bs4 import BeautifulSoup
+import feedparser
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
-from app.models.crawl import CrawlJob, CrawlJobStatus, ScanSchedule
 from app.models.source import Source
-# from app.workers.tasks import crawl_source, run_scheduled_crawl  # Requires Celery
+from app.models.keyword import Keyword, KeywordGroup
+from app.models.mention import Mention, AIAnalysis, SentimentScore
+from app.models.alert import Alert, AlertSeverity, AlertStatus
+from app.services.ai_service import analyze_mention_with_dummy_ai
 
 router = APIRouter()
 
 
-class ManualCrawlRequest(BaseModel):
-    source_ids: List[int]
-    keyword_group_ids: List[int]
-
-
-class ManualCrawlResponse(BaseModel):
-    job_id: int
-    sources_queued: int
-    message: str
-
-
-@router.post("/manual", response_model=ManualCrawlResponse, status_code=status.HTTP_201_CREATED)
-async def trigger_manual_crawl(
-    request: ManualCrawlRequest,
-    db: AsyncSession = Depends(get_db),
+@router.post("/manual-scan")
+def manual_scan(
+    keyword_group_ids: List[int] = Body(...),
+    source_ids: List[int] = Body(default=None),
+    url: str = Body(default=None),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Trigger a manual crawl job
-    
-    NOTE: This is a simplified version that creates the job record.
-    For full background processing, Celery workers need to be installed and running.
-    
-    This will:
-    1. Create a crawl job record
-    2. Return job ID for tracking
-    
-    To enable full background processing:
-    - Install: pip install celery redis
-    - Start Redis: redis-server
-    - Start Celery worker: celery -A app.workers.celery_app worker --loglevel=info
+    Manual scan: User selects keyword groups and either:
+    - Selects existing sources, OR
+    - Enters a custom URL to scan
     """
-    # Verify sources exist
-    result = await db.execute(
-        select(Source).where(Source.id.in_(request.source_ids), Source.is_active == True)
-    )
-    sources = result.scalars().all()
     
-    if not sources:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active sources found with provided IDs"
+    # Get keyword groups and keywords
+    keyword_groups = db.execute(
+        select(KeywordGroup).where(KeywordGroup.id.in_(keyword_group_ids))
+    ).scalars().all()
+    
+    if not keyword_groups:
+        raise HTTPException(status_code=404, detail="No keyword groups found")
+    
+    # Get all keywords from these groups
+    all_keywords = []
+    for group in keyword_groups:
+        keywords = db.execute(
+            select(Keyword).where(Keyword.group_id == group.id, Keyword.is_active == True)
+        ).scalars().all()
+        all_keywords.extend(keywords)
+    
+    if not all_keywords:
+        raise HTTPException(status_code=400, detail="No active keywords found in selected groups")
+    
+    keyword_texts = [kw.keyword.lower() for kw in all_keywords]
+    
+    # Determine sources to scan
+    sources_to_scan = []
+    
+    if url:
+        # Create temporary source for custom URL
+        temp_source = Source(
+            name=f"Manual scan: {url}",
+            url=url,
+            source_type="website",
+            is_active=True
         )
+        db.add(temp_source)
+        db.commit()
+        db.refresh(temp_source)
+        sources_to_scan.append(temp_source)
+    elif source_ids:
+        sources_to_scan = db.execute(
+            select(Source).where(Source.id.in_(source_ids), Source.is_active == True)
+        ).scalars().all()
+    else:
+        raise HTTPException(status_code=400, detail="Must provide either source_ids or url")
     
-    # Create crawl job
-    crawl_job = CrawlJob(
-        job_type="manual",
-        source_ids=request.source_ids,
-        keyword_group_ids=request.keyword_group_ids,
-        status=CrawlJobStatus.PENDING,
-        total_sources=len(sources)
-    )
+    if not sources_to_scan:
+        raise HTTPException(status_code=404, detail="No active sources found")
     
-    db.add(crawl_job)
-    await db.commit()
-    await db.refresh(crawl_job)
+    # Scan each source
+    total_mentions = 0
+    new_mentions = []
     
-    # NOTE: Background task queuing disabled (requires Celery)
-    # To enable: uncomment the following lines after installing Celery
-    # for source_id in request.source_ids:
-    #     crawl_source.delay(source_id, request.keyword_group_ids)
-    
-    return ManualCrawlResponse(
-        job_id=crawl_job.id,
-        sources_queued=len(sources),
-        message=f"Crawl job created (ID: {crawl_job.id}). Note: Background processing requires Celery workers to be running."
-    )
-
-
-@router.post("/schedule/{schedule_id}/run", response_model=dict)
-async def trigger_scheduled_crawl(
-    schedule_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Manually trigger a scheduled crawl
-    
-    NOTE: Requires Celery workers to be running for background processing.
-    """
-    # Verify schedule exists
-    result = await db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id))
-    schedule = result.scalar_one_or_none()
-    
-    if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
-    
-    if not schedule.is_active:
-        raise HTTPException(status_code=400, detail="Schedule is not active")
-    
-    # NOTE: Background task queuing disabled (requires Celery)
-    # To enable: uncomment the following line after installing Celery
-    # run_scheduled_crawl.delay(schedule_id)
+    for source in sources_to_scan:
+        try:
+            # Crawl the source
+            mentions = crawl_source(source, keyword_texts, all_keywords, db)
+            
+            for mention_data in mentions:
+                # Check if mention already exists (by content hash)
+                content_hash = hashlib.sha256(mention_data['content'].encode()).hexdigest()
+                
+                existing = db.execute(
+                    select(Mention).where(Mention.content_hash == content_hash)
+                ).scalar_one_or_none()
+                
+                if existing:
+                    continue
+                
+                # Create mention
+                mention = Mention(
+                    source_id=source.id,
+                    title=mention_data.get('title'),
+                    content=mention_data['content'],
+                    content_hash=content_hash,
+                    url=mention_data['url'],
+                    author=mention_data.get('author'),
+                    published_at=mention_data.get('published_at'),
+                    matched_keywords=mention_data.get('matched_keywords', [])
+                )
+                db.add(mention)
+                db.commit()
+                db.refresh(mention)
+                
+                # AI Analysis
+                analysis_result = analyze_mention_with_dummy_ai(mention.content, mention.title)
+                
+                ai_analysis = AIAnalysis(
+                    mention_id=mention.id,
+                    sentiment=analysis_result['sentiment'],
+                    risk_score=analysis_result['risk_score'],
+                    crisis_level=analysis_result['crisis_level'],
+                    summary_vi=analysis_result['summary_vi'],
+                    suggested_action=analysis_result['suggested_action'],
+                    responsible_department=analysis_result['responsible_department'],
+                    confidence_score=analysis_result['confidence_score'],
+                    ai_provider="dummy_ai",
+                    model_version="1.0",
+                    processing_time_ms=analysis_result['processing_time_ms']
+                )
+                db.add(ai_analysis)
+                db.commit()
+                
+                # Create alert if high risk
+                if analysis_result['risk_score'] >= 70:
+                    severity = AlertSeverity.CRITICAL if analysis_result['risk_score'] >= 85 else AlertSeverity.HIGH
+                    
+                    alert = Alert(
+                        mention_id=mention.id,
+                        severity=severity,
+                        status=AlertStatus.NEW,
+                        title=f"High risk mention detected: {mention.title or 'No title'}",
+                        message=f"Risk score: {analysis_result['risk_score']}, Crisis level: {analysis_result['crisis_level']}"
+                    )
+                    db.add(alert)
+                    db.commit()
+                
+                new_mentions.append(mention.id)
+                total_mentions += 1
+            
+            # Update source last crawled
+            source.last_crawled_at = datetime.utcnow()
+            source.last_success_at = datetime.utcnow()
+            source.crawl_count = (source.crawl_count or 0) + 1
+            db.commit()
+            
+        except Exception as e:
+            # Update source with error
+            source.last_error = str(e)
+            source.error_count = (source.error_count or 0) + 1
+            db.commit()
+            continue
     
     return {
-        "message": f"Scheduled crawl request received for schedule {schedule_id}. Note: Background processing requires Celery workers.",
-        "schedule_name": schedule.name
+        "success": True,
+        "total_mentions_found": total_mentions,
+        "new_mention_ids": new_mentions,
+        "sources_scanned": len(sources_to_scan),
+        "message": f"Scan completed. Found {total_mentions} new mentions."
     }
 
 
-@router.get("/jobs/{job_id}", response_model=dict)
-async def get_crawl_job_status(
-    job_id: int,
-    db: AsyncSession = Depends(get_db),
+def crawl_source(source: Source, keyword_texts: List[str], keywords: List[Keyword], db: Session) -> List[dict]:
+    """Crawl a source and extract mentions matching keywords"""
+    mentions = []
+    
+    try:
+        # Try RSS first
+        if source.source_type == 'rss' or 'rss' in source.url.lower() or 'feed' in source.url.lower():
+            feed = feedparser.parse(source.url)
+            
+            for entry in feed.entries[:20]:  # Limit to 20 entries
+                title = entry.get('title', '')
+                content = entry.get('summary', '') or entry.get('description', '')
+                full_text = f"{title} {content}".lower()
+                
+                # Check if any keyword matches
+                matched = []
+                for i, kw_text in enumerate(keyword_texts):
+                    if kw_text in full_text:
+                        matched.append({
+                            'keyword_id': keywords[i].id,
+                            'keyword': keywords[i].keyword
+                        })
+                
+                if matched:
+                    mentions.append({
+                        'title': title,
+                        'content': content[:5000],  # Limit content length
+                        'url': entry.get('link', source.url),
+                        'author': entry.get('author'),
+                        'published_at': datetime(*entry.published_parsed[:6]) if hasattr(entry, 'published_parsed') else None,
+                        'matched_keywords': matched
+                    })
+        
+        # Try regular web scraping
+        else:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(source.url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Remove script and style elements
+            for script in soup(["script", "style"]):
+                script.decompose()
+            
+            # Get text
+            text = soup.get_text()
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = ' '.join(chunk for chunk in chunks if chunk)
+            
+            text_lower = text.lower()
+            
+            # Check if any keyword matches
+            matched = []
+            for i, kw_text in enumerate(keyword_texts):
+                if kw_text in text_lower:
+                    matched.append({
+                        'keyword_id': keywords[i].id,
+                        'keyword': keywords[i].keyword
+                    })
+            
+            if matched:
+                # Try to extract title
+                title = soup.find('title')
+                title_text = title.string if title else source.name
+                
+                mentions.append({
+                    'title': title_text,
+                    'content': text[:5000],  # Limit content length
+                    'url': source.url,
+                    'author': None,
+                    'published_at': datetime.utcnow(),
+                    'matched_keywords': matched
+                })
+    
+    except Exception as e:
+        print(f"Error crawling {source.url}: {str(e)}")
+        raise
+    
+    return mentions
+
+
+@router.get("/scan-history")
+def get_scan_history(
+    page: int = 1,
+    page_size: int = 20,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get status of a crawl job"""
-    result = await db.execute(select(CrawlJob).where(CrawlJob.id == job_id))
-    job = result.scalar_one_or_none()
+    """Get scan history (recent mentions)"""
+    from math import ceil
     
-    if not job:
-        raise HTTPException(status_code=404, detail="Crawl job not found")
+    total = db.execute(select(func.count(Mention.id))).scalar()
+    
+    offset = (page - 1) * page_size
+    mentions = db.execute(
+        select(Mention)
+        .order_by(Mention.collected_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    ).scalars().all()
     
     return {
-        "id": job.id,
-        "job_type": job.job_type,
-        "status": job.status,
-        "total_sources": job.total_sources,
-        "processed_sources": job.processed_sources,
-        "mentions_found": job.mentions_found,
-        "error_message": job.error_message,
-        "created_at": job.created_at,
-        "started_at": job.started_at,
-        "completed_at": job.completed_at
+        "items": [
+            {
+                "id": m.id,
+                "title": m.title,
+                "url": m.url,
+                "source_id": m.source_id,
+                "collected_at": m.collected_at.isoformat() if m.collected_at else None,
+                "matched_keywords": m.matched_keywords
+            }
+            for m in mentions
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": ceil(total / page_size) if total > 0 else 1
     }
