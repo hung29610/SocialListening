@@ -13,9 +13,9 @@ class KeywordType(str, Enum):
 
 
 class LogicOperator(str, Enum):
-    AND = "AND"
-    OR = "OR"
-    NOT = "NOT"
+    AND = "and"
+    OR = "or"
+    NOT = "not"
 
 
 class KeywordGroup(Base):

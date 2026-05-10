@@ -60,21 +60,18 @@ def list_incidents(
 
 @router.post("", status_code=201)
 def create_incident(
-    mention_id: int,
-    title: str,
-    description: str = None,
-    deadline: str = None,
+    incident_data: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new incident"""
     incident = Incident(
-        mention_id=mention_id,
+        mention_id=incident_data.get("mention_id"),
         owner_id=current_user.id,
-        title=title,
-        description=description,
+        title=incident_data.get("title"),
+        description=incident_data.get("description"),
         status=IncidentStatus.NEW,
-        deadline=datetime.fromisoformat(deadline) if deadline else None
+        deadline=datetime.fromisoformat(incident_data["deadline"]) if incident_data.get("deadline") else None
     )
     db.add(incident)
     db.commit()
