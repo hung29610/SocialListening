@@ -25,10 +25,13 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting Social Listening Platform...")
     
-    # Create database tables (sync engine)
-    Base.metadata.create_all(bind=engine)
+    # Create database tables (sync engine) - skip if already exists
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created")
+    except Exception as e:
+        print(f"⚠️  Database tables may already exist: {e}")
     
-    print("✅ Database tables created")
     print(f"📡 API running on http://localhost:8000")
     print(f"📚 API docs available at http://localhost:8000/docs")
     
