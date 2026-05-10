@@ -13,7 +13,8 @@ import {
   AlertTriangle, 
   LogOut,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -77,6 +78,7 @@ export default function DashboardLayout({
     { name: 'Mentions', href: '/dashboard/mentions', icon: FileText },
     { name: 'Cảnh báo', href: '/dashboard/alerts', icon: Bell },
     { name: 'Sự cố', href: '/dashboard/incidents', icon: AlertTriangle },
+    { name: 'Dịch vụ', href: '/dashboard/services', icon: Settings },
   ];
 
   return (

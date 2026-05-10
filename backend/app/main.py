@@ -15,7 +15,9 @@ from app.api import (
     reports,
     dashboard,
     crawl,
-    takedown
+    takedown,
+    services,
+    admin
 )
 
 
@@ -73,6 +75,8 @@ app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"]
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(takedown.router, prefix="/api/takedown", tags=["Takedown"])
+app.include_router(services.router, prefix="/api/services", tags=["Services"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 # Root endpoint
 @app.get("/")

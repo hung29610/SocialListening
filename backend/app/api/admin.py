@@ -1,0 +1,287 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from app.core.database import get_db
+from app.core.security import get_current_active_user
+from app.models.user import User
+from app.scripts.seed_services import seed_service_categories, seed_services
+import subprocess
+import os
+
+router = APIRouter()
+
+
+@router.post("/run-migrations")
+def run_migrations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Run database migrations"""
+    try:
+        # Check if service tables exist
+        result = db.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'service_categories'
+            );
+        """))
+        tables_exist = result.scalar()
+        
+        if tables_exist:
+            return {"message": "Service catalog tables already exist", "status": "skipped"}
+        
+        # Create service catalog tables manually
+        db.execute(text("""
+            -- Create enum types
+            DO $$ BEGIN
+                CREATE TYPE servicetype AS ENUM (
+                    'crisis_consulting', 'monitoring', 'legal_takedown', 'press_media',
+                    'copyright_protection', 'community_response', 'reputation_management',
+                    'evidence_collection', 'ai_reporting'
+                );
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE platform AS ENUM (
+                    'facebook', 'youtube', 'tiktok', 'twitter', 'instagram',
+                    'website', 'news_media', 'all_platforms'
+                );
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE risklevel AS ENUM ('low', 'medium', 'high', 'critical');
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE servicerequeststatus AS ENUM (
+                    'draft', 'submitted', 'pending_approval', 'approved', 'in_progress',
+                    'waiting_external_response', 'completed', 'rejected', 'cancelled'
+                );
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE approvalstatus AS ENUM (
+                    'not_required', 'pending', 'approved', 'rejected', 'revision_required'
+                );
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE priority AS ENUM ('low', 'medium', 'high', 'urgent');
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+            
+            DO $$ BEGIN
+                CREATE TYPE deliverabletype AS ENUM (
+                    'report', 'draft_response', 'legal_document', 'evidence_package',
+                    'strategy_plan', 'briefing', 'monitoring_dashboard'
+                );
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
+        """))
+        
+        # Create service_categories table
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS service_categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE
+            );
+            
+            CREATE INDEX IF NOT EXISTS ix_service_categories_id ON service_categories (id);
+            CREATE INDEX IF NOT EXISTS ix_service_categories_name ON service_categories (name);
+            CREATE INDEX IF NOT EXISTS ix_service_categories_is_active ON service_categories (is_active);
+        """))
+        
+        # Create services table
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS services (
+                id SERIAL PRIMARY KEY,
+                category_id INTEGER NOT NULL REFERENCES service_categories(id),
+                code VARCHAR(50) UNIQUE NOT NULL,
+                name VARCHAR(500) NOT NULL,
+                description TEXT,
+                service_type servicetype NOT NULL,
+                platform platform NOT NULL,
+                legal_basis TEXT,
+                workflow_template JSON,
+                deliverables JSON,
+                estimated_duration VARCHAR(100),
+                sla_hours INTEGER,
+                base_price NUMERIC(15, 2),
+                min_quantity INTEGER DEFAULT 1,
+                unit VARCHAR(50),
+                risk_level risklevel DEFAULT 'low',
+                requires_approval BOOLEAN DEFAULT TRUE,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE
+            );
+            
+            CREATE INDEX IF NOT EXISTS ix_services_id ON services (id);
+            CREATE INDEX IF NOT EXISTS ix_services_category_id ON services (category_id);
+            CREATE INDEX IF NOT EXISTS ix_services_code ON services (code);
+            CREATE INDEX IF NOT EXISTS ix_services_service_type ON services (service_type);
+            CREATE INDEX IF NOT EXISTS ix_services_platform ON services (platform);
+            CREATE INDEX IF NOT EXISTS ix_services_risk_level ON services (risk_level);
+            CREATE INDEX IF NOT EXISTS ix_services_requires_approval ON services (requires_approval);
+            CREATE INDEX IF NOT EXISTS ix_services_is_active ON services (is_active);
+        """))
+        
+        # Create service_requests table
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS service_requests (
+                id SERIAL PRIMARY KEY,
+                service_id INTEGER NOT NULL REFERENCES services(id),
+                related_mention_id INTEGER REFERENCES mentions(id),
+                related_alert_id INTEGER REFERENCES alerts(id),
+                related_incident_id INTEGER REFERENCES incidents(id),
+                requester_id INTEGER NOT NULL REFERENCES users(id),
+                assigned_to INTEGER REFERENCES users(id),
+                status servicerequeststatus DEFAULT 'draft',
+                priority priority DEFAULT 'medium',
+                request_reason TEXT,
+                evidence_summary TEXT,
+                desired_outcome TEXT,
+                approval_status approvalstatus DEFAULT 'not_required',
+                quoted_price NUMERIC(15, 2),
+                final_price NUMERIC(15, 2),
+                deadline TIMESTAMP WITH TIME ZONE,
+                result_summary TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE
+            );
+            
+            CREATE INDEX IF NOT EXISTS ix_service_requests_id ON service_requests (id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_service_id ON service_requests (service_id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_related_mention_id ON service_requests (related_mention_id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_related_alert_id ON service_requests (related_alert_id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_related_incident_id ON service_requests (related_incident_id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_requester_id ON service_requests (requester_id);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_assigned_to ON service_requests (assigned_to);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_status ON service_requests (status);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_priority ON service_requests (priority);
+            CREATE INDEX IF NOT EXISTS ix_service_requests_approval_status ON service_requests (approval_status);
+        """))
+        
+        # Create service_request_logs table
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS service_request_logs (
+                id SERIAL PRIMARY KEY,
+                service_request_id INTEGER NOT NULL REFERENCES service_requests(id),
+                action VARCHAR(100) NOT NULL,
+                old_status VARCHAR(50),
+                new_status VARCHAR(50),
+                note TEXT,
+                created_by INTEGER NOT NULL REFERENCES users(id),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS ix_service_request_logs_id ON service_request_logs (id);
+            CREATE INDEX IF NOT EXISTS ix_service_request_logs_service_request_id ON service_request_logs (service_request_id);
+        """))
+        
+        # Create service_deliverables table
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS service_deliverables (
+                id SERIAL PRIMARY KEY,
+                service_request_id INTEGER NOT NULL REFERENCES service_requests(id),
+                deliverable_type deliverabletype NOT NULL,
+                title VARCHAR(500) NOT NULL,
+                content TEXT,
+                file_url VARCHAR(1000),
+                approval_status approvalstatus DEFAULT 'pending',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE
+            );
+            
+            CREATE INDEX IF NOT EXISTS ix_service_deliverables_id ON service_deliverables (id);
+            CREATE INDEX IF NOT EXISTS ix_service_deliverables_service_request_id ON service_deliverables (service_request_id);
+            CREATE INDEX IF NOT EXISTS ix_service_deliverables_deliverable_type ON service_deliverables (deliverable_type);
+            CREATE INDEX IF NOT EXISTS ix_service_deliverables_approval_status ON service_deliverables (approval_status);
+        """))
+        
+        db.commit()
+        
+        return {"message": "Service catalog tables created successfully", "status": "success"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
+
+
+@router.post("/seed-services")
+def seed_services_data(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Seed service catalog data"""
+    try:
+        # Check if data already exists
+        result = db.execute(text("SELECT COUNT(*) FROM service_categories"))
+        count = result.scalar()
+        
+        if count > 0:
+            return {"message": "Service catalog data already exists", "status": "skipped"}
+        
+        # Seed data
+        seed_service_categories(db)
+        seed_services(db)
+        
+        return {"message": "Service catalog data seeded successfully", "status": "success"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Seeding failed: {str(e)}")
+
+
+@router.get("/service-catalog-status")
+def get_service_catalog_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Check service catalog status"""
+    try:
+        # Check if tables exist
+        result = db.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'service_categories'
+            );
+        """))
+        tables_exist = result.scalar()
+        
+        if not tables_exist:
+            return {"tables_exist": False, "categories_count": 0, "services_count": 0}
+        
+        # Count data
+        categories_result = db.execute(text("SELECT COUNT(*) FROM service_categories"))
+        categories_count = categories_result.scalar()
+        
+        services_result = db.execute(text("SELECT COUNT(*) FROM services"))
+        services_count = services_result.scalar()
+        
+        return {
+            "tables_exist": True,
+            "categories_count": categories_count,
+            "services_count": services_count
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}

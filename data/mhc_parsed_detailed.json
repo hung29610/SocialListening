@@ -1,0 +1,543 @@
+{
+  "file_info": {
+    "filename": "mhc_bao_gia_khung_xlkh.xlsx",
+    "sheet_names": [
+      "XLKH các TH đặc biệt khác",
+      "Bảo vệ bản quyền thương hiệu"
+    ],
+    "total_sheets": 2
+  },
+  "sheets": {
+    "XLKH các TH đặc biệt khác": {
+      "sheet_name": "XLKH các TH đặc biệt khác",
+      "header_row": 9,
+      "headers": [
+        "STT",
+        "Dịch vụ định kỳ",
+        "Chi tiết công việc",
+        "Đơn giá",
+        "Đơn vị",
+        "Số lượng",
+        "Thời gian dự tính",
+        "Đơn giá\n(Chưa bao gồm VAT)",
+        "Ghi chú"
+      ],
+      "services": [
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Report tài khoản đã verify, tài khoản có tick xanh, tài khoản từng bị report nhiều lần…",
+          "Chi tiết công việc": "Report bản quyền",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 15000000,
+            "max_price": 25000000,
+            "raw": "15.000.000 - 25.000.000"
+          },
+          "Đơn vị": "Tài khoản",
+          "Số lượng": 1,
+          "Thời gian dự tính": "1-30 ngày ",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 15000000,
+            "max_price": 25000000,
+            "raw": "15.000.000 - 25.000.000"
+          },
+          "Ghi chú": "Tùy thuộc vào độ phức tạp, tình trạng tài khoản của KOLS thuê bảo mật, tài khoản đã từng bị report nhiều lần và được lấy lại, được Facebook  xác định danh tính. Thời gian xử lý phụ thuộc vào thời gian support Facebook xem xét và trả lời mail.",
+          "category": "I. Account cá nhân"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Gỡ post đăng trên Group kín",
+          "Chi tiết công việc": "Xoá post giữ nguyên Fanpage/Group\n- Hạn chế lượt tiếp cận trong quá trình Report Fanpage/Group\n-  Xử lý triệt để khi Report Fanpage/Group thành công",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 17000000,
+            "max_price": 18000000,
+            "raw": "17.000.000 - 18.000.000"
+          },
+          "Đơn vị": "Post",
+          "Số lượng": 1,
+          "Thời gian dự tính": "24 tiếng - 48 tiếng",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 17000000,
+            "max_price": 18000000,
+            "raw": "17.000.000 - 18.000.000"
+          },
+          "Ghi chú": "Tùy thuộc vào nội dung bài post có đủ ảnh + logo +  tên doanh nghiệp để report vi phạm bản quyền và thời gian chờ Facebook phản hồi. Bài post ko có đủ căn cứ thời gian sẽ lâu hơn. Gửi chốt vào ngày thứ 7 và chủ nhật sẽ bị phát sinh thời gian chờ do Facebook làm việc duyệt chậm vào ngày nghỉ.",
+          "category": "II. Fanpage/ Group"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Report Group/ Fanpage",
+          "Chi tiết công việc": "Report bản quyền và vi phạm quy định Facebook để  xoá/ gỡ/ khoá vĩnh viễn ",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 15000000,
+            "max_price": 25000000,
+            "raw": "15.000.000 - 25.000.000"
+          },
+          "Đơn vị": "Group kín/ Fanpage",
+          "Số lượng": 1,
+          "Thời gian dự tính": "15 ngày - 45 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 15000000,
+            "max_price": 25000000,
+            "raw": "15.000.000 - 25.000.000"
+          },
+          "Ghi chú": "Tùy thuộc vào độ khó, bảo mật của Group/Fanpage",
+          "category": "II. Fanpage/ Group"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Video trên kênh Youtube",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Đơn giá": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Đơn vị": "Post",
+          "Số lượng": 1,
+          "Thời gian dự tính": "2 - 15 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 35000000,
+            "max_price": 35000000,
+            "raw": "Thỏa thuận\nƯớc tính > 35.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh",
+          "category": "III. Youtube, Tiktok"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Video trên kênh Tiktok",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Đơn giá": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Đơn vị": "Post",
+          "Số lượng": 1,
+          "Thời gian dự tính": "2 - 15 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 25000000,
+            "max_price": 25000000,
+            "raw": "Thỏa thuận\nƯớc tính > 25.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh",
+          "category": "III. Youtube, Tiktok"
+        },
+        {
+          "STT": 3,
+          "Dịch vụ định kỳ": "Kênh Youtube",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Đơn giá": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Đơn vị": "Tài khoản",
+          "Số lượng": 1,
+          "Thời gian dự tính": "2 - 15 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 16000000,
+            "max_price": 16000000,
+            "raw": "Thỏa thuận\nƯớc tính > 16.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh",
+          "category": "III. Youtube, Tiktok"
+        },
+        {
+          "STT": 4,
+          "Dịch vụ định kỳ": "Kênh Tiktok",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Đơn giá": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Đơn vị": "Tài khoản",
+          "Số lượng": 1,
+          "Thời gian dự tính": "2 - 15 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 20000000,
+            "max_price": 20000000,
+            "raw": "Thỏa thuận\nƯớc tính > 20.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh",
+          "category": "III. Youtube, Tiktok"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Gỡ bài bằng phương án kỹ thuật",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoặc xóa bỏ: Lỗi link 404/403/405",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 25000000,
+            "max_price": 45000000,
+            "raw": "25.000.000 - 45.000.000"
+          },
+          "Đơn vị": "Link",
+          "Số lượng": 1,
+          "Thời gian dự tính": "20 - 45 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 25000000,
+            "max_price": 45000000,
+            "raw": "25.000.000 - 45.000.000"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh\nChỉ áp dụng với trang tin tổng hợp chưa được cấp phép",
+          "category": "III. Website"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Xóa Index Google",
+          "Chi tiết công việc": "Xóa index Google: Google trả về kết quả hiển thị: \n“Không tìm thấy site….”",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 25000000,
+            "max_price": 45000000,
+            "raw": "25.000.000 - 45.000.000"
+          },
+          "Đơn vị": "Link",
+          "Số lượng": 1,
+          "Thời gian dự tính": "30 - 50 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 25000000,
+            "max_price": 45000000,
+            "raw": "25.000.000 - 45.000.000"
+          },
+          "Ghi chú": "Căn cứ vào mức độ khủng hoảng và uy tín của kênh",
+          "category": "III. Website"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Quan hệ BC",
+          "Chi tiết công việc": "Gỡ bỏ thông tin xấu hoàn toàn (lỗi link 404 hoặc thay thế bằng bài viết khác )",
+          "Đơn giá": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Đơn vị": "Link",
+          "Số lượng": 1,
+          "Thời gian dự tính": " 1 - 5 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "negotiable",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Thoả thuận"
+          },
+          "Ghi chú": "Phụ thuộc tin mới hay đã cũ, phụ thuộc từng báo, phụ thuộc vào mức độ  \"nhạy cảm\" của từng sự vụ.",
+          "category": "XỬ LÝ QUAN HỆ BÁO CHÍ"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Quan hệ BC",
+          "Chi tiết công việc": "Edit nội dung bài (Edit tên thương hiệu, logo, hình ảnh có logo hoặc nội dung nhạy cảm)",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 7000000,
+            "max_price": 35000000,
+            "raw": "7.000.000 - 35.000.000"
+          },
+          "Đơn vị": "Link",
+          "Số lượng": 1,
+          "Thời gian dự tính": " 1 - 5 ngày",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 7000000,
+            "max_price": 35000000,
+            "raw": "7.000.000 - 35.000.000"
+          },
+          "Ghi chú": "Phụ thuộc tin mới hay đã cũ, phụ thuộc từng báo, phụ thuộc vào mức độ  \"nhạy cảm\" của từng sự vụ.",
+          "category": "XỬ LÝ QUAN HỆ BÁO CHÍ"
+        },
+        {
+          "STT": 3,
+          "Dịch vụ định kỳ": "Quan hệ BC",
+          "Chi tiết công việc": "Bài đã đẩy lên hệ thống báo chí nhưng chưa đến giờ public bài ra trang chủ, nhưng DN có lý do cần gỡ bài khỏi hệ thống",
+          "Đơn giá": {
+            "type": "range",
+            "min_price": 5000000,
+            "max_price": 10000000,
+            "raw": "5.000.000 - 10.000.000"
+          },
+          "Đơn vị": "Link",
+          "Số lượng": 1,
+          "Thời gian dự tính": "1- 3 tiếng",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "range",
+            "min_price": 5000000,
+            "max_price": 10000000,
+            "raw": "5.000.000 - 10.000.000"
+          },
+          "Ghi chú": "Bài đẩy lên hệ thống, để gỡ được bắt buộc phải sử dụng Account của cấp quản lý cao của Báo. Khi sử dụng Account để gỡ chip cảnh báo can thiệp sẽ báo về Thanh tra Bộ TTTT",
+          "category": "XỬ LÝ QUAN HỆ BÁO CHÍ"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Quản trị tiêu cực ",
+          "Chi tiết công việc": "Gói quản trị tiêu cực hàng tháng bao gồm:\n+ Phân tích tính chất sự việc xảy ra trên Social theo thời gian thực và tư vấn phương án xử lý.\n+ Theo dõi và cập nhật phương án xử lý cùng.\nChưa bao gồm chi phí xử lý theo phương án được thỏa thuận với khách hàng.",
+          "Đơn giá": {
+            "type": "fixed",
+            "min_price": 5000000,
+            "max_price": 5000000,
+            "raw": "5000000"
+          },
+          "Đơn vị": "Tháng",
+          "Số lượng": 12,
+          "Thời gian dự tính": "-",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 60000000,
+            "max_price": 60000000,
+            "raw": "60000000"
+          },
+          "Ghi chú": "*Gói quản trị tiêu cực:\n- Nhân sự xử lý khủng hoảng phản ứng chủ động\n- Tất cả thông tin tiêu cực được tư vấn xử lý, theo dõi và cập nhật báo cáo liên tục trong quá trình xử lý\n\n*Gói case by case: Đỗ trễ 2.5 tiếng; thời gian support, hỗ trợ báo cáo tổng hợp giới hạn trong phạm vi: 8h00 -> 23h30 (Ngoài phạm vi chuyển sang giờ hôm sau)",
+          "category": "QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Thực hiện Seeding pha loãng thảo luận tiêu cực trên Facebook",
+          "Chi tiết công việc": "Seeding trên Facebook:\n+ Sử dụng nhiều tài khoản để seeding trên Facebook với những nội dung  theo kịch bản được thống nhất giữa hai bên.",
+          "Đơn giá": {
+            "type": "fixed",
+            "min_price": 20000,
+            "max_price": 20000,
+            "raw": "20000"
+          },
+          "Đơn vị": "Đơn giá/ 01 Comment",
+          "Số lượng": 150,
+          "Thời gian dự tính": "-",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 3000000,
+            "max_price": 3000000,
+            "raw": "3000000"
+          },
+          "Ghi chú": "Gói tối thiểu từ 150 comment.",
+          "category": "QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG"
+        },
+        {
+          "STT": 3,
+          "Dịch vụ định kỳ": "Thực hiện Seeding pha loãng thảo luận tiêu cực trên Forum, YouTube và Tiktok  (viết và đăng lời bình) ",
+          "Chi tiết công việc": "Seeding trên Forum và YouTube:\n+ Sử dụng nhiều tài khoản để seeding trên Forum hoặc YouTube với những nội dung theo kịch bản được thống nhất giữa hai bên.",
+          "Đơn giá": {
+            "type": "fixed",
+            "min_price": 30000,
+            "max_price": 30000,
+            "raw": "30000"
+          },
+          "Đơn vị": "Đơn giá/ 01 Comment",
+          "Số lượng": 100,
+          "Thời gian dự tính": "-",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 3000000,
+            "max_price": 3000000,
+            "raw": "3000000"
+          },
+          "Ghi chú": "Gói tối thiểu từ 100 comment.",
+          "category": "QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG"
+        }
+      ],
+      "total_services": 15
+    },
+    "Bảo vệ bản quyền thương hiệu": {
+      "sheet_name": "Bảo vệ bản quyền thương hiệu",
+      "header_row": 9,
+      "headers": [
+        "STT",
+        "Dịch vụ định kỳ",
+        "Chi tiết công việc",
+        "Meta",
+        "Đơn vị",
+        "Số lượng",
+        "Đơn giá\n(Chưa bao gồm VAT)",
+        "Ghi chú"
+      ],
+      "services": [
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Bảo vệ video thương hiệu",
+          "Chi tiết công việc": "Thiết lập hệ thống",
+          "Meta": 30000000,
+          "Đơn vị": "Gói",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 30000000,
+            "max_price": 30000000,
+            "raw": "30000000"
+          },
+          "Ghi chú": "- Thiết lập thư viện quản lý về video Lãnh đạo/ video Thương hiệu/hình ảnh và video chiến dịch\n- Doanh nghiệp cung cấp video về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý video\n- Monitaz hỗ trợ thu thập các video đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý video",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": null,
+          "Dịch vụ định kỳ": null,
+          "Chi tiết công việc": "Thu thập thông tin về về video Lãnh đạo/ video Thương hiệu/ video chiến dịch\n+ Gói nhận diện tối đa 20 video",
+          "Meta": 15000000,
+          "Đơn vị": "Tháng",
+          "Số lượng": 12,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 180000000,
+            "max_price": 180000000,
+            "raw": "180000000"
+          },
+          "Ghi chú": "- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là video bản quyền của doanh nghiệp.\n- Phạm vi quét video: Trang cá nhân, Fanpage và Nhóm công khai (gồm cả video công khai và riêng tư)\n- Nhận diện đồng thời tối đa 20 video mỗi tháng (Thay đổi không quá 10 video)\n- Tỉ lệ nhận diện: 95%",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": null,
+          "Dịch vụ định kỳ": null,
+          "Chi tiết công việc": "Report nội dung chứa video vi phạm",
+          "Meta": null,
+          "Đơn vị": "Video",
+          "Số lượng": "Không giới hạn",
+          "Đơn giá\n(Chưa bao gồm VAT)": null,
+          "Ghi chú": "- Chỉ thực hiện gỡ video vi phạm bản quyền sau khi khớp\n- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ\n- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên\n- Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)\n- Số lượng video gỡ tối đa 1 ngày, không vượt quá 50 video reup/video gốc\n- Nghiệm thu bằng phương pháp chụp hình ảnh (video không tồn tại)\n- Tỷ lệ gỡ bỏ thành công: 90%*\n\n* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:\n- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành\n- Gỡ bỏ không thành công do bên thứ ba (Meta). Cụ thể: Meta bị lỗi không gỡ video dù đã thông báo gỡ video thành công đến người dùng",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": 2,
+          "Dịch vụ định kỳ": "Bảo vệ hình ảnh thương hiệu",
+          "Chi tiết công việc": "Thiết lập hệ thống",
+          "Meta": 30000000,
+          "Đơn vị": "Gói",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "free",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Tặng kèm"
+          },
+          "Ghi chú": "- Thiết lập thư viện quản lý về hình ảnh Lãnh đạo/ hình ản Thương hiệu/hình ảnh chiến dịch\n- Doanh nghiệp cung cấp hình ảnh về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý hình ảnh\n- Monitaz hỗ trợ thu thập các hình ảnh đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý hình ảnh",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": null,
+          "Dịch vụ định kỳ": null,
+          "Chi tiết công việc": "Thu thập thông tin về về hình ảnh Lãnh đạo/ hình ảnh Thương hiệu/ hình ảnhchiến dịch\n+ Gói nhận diện tối đa 100 hình ảnh",
+          "Meta": 15000000,
+          "Đơn vị": "Tháng",
+          "Số lượng": 12,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "free",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Tặng kèm"
+          },
+          "Ghi chú": "- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là hình ảnh bản quyền của doanh nghiệp.\n- Phạm vi quét hình ảnh: Trang cá nhân và Fanpage (gồm cả hình ảnh công khai và riêng tư)\n- Nhận diện đồng thời tối đa 100 hình ảnh mỗi tháng (Thay đổi không quá 50 hình ảnh mỗi tháng)\n- Tỉ lệ nhận diện: \n+ Thời điểm ổn định: 95% \n+ Thời điểm bất ổn: Không nhận diện được\n+ Tỉ lệ bất ổn: 25% (khoảng 3 tháng/năm) (Thông tin cập nhất đến tháng 12/2023)",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": null,
+          "Dịch vụ định kỳ": null,
+          "Chi tiết công việc": "Report nội dung chứa hình ảnh vi phạm",
+          "Meta": null,
+          "Đơn vị": "Hình ảnh",
+          "Số lượng": "Không giới hạn",
+          "Đơn giá\n(Chưa bao gồm VAT)": null,
+          "Ghi chú": "- Chỉ thực hiện gỡ hình ảnh vi phạm bản quyền sau khi khớp được\n- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ\n- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên\n- Số lượng hình ảnh gỡ tối đa 1 ngày, không vượt quá 50 hình ảnh reup/hình ảnh gốc\n- Nghiệm thu bằng phương pháp chụp hình ảnh (hình ảnh không tồn tại)\n+ Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)\n+ Tỷ lệ gỡ bỏ thành công: 90%*\n\n* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:\n- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành\n- Gỡ bỏ không thành công do bên thứ ba(Meta). Cụ thể: Meta bị lỗi không gỡ hình ảnh dù đã thông báo gỡ hình ảnh thành công đến người dùng",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": 3,
+          "Dịch vụ định kỳ": "Bảo vệ bản quyền thương hiệu",
+          "Chi tiết công việc": "Gỡ post Facebook",
+          "Meta": 18000000,
+          "Đơn vị": "Post",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 18000000,
+            "max_price": 18000000,
+            "raw": "18000000"
+          },
+          "Ghi chú": "- Phạm vi: Bài viết dạng status, link, hình ảnh và video (bao gồm cả bài viết dạng album ảnh và video) công khai trên Trang cá nhân, Fanpage và Nhóm công khai\n- Các trường hợp đặc biệt sẽ có báo giá riêng*\n\n* Các trường hợp đặc biệt bao gồm bài viết đến từ các tài khoản Facebook tích xanh:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": null,
+          "Dịch vụ định kỳ": null,
+          "Chi tiết công việc": "Report nguồn tiêu cực Facebook",
+          "Meta": 20000000,
+          "Đơn vị": "Tài khoản",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 20000000,
+            "max_price": 20000000,
+            "raw": "20000000"
+          },
+          "Ghi chú": "\n- Phạm vi: Tài khoản cá nhân, Fanpage và group công khai\n- Các trường hợp đặc biệt sẽ có báo giá riêng*\n\n* Các trường hợp đặc biệt bao gồm các tài khoản Facebook tích xanh:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": 4,
+          "Dịch vụ định kỳ": "Định hướng cộng đồng",
+          "Chi tiết công việc": "Thực hiện Seeding pha loãng thảo luận tiêu cực trên Facebook",
+          "Meta": 3000000,
+          "Đơn vị": "Gói\n(150 bình luận/gói)",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "free",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Tặng kèm"
+          },
+          "Ghi chú": "Seeding trên Facebook:\n+ Sử dụng nhiều tài khoản để seeding trên Facebook với những nội dung  theo kịch bản được thống nhất giữa hai bên.\n+ Áp dụng với các bài viết công khai trên trang cá nhân, fanpage và group",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": "STT",
+          "Dịch vụ định kỳ": "Dịch vụ định kỳ",
+          "Chi tiết công việc": "Chi tiết công việc",
+          "Meta": "Facebook",
+          "Đơn vị": "Đơn vị",
+          "Số lượng": "Số lượng",
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "unknown",
+            "min_price": null,
+            "max_price": null,
+            "raw": "Đơn giá\n(Chưa bao gồm VAT)"
+          },
+          "Ghi chú": "Ghi chú",
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        },
+        {
+          "STT": 1,
+          "Dịch vụ định kỳ": "Phụ lục",
+          "Chi tiết công việc": "Thêm 10 video",
+          "Meta": 5000000,
+          "Đơn vị": "Tháng",
+          "Số lượng": 1,
+          "Đơn giá\n(Chưa bao gồm VAT)": {
+            "type": "fixed",
+            "min_price": 5000000,
+            "max_price": 5000000,
+            "raw": "5000000"
+          },
+          "Ghi chú": null,
+          "category": "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU"
+        }
+      ],
+      "total_services": 11
+    }
+  }
+}

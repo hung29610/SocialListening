@@ -215,3 +215,132 @@ export const incidents = {
     return response.data;
   },
 };
+
+// Services
+export const services = {
+  // Categories
+  listCategories: async () => {
+    const response = await api.get('/api/services/categories');
+    return response.data;
+  },
+  
+  createCategory: async (data: any) => {
+    const response = await api.post('/api/services/categories', data);
+    return response.data;
+  },
+  
+  updateCategory: async (id: number, data: any) => {
+    const response = await api.put(`/api/services/categories/${id}`, data);
+    return response.data;
+  },
+  
+  deleteCategory: async (id: number) => {
+    const response = await api.delete(`/api/services/categories/${id}`);
+    return response.data;
+  },
+  
+  // Services
+  list: async (params?: any) => {
+    const response = await api.get('/api/services', { params });
+    return response.data;
+  },
+  
+  get: async (id: number) => {
+    const response = await api.get(`/api/services/${id}`);
+    return response.data;
+  },
+  
+  create: async (data: any) => {
+    const response = await api.post('/api/services', data);
+    return response.data;
+  },
+  
+  update: async (id: number, data: any) => {
+    const response = await api.put(`/api/services/${id}`, data);
+    return response.data;
+  },
+  
+  delete: async (id: number) => {
+    const response = await api.delete(`/api/services/${id}`);
+    return response.data;
+  },
+  
+  // Service Requests
+  listRequests: async (params?: any) => {
+    const response = await api.get('/api/services/requests', { params });
+    return response.data;
+  },
+  
+  getRequest: async (id: number) => {
+    const response = await api.get(`/api/services/requests/${id}`);
+    return response.data;
+  },
+  
+  createRequest: async (data: any) => {
+    const response = await api.post('/api/services/requests', data);
+    return response.data;
+  },
+  
+  updateRequest: async (id: number, data: any) => {
+    const response = await api.put(`/api/services/requests/${id}`, data);
+    return response.data;
+  },
+  
+  submitRequest: async (id: number, data?: any) => {
+    const response = await api.post(`/api/services/requests/${id}/submit`, data || {});
+    return response.data;
+  },
+  
+  approveRequest: async (id: number, data?: any) => {
+    const response = await api.post(`/api/services/requests/${id}/approve`, data || {});
+    return response.data;
+  },
+  
+  rejectRequest: async (id: number, data: any) => {
+    const response = await api.post(`/api/services/requests/${id}/reject`, data);
+    return response.data;
+  },
+  
+  completeRequest: async (id: number, data: any) => {
+    const response = await api.post(`/api/services/requests/${id}/complete`, data);
+    return response.data;
+  },
+  
+  cancelRequest: async (id: number, data: any) => {
+    const response = await api.post(`/api/services/requests/${id}/cancel`, data);
+    return response.data;
+  },
+  
+  // Service Request Logs
+  getRequestLogs: async (id: number) => {
+    const response = await api.get(`/api/services/requests/${id}/logs`);
+    return response.data;
+  },
+  
+  createRequestLog: async (id: number, data: any) => {
+    const response = await api.post(`/api/services/requests/${id}/logs`, data);
+    return response.data;
+  },
+  
+  // Service Deliverables
+  getDeliverables: async (id: number) => {
+    const response = await api.get(`/api/services/requests/${id}/deliverables`);
+    return response.data;
+  },
+  
+  createDeliverable: async (id: number, data: any) => {
+    const response = await api.post(`/api/services/requests/${id}/deliverables`, data);
+    return response.data;
+  },
+  
+  updateDeliverable: async (id: number, data: any) => {
+    const response = await api.put(`/api/services/deliverables/${id}`, data);
+    return response.data;
+  },
+  
+  // Dashboard
+  getDashboardSummary: async () => {
+    const response = await api.get('/api/services/dashboard-summary');
+    return response.data;
+  },
+};

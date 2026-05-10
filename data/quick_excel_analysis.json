@@ -1,0 +1,334 @@
+{
+  "sheet_names": [
+    "XLKH các TH đặc biệt khác",
+    "Bảo vệ bản quyền thương hiệu"
+  ],
+  "sheets_data": {
+    "XLKH các TH đặc biệt khác": {
+      "header_row": 9,
+      "headers": [
+        "STT",
+        "Dịch vụ định kỳ",
+        "Chi tiết công việc",
+        "Đơn giá",
+        "Đơn vị",
+        "Số lượng",
+        "Thời gian dự tính",
+        "Đơn giá\n(Chưa bao gồm VAT)",
+        "Ghi chú"
+      ],
+      "first_10_rows": [
+        [
+          "DỊCH VỤ CAN THIỆP KỸ THUẬT",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "I. Account cá nhân",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          1,
+          "Report tài khoản đã verify, tài khoản có tick xanh, tài khoản từng bị report nhiều lần…",
+          "Report bản quyền",
+          "15.000.000 - 25.000.000",
+          "Tài khoản",
+          1,
+          "1-30 ngày ",
+          "15.000.000 - 25.000.000",
+          "Tùy thuộc vào độ phức tạp, tình trạng tài khoản của KOLS thuê bảo mật, tài khoản đã từng bị report nhiều lần và được lấy lại, được Facebook  xác định danh tính. Thời gian xử lý phụ thuộc vào thời gian support Facebook xem xét và trả lời mail."
+        ],
+        [
+          "II. Fanpage/ Group",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          1,
+          "Gỡ post đăng trên Group kín",
+          "Xoá post giữ nguyên Fanpage/Group\n- Hạn chế lượt tiếp cận trong quá trình Report Fanpage/Group\n-  Xử lý triệt để khi Report Fanpage/Group thành công",
+          "17.000.000 - 18.000.000",
+          "Post",
+          1,
+          "24 tiếng - 48 tiếng",
+          "17.000.000 - 18.000.000",
+          "Tùy thuộc vào nội dung bài post có đủ ảnh + logo +  tên doanh nghiệp để report vi phạm bản quyền và thời gian chờ Facebook phản hồi. Bài post ko có đủ căn cứ thời gian sẽ lâu hơn. Gửi chốt vào ngày thứ 7 và chủ nhật sẽ bị phát sinh thời gian chờ do Facebook làm việc duyệt chậm vào ngày nghỉ."
+        ],
+        [
+          2,
+          "Report Group/ Fanpage",
+          "Report bản quyền và vi phạm quy định Facebook để  xoá/ gỡ/ khoá vĩnh viễn ",
+          "15.000.000 - 25.000.000",
+          "Group kín/ Fanpage",
+          1,
+          "15 ngày - 45 ngày",
+          "15.000.000 - 25.000.000",
+          "Tùy thuộc vào độ khó, bảo mật của Group/Fanpage"
+        ],
+        [
+          "III. Youtube, Tiktok",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          1,
+          "Video trên kênh Youtube",
+          "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Thoả thuận",
+          "Post",
+          1,
+          "2 - 15 ngày",
+          "Thỏa thuận\nƯớc tính > 35.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",
+          "Căn cứ vào mức độ khủng hoảng và uy tín của kênh"
+        ],
+        [
+          2,
+          "Video trên kênh Tiktok",
+          "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Thoả thuận",
+          "Post",
+          1,
+          "2 - 15 ngày",
+          "Thỏa thuận\nƯớc tính > 25.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",
+          "Căn cứ vào mức độ khủng hoảng và uy tín của kênh"
+        ],
+        [
+          3,
+          "Kênh Youtube",
+          "Gỡ bỏ thông tin xấu hoặc xóa bỏ",
+          "Thoả thuận",
+          "Tài khoản",
+          1,
+          "2 - 15 ngày",
+          "Thỏa thuận\nƯớc tính > 16.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",
+          "Căn cứ vào mức độ khủng hoảng và uy tín của kênh"
+        ]
+      ],
+      "dimensions": {
+        "max_row": 231,
+        "max_column": 26
+      }
+    },
+    "Bảo vệ bản quyền thương hiệu": {
+      "header_row": 9,
+      "headers": [
+        "STT",
+        "Dịch vụ định kỳ",
+        "Chi tiết công việc",
+        "Meta",
+        "Đơn vị",
+        "Số lượng",
+        "Đơn giá\n(Chưa bao gồm VAT)",
+        "Ghi chú"
+      ],
+      "first_10_rows": [
+        [
+          "BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          1,
+          "Bảo vệ video thương hiệu",
+          "Thiết lập hệ thống",
+          30000000,
+          "Gói",
+          1,
+          30000000,
+          "- Thiết lập thư viện quản lý về video Lãnh đạo/ video Thương hiệu/hình ảnh và video chiến dịch\n- Doanh nghiệp cung cấp video về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý video\n- Monitaz hỗ trợ thu thập các video đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý video"
+        ],
+        [
+          null,
+          null,
+          "Thu thập thông tin về về video Lãnh đạo/ video Thương hiệu/ video chiến dịch\n+ Gói nhận diện tối đa 20 video",
+          15000000,
+          "Tháng",
+          12,
+          180000000,
+          "- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là video bản quyền của doanh nghiệp.\n- Phạm vi quét video: Trang cá nhân, Fanpage và Nhóm công khai (gồm cả video công khai và riêng tư)\n- Nhận diện đồng thời tối đa 20 video mỗi tháng (Thay đổi không quá 10 video)\n- Tỉ lệ nhận diện: 95%"
+        ],
+        [
+          null,
+          null,
+          "Report nội dung chứa video vi phạm",
+          null,
+          "Video",
+          "Không giới hạn",
+          null,
+          "- Chỉ thực hiện gỡ video vi phạm bản quyền sau khi khớp\n- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ\n- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên\n- Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)\n- Số lượng video gỡ tối đa 1 ngày, không vượt quá 50 video reup/video gốc\n- Nghiệm thu bằng phương pháp chụp hình ảnh (video không tồn tại)\n- Tỷ lệ gỡ bỏ thành công: 90%*\n\n* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:\n- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành\n- Gỡ bỏ không thành công do bên thứ ba (Meta). Cụ thể: Meta bị lỗi không gỡ video dù đã thông báo gỡ video thành công đến người dùng"
+        ],
+        [
+          2,
+          "Bảo vệ hình ảnh thương hiệu",
+          "Thiết lập hệ thống",
+          30000000,
+          "Gói",
+          1,
+          "Tặng kèm",
+          "- Thiết lập thư viện quản lý về hình ảnh Lãnh đạo/ hình ản Thương hiệu/hình ảnh chiến dịch\n- Doanh nghiệp cung cấp hình ảnh về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý hình ảnh\n- Monitaz hỗ trợ thu thập các hình ảnh đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý hình ảnh"
+        ],
+        [
+          null,
+          null,
+          "Thu thập thông tin về về hình ảnh Lãnh đạo/ hình ảnh Thương hiệu/ hình ảnhchiến dịch\n+ Gói nhận diện tối đa 100 hình ảnh",
+          15000000,
+          "Tháng",
+          12,
+          "Tặng kèm",
+          "- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là hình ảnh bản quyền của doanh nghiệp.\n- Phạm vi quét hình ảnh: Trang cá nhân và Fanpage (gồm cả hình ảnh công khai và riêng tư)\n- Nhận diện đồng thời tối đa 100 hình ảnh mỗi tháng (Thay đổi không quá 50 hình ảnh mỗi tháng)\n- Tỉ lệ nhận diện: \n+ Thời điểm ổn định: 95% \n+ Thời điểm bất ổn: Không nhận diện được\n+ Tỉ lệ bất ổn: 25% (khoảng 3 tháng/năm) (Thông tin cập nhất đến tháng 12/2023)"
+        ],
+        [
+          null,
+          null,
+          "Report nội dung chứa hình ảnh vi phạm",
+          null,
+          "Hình ảnh",
+          "Không giới hạn",
+          null,
+          "- Chỉ thực hiện gỡ hình ảnh vi phạm bản quyền sau khi khớp được\n- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ\n- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên\n- Số lượng hình ảnh gỡ tối đa 1 ngày, không vượt quá 50 hình ảnh reup/hình ảnh gốc\n- Nghiệm thu bằng phương pháp chụp hình ảnh (hình ảnh không tồn tại)\n+ Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)\n+ Tỷ lệ gỡ bỏ thành công: 90%*\n\n* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:\n- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành\n- Gỡ bỏ không thành công do bên thứ ba(Meta). Cụ thể: Meta bị lỗi không gỡ hình ảnh dù đã thông báo gỡ hình ảnh thành công đến người dùng"
+        ],
+        [
+          3,
+          "Bảo vệ bản quyền thương hiệu",
+          "Gỡ post Facebook",
+          18000000,
+          "Post",
+          1,
+          18000000,
+          "- Phạm vi: Bài viết dạng status, link, hình ảnh và video (bao gồm cả bài viết dạng album ảnh và video) công khai trên Trang cá nhân, Fanpage và Nhóm công khai\n- Các trường hợp đặc biệt sẽ có báo giá riêng*\n\n* Các trường hợp đặc biệt bao gồm bài viết đến từ các tài khoản Facebook tích xanh:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành"
+        ],
+        [
+          null,
+          null,
+          "Report nguồn tiêu cực Facebook",
+          20000000,
+          "Tài khoản",
+          1,
+          20000000,
+          "\n- Phạm vi: Tài khoản cá nhân, Fanpage và group công khai\n- Các trường hợp đặc biệt sẽ có báo giá riêng*\n\n* Các trường hợp đặc biệt bao gồm các tài khoản Facebook tích xanh:\n+ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến\n+ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành"
+        ],
+        [
+          4,
+          "Định hướng cộng đồng",
+          "Thực hiện Seeding pha loãng thảo luận tiêu cực trên Facebook",
+          3000000,
+          "Gói\n(150 bình luận/gói)",
+          1,
+          "Tặng kèm",
+          "Seeding trên Facebook:\n+ Sử dụng nhiều tài khoản để seeding trên Facebook với những nội dung  theo kịch bản được thống nhất giữa hai bên.\n+ Áp dụng với các bài viết công khai trên trang cá nhân, fanpage và group"
+        ]
+      ],
+      "dimensions": {
+        "max_row": 223,
+        "max_column": 25
+      }
+    }
+  },
+  "summary": {
+    "XLKH các TH đặc biệt khác": {
+      "total_rows": 231,
+      "total_columns": 26,
+      "header_row": 9,
+      "data_rows": 22,
+      "column_count": 9
+    },
+    "Bảo vệ bản quyền thương hiệu": {
+      "total_rows": 223,
+      "total_columns": 25,
+      "header_row": 9,
+      "data_rows": 13,
+      "column_count": 8
+    }
+  },
+  "json_structure_suggestion": {
+    "recommended_structure": {
+      "metadata": {
+        "filename": "string",
+        "total_sheets": "number",
+        "sheet_names": [
+          "array of strings"
+        ]
+      },
+      "services": {
+        "sheet_name": {
+          "categories": [
+            {
+              "category_name": "string",
+              "services": [
+                {
+                  "id": "number",
+                  "name": "string",
+                  "details": "string",
+                  "pricing": {
+                    "type": "fixed|range|negotiable",
+                    "min_price": "number|null",
+                    "max_price": "number|null",
+                    "currency": "VND",
+                    "raw_text": "string"
+                  },
+                  "unit": "string",
+                  "quantity": "number",
+                  "duration": "string",
+                  "notes": "string"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "field_mapping": {
+      "XLKH các TH đặc biệt khác": {
+        "STT": "service_id",
+        "Dịch vụ định kỳ": "service_name",
+        "Chi tiết công việc": "service_details",
+        "Đơn giá": "pricing",
+        "Đơn vị": "unit",
+        "Số lượng": "quantity",
+        "Thời gian dự tính": "duration",
+        "Đơn giá\n(Chưa bao gồm VAT)": "pricing",
+        "Ghi chú": "notes"
+      },
+      "Bảo vệ bản quyền thương hiệu": {
+        "STT": "service_id",
+        "Dịch vụ định kỳ": "service_name",
+        "Chi tiết công việc": "service_details",
+        "Meta": "field_Meta",
+        "Đơn vị": "unit",
+        "Số lượng": "quantity",
+        "Đơn giá\n(Chưa bao gồm VAT)": "pricing",
+        "Ghi chú": "notes"
+      }
+    }
+  }
+}

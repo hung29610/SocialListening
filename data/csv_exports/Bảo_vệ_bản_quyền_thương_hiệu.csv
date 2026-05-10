@@ -1,0 +1,70 @@
+﻿STT,Dịch vụ định kỳ,Chi tiết công việc,Meta,Đơn vị,Số lượng,"Đơn giá
+(Chưa bao gồm VAT)","Đơn giá
+(Chưa bao gồm VAT)_min","Đơn giá
+(Chưa bao gồm VAT)_max","Đơn giá
+(Chưa bao gồm VAT)_type",Ghi chú,category
+1,Bảo vệ video thương hiệu,Thiết lập hệ thống,30000000,Gói,1,30000000,30000000.0,30000000.0,fixed,"- Thiết lập thư viện quản lý về video Lãnh đạo/ video Thương hiệu/hình ảnh và video chiến dịch
+- Doanh nghiệp cung cấp video về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý video
+- Monitaz hỗ trợ thu thập các video đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý video",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+,,"Thu thập thông tin về về video Lãnh đạo/ video Thương hiệu/ video chiến dịch
++ Gói nhận diện tối đa 20 video",15000000,Tháng,12,180000000,180000000.0,180000000.0,fixed,"- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là video bản quyền của doanh nghiệp.
+- Phạm vi quét video: Trang cá nhân, Fanpage và Nhóm công khai (gồm cả video công khai và riêng tư)
+- Nhận diện đồng thời tối đa 20 video mỗi tháng (Thay đổi không quá 10 video)
+- Tỉ lệ nhận diện: 95%",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+,,Report nội dung chứa video vi phạm,,Video,Không giới hạn,,,,,"- Chỉ thực hiện gỡ video vi phạm bản quyền sau khi khớp
+- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ
+- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên
+- Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)
+- Số lượng video gỡ tối đa 1 ngày, không vượt quá 50 video reup/video gốc
+- Nghiệm thu bằng phương pháp chụp hình ảnh (video không tồn tại)
+- Tỷ lệ gỡ bỏ thành công: 90%*
+
+* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:
+- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:
++ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến
++ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành
+- Gỡ bỏ không thành công do bên thứ ba (Meta). Cụ thể: Meta bị lỗi không gỡ video dù đã thông báo gỡ video thành công đến người dùng",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+2,Bảo vệ hình ảnh thương hiệu,Thiết lập hệ thống,30000000,Gói,1,Tặng kèm,,,free,"- Thiết lập thư viện quản lý về hình ảnh Lãnh đạo/ hình ản Thương hiệu/hình ảnh chiến dịch
+- Doanh nghiệp cung cấp hình ảnh về  Lãnh đạo/ Thương hiệu/Chiến dịch theo như cầu thu thập để Monitaz đưa vào thư viện quản lý hình ảnh
+- Monitaz hỗ trợ thu thập các hình ảnh đã từng xuất hiện trên báo chí và mạng xã hội để đưa vào thư viện quản lý hình ảnh",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+,,"Thu thập thông tin về về hình ảnh Lãnh đạo/ hình ảnh Thương hiệu/ hình ảnhchiến dịch
++ Gói nhận diện tối đa 100 hình ảnh",15000000,Tháng,12,Tặng kèm,,,free,"- Monitaz sử dụng công nghệ độc quyền của Facebook để phát hiện nội dung khớp chứa toàn bộ hoặc một phần của tài sản là hình ảnh bản quyền của doanh nghiệp.
+- Phạm vi quét hình ảnh: Trang cá nhân và Fanpage (gồm cả hình ảnh công khai và riêng tư)
+- Nhận diện đồng thời tối đa 100 hình ảnh mỗi tháng (Thay đổi không quá 50 hình ảnh mỗi tháng)
+- Tỉ lệ nhận diện: 
++ Thời điểm ổn định: 95% 
++ Thời điểm bất ổn: Không nhận diện được
++ Tỉ lệ bất ổn: 25% (khoảng 3 tháng/năm) (Thông tin cập nhất đến tháng 12/2023)",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+,,Report nội dung chứa hình ảnh vi phạm,,Hình ảnh,Không giới hạn,,,,,"- Chỉ thực hiện gỡ hình ảnh vi phạm bản quyền sau khi khớp được
+- Báo cáo việc sử dụng không đúng bản quyền của nội dung được bảo vệ
+- Nội dung gỡ bỏ được Monitaz tư vấn và thống nhất gỡ bỏ giữa 2 bên
+- Số lượng hình ảnh gỡ tối đa 1 ngày, không vượt quá 50 hình ảnh reup/hình ảnh gốc
+- Nghiệm thu bằng phương pháp chụp hình ảnh (hình ảnh không tồn tại)
++ Các nội dung được yêu cầu gỡ bỏ hoàn thành trong 1-3 ngày (thực hiện gõ bỏ theo yêu cầu Doanh nghiệp). Trường hợp nguồn đăng kháng cáo, Monitaz hỗ trợ tiếp tục yêu cầu gỡ bỏ tối đa thêm 2 lần)
++ Tỷ lệ gỡ bỏ thành công: 90%*
+
+* Lưu ý: Các trường hợp có tỉ lệ xử lý thành công thấp:
+- Do xung đột bản quyền với các tài khoản Facebookl tích xanh bao gồm:
++ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến
++ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành
+- Gỡ bỏ không thành công do bên thứ ba(Meta). Cụ thể: Meta bị lỗi không gỡ hình ảnh dù đã thông báo gỡ hình ảnh thành công đến người dùng",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+3,Bảo vệ bản quyền thương hiệu,Gỡ post Facebook,18000000,Post,1,18000000,18000000.0,18000000.0,fixed,"- Phạm vi: Bài viết dạng status, link, hình ảnh và video (bao gồm cả bài viết dạng album ảnh và video) công khai trên Trang cá nhân, Fanpage và Nhóm công khai
+- Các trường hợp đặc biệt sẽ có báo giá riêng*
+
+* Các trường hợp đặc biệt bao gồm bài viết đến từ các tài khoản Facebook tích xanh:
++ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến
++ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+,,Report nguồn tiêu cực Facebook,20000000,Tài khoản,1,20000000,20000000.0,20000000.0,fixed,"
+- Phạm vi: Tài khoản cá nhân, Fanpage và group công khai
+- Các trường hợp đặc biệt sẽ có báo giá riêng*
+
+* Các trường hợp đặc biệt bao gồm các tài khoản Facebook tích xanh:
++ Tài khoản cá nhân hoặc Fanpage của nhân vật nổi tiếng, người của công chúng hoặc người thuộc công ty truyền thông phổ biến
++ Fanpage doanh nghiệp hoặc các tổ chức kinh doanh chuyên ngành",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+4,Định hướng cộng đồng,Thực hiện Seeding pha loãng thảo luận tiêu cực trên Facebook,3000000,"Gói
+(150 bình luận/gói)",1,Tặng kèm,,,free,"Seeding trên Facebook:
++ Sử dụng nhiều tài khoản để seeding trên Facebook với những nội dung  theo kịch bản được thống nhất giữa hai bên.
++ Áp dụng với các bài viết công khai trên trang cá nhân, fanpage và group",BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+STT,Dịch vụ định kỳ,Chi tiết công việc,Facebook,Đơn vị,Số lượng,"Đơn giá
+(Chưa bao gồm VAT)",,,unknown,Ghi chú,BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU
+1,Phụ lục,Thêm 10 video,5000000,Tháng,1,5000000,5000000.0,5000000.0,fixed,,BẢO VỆ BẢN QUYỀN THƯƠNG HIỆU

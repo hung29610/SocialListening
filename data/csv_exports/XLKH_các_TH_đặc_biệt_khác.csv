@@ -1,0 +1,37 @@
+﻿STT,Dịch vụ định kỳ,Chi tiết công việc,Đơn giá,Đơn giá_min,Đơn giá_max,Đơn giá_type,Đơn vị,Số lượng,Thời gian dự tính,"Đơn giá
+(Chưa bao gồm VAT)","Đơn giá
+(Chưa bao gồm VAT)_min","Đơn giá
+(Chưa bao gồm VAT)_max","Đơn giá
+(Chưa bao gồm VAT)_type",Ghi chú,category
+1,"Report tài khoản đã verify, tài khoản có tick xanh, tài khoản từng bị report nhiều lần…",Report bản quyền,15.000.000 - 25.000.000,15000000.0,25000000.0,range,Tài khoản,1,1-30 ngày ,15.000.000 - 25.000.000,15000000.0,25000000.0,range,"Tùy thuộc vào độ phức tạp, tình trạng tài khoản của KOLS thuê bảo mật, tài khoản đã từng bị report nhiều lần và được lấy lại, được Facebook  xác định danh tính. Thời gian xử lý phụ thuộc vào thời gian support Facebook xem xét và trả lời mail.",I. Account cá nhân
+1,Gỡ post đăng trên Group kín,"Xoá post giữ nguyên Fanpage/Group
+- Hạn chế lượt tiếp cận trong quá trình Report Fanpage/Group
+-  Xử lý triệt để khi Report Fanpage/Group thành công",17.000.000 - 18.000.000,17000000.0,18000000.0,range,Post,1,24 tiếng - 48 tiếng,17.000.000 - 18.000.000,17000000.0,18000000.0,range,Tùy thuộc vào nội dung bài post có đủ ảnh + logo +  tên doanh nghiệp để report vi phạm bản quyền và thời gian chờ Facebook phản hồi. Bài post ko có đủ căn cứ thời gian sẽ lâu hơn. Gửi chốt vào ngày thứ 7 và chủ nhật sẽ bị phát sinh thời gian chờ do Facebook làm việc duyệt chậm vào ngày nghỉ.,II. Fanpage/ Group
+2,Report Group/ Fanpage,Report bản quyền và vi phạm quy định Facebook để  xoá/ gỡ/ khoá vĩnh viễn ,15.000.000 - 25.000.000,15000000.0,25000000.0,range,Group kín/ Fanpage,1,15 ngày - 45 ngày,15.000.000 - 25.000.000,15000000.0,25000000.0,range,"Tùy thuộc vào độ khó, bảo mật của Group/Fanpage",II. Fanpage/ Group
+1,Video trên kênh Youtube,Gỡ bỏ thông tin xấu hoặc xóa bỏ,Thoả thuận,,,negotiable,Post,1,2 - 15 ngày,"Thỏa thuận
+Ước tính > 35.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",35000000.0,35000000.0,fixed,Căn cứ vào mức độ khủng hoảng và uy tín của kênh,"III. Youtube, Tiktok"
+2,Video trên kênh Tiktok,Gỡ bỏ thông tin xấu hoặc xóa bỏ,Thoả thuận,,,negotiable,Post,1,2 - 15 ngày,"Thỏa thuận
+Ước tính > 25.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",25000000.0,25000000.0,fixed,Căn cứ vào mức độ khủng hoảng và uy tín của kênh,"III. Youtube, Tiktok"
+3,Kênh Youtube,Gỡ bỏ thông tin xấu hoặc xóa bỏ,Thoả thuận,,,negotiable,Tài khoản,1,2 - 15 ngày,"Thỏa thuận
+Ước tính > 16.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",16000000.0,16000000.0,fixed,Căn cứ vào mức độ khủng hoảng và uy tín của kênh,"III. Youtube, Tiktok"
+4,Kênh Tiktok,Gỡ bỏ thông tin xấu hoặc xóa bỏ,Thoả thuận,,,negotiable,Tài khoản,1,2 - 15 ngày,"Thỏa thuận
+Ước tính > 20.000.000 (Đa phần khách có nhu cầu rơi vào trường hợp video có reaction lớn. kênh có lượt follow tương đối)",20000000.0,20000000.0,fixed,Căn cứ vào mức độ khủng hoảng và uy tín của kênh,"III. Youtube, Tiktok"
+1,Gỡ bài bằng phương án kỹ thuật,Gỡ bỏ thông tin xấu hoặc xóa bỏ: Lỗi link 404/403/405,25.000.000 - 45.000.000,25000000.0,45000000.0,range,Link,1,20 - 45 ngày,25.000.000 - 45.000.000,25000000.0,45000000.0,range,"Căn cứ vào mức độ khủng hoảng và uy tín của kênh
+Chỉ áp dụng với trang tin tổng hợp chưa được cấp phép",III. Website
+2,Xóa Index Google,"Xóa index Google: Google trả về kết quả hiển thị: 
+“Không tìm thấy site….”",25.000.000 - 45.000.000,25000000.0,45000000.0,range,Link,1,30 - 50 ngày,25.000.000 - 45.000.000,25000000.0,45000000.0,range,Căn cứ vào mức độ khủng hoảng và uy tín của kênh,III. Website
+1,Quan hệ BC,Gỡ bỏ thông tin xấu hoàn toàn (lỗi link 404 hoặc thay thế bằng bài viết khác ),Thoả thuận,,,negotiable,Link,1, 1 - 5 ngày,Thoả thuận,,,negotiable,"Phụ thuộc tin mới hay đã cũ, phụ thuộc từng báo, phụ thuộc vào mức độ  ""nhạy cảm"" của từng sự vụ.",XỬ LÝ QUAN HỆ BÁO CHÍ
+2,Quan hệ BC,"Edit nội dung bài (Edit tên thương hiệu, logo, hình ảnh có logo hoặc nội dung nhạy cảm)",7.000.000 - 35.000.000,7000000.0,35000000.0,range,Link,1, 1 - 5 ngày,7.000.000 - 35.000.000,7000000.0,35000000.0,range,"Phụ thuộc tin mới hay đã cũ, phụ thuộc từng báo, phụ thuộc vào mức độ  ""nhạy cảm"" của từng sự vụ.",XỬ LÝ QUAN HỆ BÁO CHÍ
+3,Quan hệ BC,"Bài đã đẩy lên hệ thống báo chí nhưng chưa đến giờ public bài ra trang chủ, nhưng DN có lý do cần gỡ bài khỏi hệ thống",5.000.000 - 10.000.000,5000000.0,10000000.0,range,Link,1,1- 3 tiếng,5.000.000 - 10.000.000,5000000.0,10000000.0,range,"Bài đẩy lên hệ thống, để gỡ được bắt buộc phải sử dụng Account của cấp quản lý cao của Báo. Khi sử dụng Account để gỡ chip cảnh báo can thiệp sẽ báo về Thanh tra Bộ TTTT",XỬ LÝ QUAN HỆ BÁO CHÍ
+1,Quản trị tiêu cực ,"Gói quản trị tiêu cực hàng tháng bao gồm:
++ Phân tích tính chất sự việc xảy ra trên Social theo thời gian thực và tư vấn phương án xử lý.
++ Theo dõi và cập nhật phương án xử lý cùng.
+Chưa bao gồm chi phí xử lý theo phương án được thỏa thuận với khách hàng.",5000000,5000000.0,5000000.0,fixed,Tháng,12,-,60000000,60000000.0,60000000.0,fixed,"*Gói quản trị tiêu cực:
+- Nhân sự xử lý khủng hoảng phản ứng chủ động
+- Tất cả thông tin tiêu cực được tư vấn xử lý, theo dõi và cập nhật báo cáo liên tục trong quá trình xử lý
+
+*Gói case by case: Đỗ trễ 2.5 tiếng; thời gian support, hỗ trợ báo cáo tổng hợp giới hạn trong phạm vi: 8h00 -> 23h30 (Ngoài phạm vi chuyển sang giờ hôm sau)",QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG
+2,Thực hiện Seeding pha loãng thảo luận tiêu cực trên Facebook,"Seeding trên Facebook:
++ Sử dụng nhiều tài khoản để seeding trên Facebook với những nội dung  theo kịch bản được thống nhất giữa hai bên.",20000,20000.0,20000.0,fixed,Đơn giá/ 01 Comment,150,-,3000000,3000000.0,3000000.0,fixed,Gói tối thiểu từ 150 comment.,QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG
+3,"Thực hiện Seeding pha loãng thảo luận tiêu cực trên Forum, YouTube và Tiktok  (viết và đăng lời bình) ","Seeding trên Forum và YouTube:
++ Sử dụng nhiều tài khoản để seeding trên Forum hoặc YouTube với những nội dung theo kịch bản được thống nhất giữa hai bên.",30000,30000.0,30000.0,fixed,Đơn giá/ 01 Comment,100,-,3000000,3000000.0,3000000.0,fixed,Gói tối thiểu từ 100 comment.,QUẢN TRỊ DANH TIẾNG & ĐỊNH HƯỚNG CỘNG ĐỒNG
