@@ -68,6 +68,17 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [showServiceDetail, setShowServiceDetail] = useState(false);
   const [showCreateRequest, setShowCreateRequest] = useState(false);
+  
+  // Form state for creating service request
+  const [requestForm, setRequestForm] = useState({
+    service_id: 0,
+    priority: 'medium',
+    request_reason: '',
+    evidence_summary: '',
+    desired_outcome: '',
+    quoted_price: 0,
+    deadline: ''
+  });
 
   useEffect(() => {
     fetchData();
@@ -100,7 +111,28 @@ export default function ServicesPage() {
 
   const handleCreateRequest = (service: Service) => {
     setSelectedService(service);
+    setRequestForm({
+      service_id: service.id,
+      priority: 'medium',
+      request_reason: '',
+      evidence_summary: '',
+      desired_outcome: '',
+      quoted_price: service.base_price || 0,
+      deadline: ''
+    });
     setShowCreateRequest(true);
+  };
+  
+  const handleSubmitRequest = async () => {
+    try {
+      await servicesApi.createRequest(requestForm);
+      toast.success('Tạo yêu cầu dịch vụ thành công!');
+      setShowCreateRequest(false);
+      fetchData(); // Refresh data
+    } catch (error: any) {
+      console.error('Error creating request:', error);
+      toast.error('Lỗi khi tạo yêu cầu dịch vụ');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -604,6 +636,166 @@ export default function ServicesPage() {
                   handleCreateRequest(selectedService);
                 }}
                 className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Tạo yêu cầu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Create Service Request Modal */}
+      {showCreateRequest && selectedService && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Tạo Yêu Cầu Dịch Vụ</h2>
+                  <p className="text-sm text-gray-500 mt-1">{selectedService.name}</p>
+                </div>
+                <button
+                  onClick={() => setShowCreateRequest(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Service Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">Danh mục:</span>
+                    <span className="ml-2 text-gray-900">{selectedService.category.name}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Giá cơ bản:</span>
+                    <span className="ml-2 text-gray-900">
+                      {selectedService.base_price ? formatPrice(selectedService.base_price) : 'Thỏa thuận'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Thời gian ước tính:</span>
+                    <span className="ml-2 text-gray-900">{selectedService.estimated_duration}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">SLA:</span>
+                    <span className="ml-2 text-gray-900">{selectedService.sla_hours}h</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mức độ ưu tiên <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={requestForm.priority}
+                  onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="low">Thấp</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Cao</option>
+                  <option value="urgent">Khẩn cấp</option>
+                </select>
+              </div>
+
+              {/* Request Reason */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do yêu cầu <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={requestForm.request_reason}
+                  onChange={(e) => setRequestForm({ ...requestForm, request_reason: e.target.value })}
+                  rows={3}
+                  placeholder="Mô tả lý do cần dịch vụ này..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Evidence Summary */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tóm tắt bằng chứng
+                </label>
+                <textarea
+                  value={requestForm.evidence_summary}
+                  onChange={(e) => setRequestForm({ ...requestForm, evidence_summary: e.target.value })}
+                  rows={3}
+                  placeholder="Tóm tắt các bằng chứng, mentions, alerts liên quan..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Desired Outcome */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kết quả mong muốn <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={requestForm.desired_outcome}
+                  onChange={(e) => setRequestForm({ ...requestForm, desired_outcome: e.target.value })}
+                  rows={3}
+                  placeholder="Mô tả kết quả mong muốn từ dịch vụ này..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Quoted Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Giá báo (VND)
+                </label>
+                <input
+                  type="number"
+                  value={requestForm.quoted_price}
+                  onChange={(e) => setRequestForm({ ...requestForm, quoted_price: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Thời hạn
+                </label>
+                <input
+                  type="datetime-local"
+                  value={requestForm.deadline}
+                  onChange={(e) => setRequestForm({ ...requestForm, deadline: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Compliance Notice */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-yellow-800">
+                    <strong>Lưu ý:</strong> Yêu cầu này sẽ được xem xét và phê duyệt trước khi thực hiện. 
+                    Tất cả dịch vụ phải tuân thủ pháp luật và chính sách nền tảng.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+              <button
+                onClick={() => setShowCreateRequest(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSubmitRequest}
+                disabled={!requestForm.request_reason || !requestForm.desired_outcome}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 Tạo yêu cầu
               </button>

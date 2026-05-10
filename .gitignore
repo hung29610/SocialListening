@@ -59,38 +59,17 @@ logs/
 *.bak
 
 # Excel and PDF files (documents, not code)
-*.xlsx
-*.xls
+# Keep data/mhc_bao_gia_khung_xlkh.xlsx for reference
 *.pdf
 *.docx
 *.doc
 
 # Text files (status reports - không cần push)
-BAT_FILES_FIXED.txt
-COMPLETED_FEATURES.txt
-DEPENDENCY_ISSUES_FIXED.txt
-FINAL_STATUS.txt
-FIXES_COMPLETED.txt
-FRONTEND_READY.txt
-FRONTEND_TESTING_GUIDE.txt
-HOW_TO_START_POSTGRESQL.txt
-IMPLEMENTATION_COMPLETE.txt
-POSTGRESQL_FIX_COMPLETE.txt
-PROJECT_STATUS.txt
-QUICK_FIX_SUMMARY.txt
-QUICK_START.txt
-README_FIRST.txt
-README_VI.txt
-README.txt
-READY_TO_RUN.txt
-SETUP.md
-SETUP.txt
-START_HERE.txt
-START_POSTGRESQL_FIRST.txt
+*.txt
+!requirements.txt
+!runtime.txt
+!installed_packages.txt
 
-# Keep only essential documentation
-# README.md - keep
-# DEPLOYMENT.md - keep
-# DEPLOYMENT_READY.md - keep
-# PRODUCTION_CHECKLIST.md - keep
-# COMMANDS.md - keep
+# Temporary test files
+test_*.py
+quick_*.py
