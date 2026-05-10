@@ -62,6 +62,21 @@ export const keywords = {
     const response = await api.post('/api/keywords/keywords', data);
     return response.data;
   },
+  
+  updateKeyword: async (id: number, data: any) => {
+    const response = await api.put(`/api/keywords/keywords/${id}`, data);
+    return response.data;
+  },
+  
+  deleteKeyword: async (id: number) => {
+    const response = await api.delete(`/api/keywords/keywords/${id}`);
+    return response.data;
+  },
+  
+  listKeywordsInGroup: async (groupId: number) => {
+    const response = await api.get(`/api/keywords/groups/${groupId}/keywords`);
+    return response.data;
+  },
 };
 
 // Sources
@@ -73,6 +88,16 @@ export const sources = {
   
   create: async (data: any) => {
     const response = await api.post('/api/sources', data);
+    return response.data;
+  },
+  
+  update: async (id: number, data: any) => {
+    const response = await api.put(`/api/sources/${id}`, data);
+    return response.data;
+  },
+  
+  delete: async (id: number) => {
+    const response = await api.delete(`/api/sources/${id}`);
     return response.data;
   },
 };

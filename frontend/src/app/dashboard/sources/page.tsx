@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Search, Globe, Facebook, Youtube } from 'lucide-react';
+import { Plus, Trash2, Search, Globe, Facebook, Youtube } from 'lucide-react';
+import { sources as sourcesApi } from '@/lib/api';
 
 interface Source {
   id: number;
@@ -9,8 +10,8 @@ interface Source {
   url: string;
   source_type: string;
   is_active: boolean;
-  crawl_frequency: number;
   last_crawled_at: string | null;
+  created_at: string;
 }
 
 export default function SourcesPage() {
@@ -21,8 +22,7 @@ export default function SourcesPage() {
   const [newSource, setNewSource] = useState({
     name: '',
     url: '',
-    source_type: 'website',
-    crawl_frequency: 60
+    source_type: 'website'
   });
 
   useEffect(() => {
@@ -31,39 +31,13 @@ export default function SourcesPage() {
 
   const fetchSources = async () => {
     try {
-      // Mock data for now
-      setSources([
-        { 
-          id: 1, 
-          name: 'VnExpress', 
-          url: 'https://vnexpress.net', 
-          source_type: 'website', 
-          is_active: true, 
-          crawl_frequency: 60,
-          last_crawled_at: '2024-01-15T10:30:00'
-        },
-        { 
-          id: 2, 
-          name: 'Facebook Page', 
-          url: 'https://facebook.com/example', 
-          source_type: 'facebook', 
-          is_active: true, 
-          crawl_frequency: 30,
-          last_crawled_at: '2024-01-15T11:00:00'
-        },
-        { 
-          id: 3, 
-          name: 'YouTube Channel', 
-          url: 'https://youtube.com/@example', 
-          source_type: 'youtube', 
-          is_active: false, 
-          crawl_frequency: 120,
-          last_crawled_at: null
-        },
-      ]);
-      setLoading(false);
-    } catch (error) {
+      setLoading(true);
+      const data = await sourcesApi.list();
+      setSources(data);
+    } catch (error: any) {
       console.error('Error fetching sources:', error);
+      alert('Lỗi khi tải danh sách nguồn: ' + (error.response?.data?.detail || error.message));
+    } finally {
       setLoading(false);
     }
   };
@@ -75,25 +49,20 @@ export default function SourcesPage() {
     }
 
     try {
-      // TODO: Call API
-      const newId = Math.max(...sources.map(s => s.id), 0) + 1;
-      const source: Source = {
-        id: newId,
+      await sourcesApi.create({
         name: newSource.name,
         url: newSource.url,
         source_type: newSource.source_type,
-        is_active: true,
-        crawl_frequency: newSource.crawl_frequency,
-        last_crawled_at: null
-      };
+        is_active: true
+      });
       
-      setSources([...sources, source]);
       setShowAddModal(false);
-      setNewSource({ name: '', url: '', source_type: 'website', crawl_frequency: 60 });
+      setNewSource({ name: '', url: '', source_type: 'website' });
       alert('Thêm nguồn thành công!');
-    } catch (error) {
+      fetchSources();
+    } catch (error: any) {
       console.error('Error adding source:', error);
-      alert('Lỗi khi thêm nguồn');
+      alert('Lỗi khi thêm nguồn: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -101,23 +70,24 @@ export default function SourcesPage() {
     if (!confirm('Bạn có chắc muốn xóa nguồn này?')) return;
 
     try {
-      // TODO: Call API
-      setSources(sources.filter(s => s.id !== id));
+      await sourcesApi.delete(id);
       alert('Xóa nguồn thành công!');
-    } catch (error) {
+      fetchSources();
+    } catch (error: any) {
       console.error('Error deleting source:', error);
-      alert('Lỗi khi xóa nguồn');
+      alert('Lỗi khi xóa nguồn: ' + (error.response?.data?.detail || error.message));
     }
   };
 
-  const handleToggleActive = async (id: number) => {
+  const handleToggleActive = async (source: Source) => {
     try {
-      // TODO: Call API
-      setSources(sources.map(s => 
-        s.id === id ? { ...s, is_active: !s.is_active } : s
-      ));
-    } catch (error) {
+      await sourcesApi.update(source.id, {
+        is_active: !source.is_active
+      });
+      fetchSources();
+    } catch (error: any) {
       console.error('Error toggling source:', error);
+      alert('Lỗi khi cập nhật nguồn: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -140,6 +110,8 @@ export default function SourcesPage() {
       case 'youtube': return 'YouTube';
       case 'website': return 'Website';
       case 'rss': return 'RSS Feed';
+      case 'twitter': return 'Twitter';
+      case 'instagram': return 'Instagram';
       default: return type;
     }
   };
@@ -186,8 +158,8 @@ export default function SourcesPage() {
       {/* Sources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSources.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            Không có nguồn nào
+          <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
+            <p className="text-gray-500">Không có nguồn nào. Hãy thêm nguồn đầu tiên!</p>
           </div>
         ) : (
           filteredSources.map((source) => (
@@ -201,7 +173,7 @@ export default function SourcesPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleToggleActive(source.id)}
+                  onClick={() => handleToggleActive(source)}
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
                     source.is_active
                       ? 'bg-green-100 text-green-800'
@@ -217,14 +189,15 @@ export default function SourcesPage() {
                   <span className="font-medium">URL:</span> {source.url}
                 </p>
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium">Tần suất:</span> {source.crawl_frequency} phút
-                </p>
-                <p className="text-sm text-gray-600">
                   <span className="font-medium">Lần cuối:</span>{' '}
                   {source.last_crawled_at 
                     ? new Date(source.last_crawled_at).toLocaleString('vi-VN')
                     : 'Chưa crawl'
                   }
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Tạo lúc:</span>{' '}
+                  {new Date(source.created_at).toLocaleString('vi-VN')}
                 </p>
               </div>
 
@@ -286,21 +259,10 @@ export default function SourcesPage() {
                   <option value="website">Website</option>
                   <option value="facebook">Facebook</option>
                   <option value="youtube">YouTube</option>
+                  <option value="twitter">Twitter</option>
+                  <option value="instagram">Instagram</option>
                   <option value="rss">RSS Feed</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tần suất crawl (phút)
-                </label>
-                <input
-                  type="number"
-                  value={newSource.crawl_frequency}
-                  onChange={(e) => setNewSource({ ...newSource, crawl_frequency: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="1"
-                />
               </div>
             </div>
 
