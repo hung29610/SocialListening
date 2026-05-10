@@ -48,10 +48,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS - Allow all origins for now
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["*"],  # Allow all origins temporarily
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
