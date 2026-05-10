@@ -196,7 +196,7 @@ def get_service_dashboard_summary(
     )
 
 
-@router.get("", response_model=List[ServiceResponse])
+@router.get("")
 def list_services(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -231,7 +231,38 @@ def list_services(
     result = db.execute(query)
     services = result.scalars().all()
     
-    return services
+    # Manual serialization to avoid enum issues
+    return [
+        {
+            "id": s.id,
+            "category_id": s.category_id,
+            "code": s.code,
+            "name": s.name,
+            "description": s.description,
+            "service_type": s.service_type.value if hasattr(s.service_type, 'value') else s.service_type,
+            "platform": s.platform.value if hasattr(s.platform, 'value') else s.platform,
+            "legal_basis": s.legal_basis,
+            "workflow_template": s.workflow_template,
+            "deliverables": s.deliverables,
+            "estimated_duration": s.estimated_duration,
+            "sla_hours": s.sla_hours,
+            "base_price": float(s.base_price) if s.base_price else None,
+            "min_quantity": s.min_quantity,
+            "unit": s.unit,
+            "risk_level": s.risk_level.value if hasattr(s.risk_level, 'value') else s.risk_level,
+            "requires_approval": s.requires_approval,
+            "is_active": s.is_active,
+            "category": {
+                "id": s.category.id,
+                "name": s.category.name,
+                "description": s.category.description,
+                "is_active": s.category.is_active
+            },
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "updated_at": s.updated_at.isoformat() if s.updated_at else None
+        }
+        for s in services
+    ]
 
 
 @router.post("", response_model=ServiceResponse, status_code=status.HTTP_201_CREATED)

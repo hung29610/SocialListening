@@ -150,8 +150,13 @@ class ServiceResponse(ServiceBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True,
+        "json_encoders": {
+            Decimal: lambda v: float(v) if v else None,
+            datetime: lambda v: v.isoformat() if v else None
+        }
+    }
 
 
 # Service Request Schemas
