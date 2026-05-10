@@ -4,11 +4,242 @@ from sqlalchemy import text
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
-from app.scripts.seed_services import seed_service_categories, seed_services
+from app.models.service import ServiceCategory, Service, ServiceType, Platform, RiskLevel
+from decimal import Decimal
 import subprocess
 import os
 
 router = APIRouter()
+
+
+def seed_service_categories_inline(db: Session):
+    """Seed service categories inline"""
+    categories = [
+        {
+            "name": "Crisis Consulting & Handling",
+            "description": "Professional crisis assessment, response planning, and executive briefing services"
+        },
+        {
+            "name": "Negative Content Monitoring",
+            "description": "Continuous monitoring and analysis of negative mentions and high-risk content"
+        },
+        {
+            "name": "Legal Takedown & Correction Request",
+            "description": "Legal compliance services for takedown requests, corrections, and evidence collection"
+        },
+        {
+            "name": "Press/Media Handling",
+            "description": "Professional media response, correction letters, and press monitoring services"
+        },
+        {
+            "name": "Copyright & Brand Protection",
+            "description": "Brand asset monitoring and copyright violation evidence preparation"
+        },
+        {
+            "name": "Community Response Planning",
+            "description": "Public and private response drafting, comment guides, and reputation management"
+        },
+        {
+            "name": "Monthly Reputation Management",
+            "description": "Ongoing reputation health monitoring and action plan reviews"
+        }
+    ]
+    
+    for cat_data in categories:
+        existing = db.query(ServiceCategory).filter(ServiceCategory.name == cat_data["name"]).first()
+        if not existing:
+            category = ServiceCategory(**cat_data)
+            db.add(category)
+    
+    db.commit()
+
+
+def seed_services_inline(db: Session):
+    """Seed services inline"""
+    # Get categories
+    categories = {cat.name: cat.id for cat in db.query(ServiceCategory).all()}
+    
+    services = [
+        # Crisis Consulting & Handling
+        {
+            "category_id": categories["Crisis Consulting & Handling"],
+            "code": "CRISIS_ASSESS",
+            "name": "Crisis Situation Assessment",
+            "description": "Analyze risk level from collected mentions, classify crisis level 1-5, identify key sources and recommended actions",
+            "service_type": ServiceType.CRISIS_CONSULTING,
+            "platform": Platform.ALL_PLATFORMS,
+            "legal_basis": "Professional consulting and risk assessment services",
+            "workflow_template": {
+                "steps": [
+                    "Collect and review all related mentions",
+                    "Analyze risk level and crisis severity",
+                    "Identify key sources and influencers",
+                    "Classify crisis level (1-5)",
+                    "Prepare recommended action plan",
+                    "Generate executive summary"
+                ]
+            },
+            "deliverables": {
+                "items": [
+                    "Risk assessment report",
+                    "Crisis timeline analysis",
+                    "Recommended action plan",
+                    "Key stakeholder identification"
+                ]
+            },
+            "estimated_duration": "4-8 hours",
+            "sla_hours": 8,
+            "base_price": Decimal("5000000"),  # 5M VND
+            "min_quantity": 1,
+            "unit": "assessment",
+            "risk_level": RiskLevel.MEDIUM,
+            "requires_approval": True
+        },
+        {
+            "category_id": categories["Crisis Consulting & Handling"],
+            "code": "CRISIS_PLAN",
+            "name": "Crisis Response Plan",
+            "description": "Create comprehensive response strategy with department assignments and communication framework",
+            "service_type": ServiceType.CRISIS_CONSULTING,
+            "platform": Platform.ALL_PLATFORMS,
+            "legal_basis": "Strategic consulting and communication planning",
+            "workflow_template": {
+                "steps": [
+                    "Review crisis assessment",
+                    "Define response strategy",
+                    "Assign department responsibilities",
+                    "Create communication messages",
+                    "Define approval workflow",
+                    "Prepare implementation timeline"
+                ]
+            },
+            "deliverables": {
+                "items": [
+                    "Crisis response strategy",
+                    "RACI matrix",
+                    "Message framework",
+                    "Implementation timeline"
+                ]
+            },
+            "estimated_duration": "1-2 days",
+            "sla_hours": 48,
+            "base_price": Decimal("8000000"),  # 8M VND
+            "min_quantity": 1,
+            "unit": "plan",
+            "risk_level": RiskLevel.HIGH,
+            "requires_approval": True
+        },
+        {
+            "category_id": categories["Legal Takedown & Correction Request"],
+            "code": "LEGAL_TAKEDOWN",
+            "name": "Legal Takedown Request Draft",
+            "description": "Prepare legal and compliant takedown request drafts with evidence and legal basis",
+            "service_type": ServiceType.LEGAL_TAKEDOWN,
+            "platform": Platform.ALL_PLATFORMS,
+            "legal_basis": "Legal document preparation and compliance review",
+            "workflow_template": {
+                "steps": [
+                    "Review content and evidence",
+                    "Identify legal basis",
+                    "Draft takedown request",
+                    "Include supporting evidence",
+                    "Legal compliance review",
+                    "Prepare for human approval"
+                ]
+            },
+            "deliverables": {
+                "items": [
+                    "Legal takedown request draft",
+                    "Evidence package",
+                    "Legal basis documentation",
+                    "Compliance checklist"
+                ]
+            },
+            "estimated_duration": "1-2 days",
+            "sla_hours": 48,
+            "base_price": Decimal("15000000"),  # 15M VND
+            "min_quantity": 1,
+            "unit": "request",
+            "risk_level": RiskLevel.HIGH,
+            "requires_approval": True
+        },
+        {
+            "category_id": categories["Negative Content Monitoring"],
+            "code": "MONTHLY_MONITOR",
+            "name": "Monthly Negative Mention Monitoring",
+            "description": "Continuous monitoring of negative mentions by configured keywords and sources with regular reporting",
+            "service_type": ServiceType.MONITORING,
+            "platform": Platform.ALL_PLATFORMS,
+            "legal_basis": "Public content monitoring and analysis services",
+            "workflow_template": {
+                "steps": [
+                    "Configure monitoring parameters",
+                    "Collect mentions daily",
+                    "Analyze sentiment and risk",
+                    "Categorize by severity",
+                    "Generate weekly summaries",
+                    "Compile monthly report"
+                ]
+            },
+            "deliverables": {
+                "items": [
+                    "Weekly monitoring reports",
+                    "Monthly comprehensive analysis",
+                    "Trend analysis",
+                    "Risk alerts"
+                ]
+            },
+            "estimated_duration": "Ongoing",
+            "sla_hours": 168,  # Weekly reporting
+            "base_price": Decimal("12000000"),  # 12M VND per month
+            "min_quantity": 1,
+            "unit": "month",
+            "risk_level": RiskLevel.LOW,
+            "requires_approval": False
+        },
+        {
+            "category_id": categories["Press/Media Handling"],
+            "code": "PRESS_RESPONSE",
+            "name": "Press Response Draft",
+            "description": "Professional press response drafts for media inquiries with appropriate tone and messaging",
+            "service_type": ServiceType.PRESS_MEDIA,
+            "platform": Platform.NEWS_MEDIA,
+            "legal_basis": "Media relations and public communication",
+            "workflow_template": {
+                "steps": [
+                    "Analyze media inquiry",
+                    "Determine response tone",
+                    "Draft response message",
+                    "Review legal implications",
+                    "Ensure brand consistency",
+                    "Prepare for approval"
+                ]
+            },
+            "deliverables": {
+                "items": [
+                    "Press response draft",
+                    "Tone and messaging guide",
+                    "Key points summary",
+                    "Risk assessment"
+                ]
+            },
+            "estimated_duration": "2-6 hours",
+            "sla_hours": 12,
+            "base_price": Decimal("6000000"),  # 6M VND
+            "min_quantity": 1,
+            "unit": "response",
+            "risk_level": RiskLevel.HIGH,
+            "requires_approval": True
+        }
+    ]
+    
+    for service_data in services:
+        existing = db.query(Service).filter(Service.code == service_data["code"]).first()
+        if not existing:
+            service = Service(**service_data)
+            db.add(service)
+    
+    db.commit()
 
 
 @router.post("/run-migrations")
@@ -240,8 +471,8 @@ def seed_services_data(
             return {"message": "Service catalog data already exists", "status": "skipped"}
         
         # Seed data
-        seed_service_categories(db)
-        seed_services(db)
+        seed_service_categories_inline(db)
+        seed_services_inline(db)
         
         return {"message": "Service catalog data seeded successfully", "status": "success"}
         
