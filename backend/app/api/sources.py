@@ -58,7 +58,7 @@ def create_source_group(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new source group"""
-    group = SourceGroup(**group_data.model_dump())
+    group = SourceGroup(**group_data.dict())
     db.add(group)
     db.commit()
     db.refresh(group)
@@ -80,7 +80,7 @@ def get_source_group(
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
     
-    return SourceGroupResponse.model_validate(group)
+    return SourceGroupResponse.from_orm(group)
 
 
 @router.put("/groups/{group_id}", response_model=SourceGroupResponse)
@@ -99,13 +99,13 @@ def update_source_group(
         raise HTTPException(status_code=404, detail="Source group not found")
     
     # Update fields
-    for field, value in group_data.model_dump(exclude_unset=True).items():
+    for field, value in group_data.dict(exclude_unset=True).items():
         setattr(group, field, value)
     
     db.commit()
     db.refresh(group)
     
-    return SourceGroupResponse.model_validate(group)
+    return SourceGroupResponse.from_orm(group)
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -154,7 +154,7 @@ def list_sources(
     result = db.execute(query)
     sources = result.scalars().all()
     
-    return [SourceResponse.model_validate(s) for s in sources]
+    return [SourceResponse.from_orm(s) for s in sources]
 
 
 @router.post("", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
@@ -173,7 +173,7 @@ def create_source(
         if not group:
             raise HTTPException(status_code=404, detail="Source group not found")
     
-    source_dict = source_data.model_dump()
+    source_dict = source_data.dict()
     
     # Calculate next crawl time
     next_crawl_at = calculate_next_crawl_time(
@@ -190,7 +190,7 @@ def create_source(
     db.commit()
     db.refresh(source)
     
-    return SourceResponse.model_validate(source)
+    return SourceResponse.from_orm(source)
 
 
 @router.get("/{source_id}", response_model=SourceResponse)
@@ -207,7 +207,7 @@ def get_source(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
     
-    return SourceResponse.model_validate(source)
+    return SourceResponse.from_orm(source)
 
 
 @router.put("/{source_id}", response_model=SourceResponse)
@@ -235,7 +235,7 @@ def update_source(
             raise HTTPException(status_code=404, detail="Source group not found")
     
     # Update fields
-    update_dict = source_data.model_dump(exclude_unset=True)
+    update_dict = source_data.dict(exclude_unset=True)
     for field, value in update_dict.items():
         setattr(source, field, value)
     
@@ -254,7 +254,7 @@ def update_source(
     db.commit()
     db.refresh(source)
     
-    return SourceResponse.model_validate(source)
+    return SourceResponse.from_orm(source)
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)

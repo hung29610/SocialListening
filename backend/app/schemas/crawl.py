@@ -29,7 +29,7 @@ class CrawlJobResponse(CrawlJobBase):
     metadata: Optional[Dict[str, Any]]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class CrawlJobFilter(BaseModel):
@@ -80,4 +80,4 @@ class ScanScheduleResponse(ScanScheduleBase):
     updated_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True

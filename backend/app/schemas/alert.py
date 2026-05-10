@@ -45,7 +45,7 @@ class AlertResponse(AlertBase):
     updated_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class AlertFilter(BaseModel):
@@ -88,4 +88,4 @@ class NotificationChannelResponse(NotificationChannelBase):
     updated_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True

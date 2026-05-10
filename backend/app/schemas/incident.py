@@ -40,7 +40,7 @@ class IncidentResponse(IncidentBase):
     closed_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Incident Log Schemas
@@ -62,7 +62,7 @@ class IncidentLogResponse(BaseModel):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Evidence File Schemas
@@ -83,7 +83,7 @@ class EvidenceFileResponse(EvidenceFileCreate):
     captured_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Takedown Request Schemas
@@ -121,7 +121,7 @@ class TakedownRequestResponse(TakedownRequestBase):
     updated_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Response Template Schemas
@@ -153,7 +153,7 @@ class ResponseTemplateResponse(ResponseTemplateBase):
     updated_at: Optional[datetime]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Filters

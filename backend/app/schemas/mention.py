@@ -36,7 +36,7 @@ class MentionResponse(MentionBase):
     collected_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class MentionWithAnalysis(MentionResponse):
@@ -71,7 +71,7 @@ class AIAnalysisResponse(AIAnalysisBase):
     analyzed_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Search and Filter

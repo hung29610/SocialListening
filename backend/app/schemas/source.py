@@ -51,7 +51,7 @@ class SourceResponse(SourceBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # Source Group Schemas
@@ -78,7 +78,7 @@ class SourceGroupResponse(SourceGroupBase):
     sources: List[SourceResponse] = []
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class SourceGroupListResponse(SourceGroupBase):
@@ -87,4 +87,4 @@ class SourceGroupListResponse(SourceGroupBase):
     source_count: int = 0
     
     class Config:
-        from_attributes = True
+        orm_mode = True
