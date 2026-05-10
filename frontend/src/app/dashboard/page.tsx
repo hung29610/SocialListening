@@ -13,12 +13,11 @@ export default function DashboardPage() {
     
     if (!token) {
       console.log('No token found, redirecting to login');
-      // Tạm thời comment out để debug
-      // window.location.href = '/login';
-      // return;
+      window.location.href = '/login';
+      return;
     }
 
-    // Mock user data for now
+    // Set user data without API call
     setUser({
       email: 'user@example.com',
       full_name: 'User Name',
