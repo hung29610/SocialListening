@@ -1,268 +1,223 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { dashboard } from '@/lib/api';
-import { 
-  FileText, 
-  AlertTriangle, 
-  Bell, 
-  TrendingUp,
-  TrendingDown,
-  Activity
-} from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
+import Link from 'next/link';
 
 export default function DashboardPage() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await dashboard.get(30);
-        setData(result);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
 
-    fetchData();
-    const interval = setInterval(fetchData, 60000); // Refresh every minute
-
-    return () => clearInterval(interval);
+    // Mock user data for now
+    setUser({
+      email: 'user@example.com',
+      full_name: 'User Name'
+    });
   }, []);
 
-  if (loading) {
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    window.location.href = '/login';
+  };
+
+  if (!user) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Đang tải dữ liệu...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Đang tải...</div>
       </div>
     );
   }
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Không có dữ liệu</div>
-      </div>
-    );
-  }
-
-  const metrics = data.metrics;
-  const sentimentData = [
-    { name: 'Tích cực', value: data.sentiment_distribution.positive, color: '#10b981' },
-    { name: 'Trung lập', value: data.sentiment_distribution.neutral, color: '#6b7280' },
-    { name: 'Tiêu cực thấp', value: data.sentiment_distribution.negative_low, color: '#f59e0b' },
-    { name: 'Tiêu cực TB', value: data.sentiment_distribution.negative_medium, color: '#ef4444' },
-    { name: 'Tiêu cực cao', value: data.sentiment_distribution.negative_high, color: '#dc2626' },
-  ];
-
-  const riskData = [
-    { name: 'Thấp', value: data.risk_distribution.low, color: '#10b981' },
-    { name: 'Trung bình', value: data.risk_distribution.medium, color: '#f59e0b' },
-    { name: 'Cao', value: data.risk_distribution.high, color: '#ef4444' },
-    { name: 'Nghiêm trọng', value: data.risk_distribution.critical, color: '#dc2626' },
-  ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Tổng quan hoạt động giám sát danh tiếng
-        </p>
-      </div>
-
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Mentions hôm nay"
-          value={metrics.total_mentions_today}
-          icon={FileText}
-          color="blue"
-        />
-        <MetricCard
-          title="Cảnh báo nghiêm trọng"
-          value={metrics.critical_alerts}
-          icon={Bell}
-          color="red"
-        />
-        <MetricCard
-          title="Sự cố đang mở"
-          value={metrics.open_incidents}
-          icon={AlertTriangle}
-          color="orange"
-        />
-        <MetricCard
-          title="Quá hạn SLA"
-          value={metrics.overdue_incidents}
-          icon={Activity}
-          color="purple"
-        />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Sentiment Distribution */}
-        <div className="p-6 bg-white rounded-lg shadow">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Phân bố cảm xúc
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={sentimentData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {sentimentData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Risk Distribution */}
-        <div className="p-6 bg-white rounded-lg shadow">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Phân bố rủi ro
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={riskData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {riskData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Mentions Trend */}
-      <div className="p-6 bg-white rounded-lg shadow">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Xu hướng mentions (30 ngày)
-        </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data.mention_trends}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="count" stroke="#3b82f6" name="Tổng" />
-            <Line type="monotone" dataKey="positive" stroke="#10b981" name="Tích cực" />
-            <Line type="monotone" dataKey="negative" stroke="#ef4444" name="Tiêu cực" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Top Risky Mentions */}
-      <div className="p-6 bg-white rounded-lg shadow">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Mentions rủi ro cao nhất
-        </h2>
-        <div className="space-y-4">
-          {data.top_risky_mentions.slice(0, 5).map((mention: any) => (
-            <div
-              key={mention.mention_id}
-              className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Social Listening Dashboard
+              </h1>
+              <p className="text-gray-600">Chào mừng, {user.full_name || user.email}!</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">
-                    {mention.title || 'Không có tiêu đề'}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-600 line-clamp-2">
-                    {mention.content_snippet}
-                  </p>
-                  <div className="flex items-center mt-2 space-x-4 text-xs text-gray-500">
-                    <span>Risk: {mention.risk_score}/100</span>
-                    <span>Crisis: {mention.crisis_level}/5</span>
-                    {mention.published_at && (
-                      <span>{new Date(mention.published_at).toLocaleDateString('vi-VN')}</span>
-                    )}
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                      <span className="text-white font-bold">M</span>
+                    </div>
                   </div>
-                </div>
-                <div className={`ml-4 px-3 py-1 text-xs font-medium rounded-full ${
-                  mention.risk_score >= 80 ? 'bg-red-100 text-red-800' :
-                  mention.risk_score >= 60 ? 'bg-orange-100 text-orange-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {mention.risk_score >= 80 ? 'Nghiêm trọng' :
-                   mention.risk_score >= 60 ? 'Cao' : 'Trung bình'}
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Mentions hôm nay
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">0</dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function MetricCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color 
-}: { 
-  title: string; 
-  value: number; 
-  icon: any; 
-  color: string;
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    red: 'bg-red-50 text-red-600',
-    orange: 'bg-orange-50 text-orange-600',
-    purple: 'bg-purple-50 text-purple-600',
-  }[color];
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                      <span className="text-white font-bold">A</span>
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Cảnh báo
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">0</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-  return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                      <span className="text-white font-bold">I</span>
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Sự cố
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">0</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                      <span className="text-white font-bold">S</span>
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Nguồn
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">0</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Thao tác nhanh
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Link
+                  href="/dashboard/keywords"
+                  className="p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-blue-600 font-bold">K</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Từ khóa</h4>
+                    <p className="text-sm text-gray-500">Quản lý từ khóa giám sát</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/sources"
+                  className="p-4 border border-gray-300 rounded-lg hover:border-green-500 hover:shadow-md transition-all"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-green-600 font-bold">S</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Nguồn</h4>
+                    <p className="text-sm text-gray-500">Quản lý nguồn dữ liệu</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/mentions"
+                  className="p-4 border border-gray-300 rounded-lg hover:border-purple-500 hover:shadow-md transition-all"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-purple-600 font-bold">M</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Mentions</h4>
+                    <p className="text-sm text-gray-500">Xem các đề cập</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/alerts"
+                  className="p-4 border border-gray-300 rounded-lg hover:border-red-500 hover:shadow-md transition-all"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-red-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-red-600 font-bold">A</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900">Cảnh báo</h4>
+                    <p className="text-sm text-gray-500">Quản lý cảnh báo</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="mt-8 bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Hoạt động gần đây
+              </h3>
+              <div className="text-center py-8 text-gray-500">
+                <p>Chưa có hoạt động nào</p>
+                <p className="text-sm mt-2">Bắt đầu bằng cách thêm từ khóa và nguồn dữ liệu</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className={`p-3 rounded-lg ${colorClasses}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
