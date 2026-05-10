@@ -80,7 +80,7 @@ def get_source_group(
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
     
-    return group
+    return SourceGroupResponse.model_validate(group)
 
 
 @router.put("/groups/{group_id}", response_model=SourceGroupResponse)
@@ -105,7 +105,7 @@ def update_source_group(
     db.commit()
     db.refresh(group)
     
-    return group
+    return SourceGroupResponse.model_validate(group)
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -154,7 +154,7 @@ def list_sources(
     result = db.execute(query)
     sources = result.scalars().all()
     
-    return sources
+    return [SourceResponse.model_validate(s) for s in sources]
 
 
 @router.post("", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
@@ -190,7 +190,7 @@ def create_source(
     db.commit()
     db.refresh(source)
     
-    return source
+    return SourceResponse.model_validate(source)
 
 
 @router.get("/{source_id}", response_model=SourceResponse)
@@ -207,7 +207,7 @@ def get_source(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
     
-    return source
+    return SourceResponse.model_validate(source)
 
 
 @router.put("/{source_id}", response_model=SourceResponse)
@@ -254,7 +254,7 @@ def update_source(
     db.commit()
     db.refresh(source)
     
-    return source
+    return SourceResponse.model_validate(source)
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
