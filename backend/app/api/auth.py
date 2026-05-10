@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from datetime import timedelta
 
 from app.core.database import get_db
@@ -39,11 +37,10 @@ class Token(BaseModel):
 
 
 @router.post("/register", response_model=UserResponse)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+def register(user_data: UserCreate, db = Depends(get_db)):
     """Register a new user"""
     # Check if user exists
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    existing_user = result.scalar_one_or_none()
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
     
     if existing_user:
         raise HTTPException(
@@ -61,21 +58,20 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     
     db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    db.commit()
+    db.refresh(user)
     
     return user
 
 
 @router.post("/login", response_model=Token)
-async def login(
+def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db = Depends(get_db)
 ):
     """Login and get access token"""
     # Get user
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalar_one_or_none()
+    user = db.query(User).filter(User.email == form_data.username).first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -101,6 +97,6 @@ async def login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
+def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
     return current_user
