@@ -125,6 +125,77 @@ def delete_service_category(
 
 
 # Services
+@router.get("/dashboard-summary", response_model=ServiceDashboardSummary)
+def get_service_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get service dashboard summary"""
+    # Total active services
+    total_active_services = db.execute(
+        select(func.count(Service.id)).where(Service.is_active == True)
+    ).scalar()
+    
+    # Open service requests
+    open_service_requests = db.execute(
+        select(func.count(ServiceRequest.id)).where(
+            ServiceRequest.status.in_([
+                ServiceRequestStatus.DRAFT,
+                ServiceRequestStatus.SUBMITTED,
+                ServiceRequestStatus.APPROVED,
+                ServiceRequestStatus.IN_PROGRESS,
+                ServiceRequestStatus.WAITING_EXTERNAL_RESPONSE
+            ])
+        )
+    ).scalar()
+    
+    # Pending approvals
+    pending_approvals = db.execute(
+        select(func.count(ServiceRequest.id)).where(
+            ServiceRequest.approval_status == ApprovalStatus.PENDING
+        )
+    ).scalar()
+    
+    # Completed requests
+    completed_requests = db.execute(
+        select(func.count(ServiceRequest.id)).where(
+            ServiceRequest.status == ServiceRequestStatus.COMPLETED
+        )
+    ).scalar()
+    
+    # High risk requests
+    high_risk_requests = db.execute(
+        select(func.count(ServiceRequest.id)).where(
+            and_(
+                ServiceRequest.priority.in_([Priority.HIGH, Priority.URGENT]),
+                ServiceRequest.status != ServiceRequestStatus.COMPLETED
+            )
+        )
+    ).scalar()
+    
+    # Monthly estimated cost (current month)
+    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_cost_result = db.execute(
+        select(func.coalesce(func.sum(ServiceRequest.final_price), 0)).where(
+            and_(
+                ServiceRequest.created_at >= current_month_start,
+                ServiceRequest.status != ServiceRequestStatus.CANCELLED
+            )
+        )
+    ).scalar()
+    
+    monthly_estimated_cost = Decimal(str(monthly_cost_result or 0))
+    
+    return ServiceDashboardSummary(
+        total_active_services=total_active_services or 0,
+        open_service_requests=open_service_requests or 0,
+        pending_approvals=pending_approvals or 0,
+        completed_requests=completed_requests or 0,
+        high_risk_requests=high_risk_requests or 0,
+        monthly_estimated_cost=monthly_estimated_cost
+    )
+
+
 @router.get("", response_model=List[ServiceResponse])
 def list_services(
     skip: int = Query(0, ge=0),
@@ -741,75 +812,3 @@ def update_service_deliverable(
     db.refresh(deliverable)
     
     return deliverable
-
-
-# Dashboard
-@router.get("/dashboard-summary", response_model=ServiceDashboardSummary)
-def get_service_dashboard_summary(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get service dashboard summary"""
-    # Total active services
-    total_active_services = db.execute(
-        select(func.count(Service.id)).where(Service.is_active == True)
-    ).scalar()
-    
-    # Open service requests
-    open_service_requests = db.execute(
-        select(func.count(ServiceRequest.id)).where(
-            ServiceRequest.status.in_([
-                ServiceRequestStatus.DRAFT,
-                ServiceRequestStatus.SUBMITTED,
-                ServiceRequestStatus.APPROVED,
-                ServiceRequestStatus.IN_PROGRESS,
-                ServiceRequestStatus.WAITING_EXTERNAL_RESPONSE
-            ])
-        )
-    ).scalar()
-    
-    # Pending approvals
-    pending_approvals = db.execute(
-        select(func.count(ServiceRequest.id)).where(
-            ServiceRequest.approval_status == ApprovalStatus.PENDING
-        )
-    ).scalar()
-    
-    # Completed requests
-    completed_requests = db.execute(
-        select(func.count(ServiceRequest.id)).where(
-            ServiceRequest.status == ServiceRequestStatus.COMPLETED
-        )
-    ).scalar()
-    
-    # High risk requests
-    high_risk_requests = db.execute(
-        select(func.count(ServiceRequest.id)).where(
-            and_(
-                ServiceRequest.priority.in_([Priority.HIGH, Priority.URGENT]),
-                ServiceRequest.status != ServiceRequestStatus.COMPLETED
-            )
-        )
-    ).scalar()
-    
-    # Monthly estimated cost (current month)
-    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_cost_result = db.execute(
-        select(func.coalesce(func.sum(ServiceRequest.final_price), 0)).where(
-            and_(
-                ServiceRequest.created_at >= current_month_start,
-                ServiceRequest.status != ServiceRequestStatus.CANCELLED
-            )
-        )
-    ).scalar()
-    
-    monthly_estimated_cost = Decimal(str(monthly_cost_result or 0))
-    
-    return ServiceDashboardSummary(
-        total_active_services=total_active_services or 0,
-        open_service_requests=open_service_requests or 0,
-        pending_approvals=pending_approvals or 0,
-        completed_requests=completed_requests or 0,
-        high_risk_requests=high_risk_requests or 0,
-        monthly_estimated_cost=monthly_estimated_cost
-    )
