@@ -1,36 +1,121 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { keywords } from '@/lib/api';
-import { Plus, Search, Edit2, Trash2, Key } from 'lucide-react';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
+
+interface Keyword {
+  id: number;
+  keyword: string;
+  category: string;
+  priority: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 export default function KeywordsPage() {
-  const [groups, setGroups] = useState<any[]>([]);
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showGroupModal, setShowGroupModal] = useState(false);
-  const [showKeywordModal, setShowKeywordModal] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [newKeyword, setNewKeyword] = useState({
+    keyword: '',
+    category: '',
+    priority: 'medium'
+  });
 
   useEffect(() => {
-    fetchGroups();
+    fetchKeywords();
   }, []);
 
-  const fetchGroups = async () => {
+  const fetchKeywords = async () => {
     try {
-      const data = await keywords.listGroups();
-      setGroups(data);
+      // Mock data for now
+      setKeywords([
+        { id: 1, keyword: 'sản phẩm lỗi', category: 'Chất lượng', priority: 'high', is_active: true, created_at: '2024-01-01' },
+        { id: 2, keyword: 'dịch vụ tốt', category: 'Dịch vụ', priority: 'medium', is_active: true, created_at: '2024-01-02' },
+        { id: 3, keyword: 'giao hàng chậm', category: 'Vận chuyển', priority: 'high', is_active: true, created_at: '2024-01-03' },
+      ]);
+      setLoading(false);
     } catch (error) {
-      console.error('Failed to fetch keyword groups:', error);
-    } finally {
+      console.error('Error fetching keywords:', error);
       setLoading(false);
     }
   };
 
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleAddKeyword = async () => {
+    if (!newKeyword.keyword.trim()) {
+      alert('Vui lòng nhập từ khóa');
+      return;
+    }
+
+    try {
+      // TODO: Call API
+      const newId = Math.max(...keywords.map(k => k.id), 0) + 1;
+      const keyword: Keyword = {
+        id: newId,
+        keyword: newKeyword.keyword,
+        category: newKeyword.category || 'Khác',
+        priority: newKeyword.priority,
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
+      
+      setKeywords([...keywords, keyword]);
+      setShowAddModal(false);
+      setNewKeyword({ keyword: '', category: '', priority: 'medium' });
+      alert('Thêm từ khóa thành công!');
+    } catch (error) {
+      console.error('Error adding keyword:', error);
+      alert('Lỗi khi thêm từ khóa');
+    }
+  };
+
+  const handleDeleteKeyword = async (id: number) => {
+    if (!confirm('Bạn có chắc muốn xóa từ khóa này?')) return;
+
+    try {
+      // TODO: Call API
+      setKeywords(keywords.filter(k => k.id !== id));
+      alert('Xóa từ khóa thành công!');
+    } catch (error) {
+      console.error('Error deleting keyword:', error);
+      alert('Lỗi khi xóa từ khóa');
+    }
+  };
+
+  const handleToggleActive = async (id: number) => {
+    try {
+      // TODO: Call API
+      setKeywords(keywords.map(k => 
+        k.id === id ? { ...k, is_active: !k.is_active } : k
+      ));
+    } catch (error) {
+      console.error('Error toggling keyword:', error);
+    }
+  };
+
+  const filteredKeywords = keywords.filter(k =>
+    k.keyword.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    k.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'Cao';
+      case 'medium': return 'Trung bình';
+      case 'low': return 'Thấp';
+      default: return priority;
+    }
+  };
 
   if (loading) {
     return (
@@ -45,350 +130,170 @@ export default function KeywordsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản lý từ khóa</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Tạo và quản lý nhóm từ khóa để giám sát
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý từ khóa</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Quản lý các từ khóa để giám sát trên mạng xã hội
           </p>
         </div>
         <button
-          onClick={() => setShowGroupModal(true)}
-          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Tạo nhóm từ khóa
+          <Plus className="w-5 h-5 mr-2" />
+          Thêm từ khóa
         </button>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <input
           type="text"
-          placeholder="Tìm kiếm nhóm từ khóa..."
+          placeholder="Tìm kiếm từ khóa..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {/* Groups List */}
-      {filteredGroups.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <Key className="w-12 h-12 mx-auto text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">
-            Chưa có nhóm từ khóa
-          </h3>
-          <p className="mt-2 text-sm text-gray-500">
-            Tạo nhóm từ khóa đầu tiên để bắt đầu giám sát
-          </p>
-          <button
-            onClick={() => setShowGroupModal(true)}
-            className="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Tạo nhóm từ khóa
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {filteredGroups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              onEdit={() => {
-                setSelectedGroup(group);
-                setShowGroupModal(true);
-              }}
-              onAddKeyword={() => {
-                setSelectedGroup(group);
-                setShowKeywordModal(true);
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modals */}
-      {showGroupModal && (
-        <GroupModal
-          group={selectedGroup}
-          onClose={() => {
-            setShowGroupModal(false);
-            setSelectedGroup(null);
-          }}
-          onSuccess={() => {
-            fetchGroups();
-            setShowGroupModal(false);
-            setSelectedGroup(null);
-          }}
-        />
-      )}
-
-      {showKeywordModal && (
-        <KeywordModal
-          groupId={selectedGroup?.id}
-          onClose={() => {
-            setShowKeywordModal(false);
-            setSelectedGroup(null);
-          }}
-          onSuccess={() => {
-            fetchGroups();
-            setShowKeywordModal(false);
-            setSelectedGroup(null);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function GroupCard({ group, onEdit, onAddKeyword }: any) {
-  return (
-    <div className="p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
-          {group.description && (
-            <p className="mt-1 text-sm text-gray-600">{group.description}</p>
-          )}
-        </div>
-        <button
-          onClick={onEdit}
-          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
+      {/* Keywords Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Từ khóa
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Danh mục
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Độ ưu tiên
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Trạng thái
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredKeywords.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  Không có từ khóa nào
+                </td>
+              </tr>
+            ) : (
+              filteredKeywords.map((keyword) => (
+                <tr key={keyword.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {keyword.keyword}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">{keyword.category}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(keyword.priority)}`}>
+                      {getPriorityText(keyword.priority)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleToggleActive(keyword.id)}
+                      className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        keyword.is_active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {keyword.is_active ? 'Hoạt động' : 'Tắt'}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleDeleteKeyword(keyword.id)}
+                      className="text-red-600 hover:text-red-900 ml-4"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Keywords */}
-      <div className="mt-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">
-            Từ khóa ({group.keywords?.length || 0})
-          </span>
-          <button
-            onClick={onAddKeyword}
-            className="text-sm text-blue-600 hover:text-blue-700"
-          >
-            + Thêm từ khóa
-          </button>
-        </div>
+      {/* Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Thêm từ khóa mới</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Từ khóa *
+                </label>
+                <input
+                  type="text"
+                  value={newKeyword.keyword}
+                  onChange={(e) => setNewKeyword({ ...newKeyword, keyword: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập từ khóa..."
+                />
+              </div>
 
-        {group.keywords && group.keywords.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {group.keywords.map((kw: any) => (
-              <span
-                key={kw.id}
-                className="inline-flex items-center px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Danh mục
+                </label>
+                <input
+                  type="text"
+                  value={newKeyword.category}
+                  onChange={(e) => setNewKeyword({ ...newKeyword, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ví dụ: Chất lượng, Dịch vụ..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Độ ưu tiên
+                </label>
+                <select
+                  value={newKeyword.priority}
+                  onChange={(e) => setNewKeyword({ ...newKeyword, priority: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="low">Thấp</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Cao</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
-                {kw.keyword}
-                {kw.is_negative && (
-                  <span className="ml-1 text-xs text-red-600">(loại trừ)</span>
-                )}
-              </span>
-            ))}
+                Hủy
+              </button>
+              <button
+                onClick={handleAddKeyword}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Thêm
+              </button>
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-gray-500">Chưa có từ khóa nào</p>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Trạng thái:</span>
-          <span className={`font-medium ${group.is_active ? 'text-green-600' : 'text-gray-400'}`}>
-            {group.is_active ? 'Đang hoạt động' : 'Tạm dừng'}
-          </span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function GroupModal({ group, onClose, onSuccess }: any) {
-  const [formData, setFormData] = useState({
-    name: group?.name || '',
-    description: group?.description || '',
-    is_active: group?.is_active ?? true,
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await keywords.createGroup(formData);
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to create group:', error);
-      alert('Không thể tạo nhóm từ khóa');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl">
-        <h2 className="text-xl font-bold text-gray-900">
-          {group ? 'Chỉnh sửa nhóm từ khóa' : 'Tạo nhóm từ khóa mới'}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Tên nhóm *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="VD: Thương hiệu chính"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Mô tả
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Mô tả mục đích của nhóm từ khóa này"
-            />
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
-              Kích hoạt ngay
-            </label>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Đang lưu...' : group ? 'Cập nhật' : 'Tạo mới'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function KeywordModal({ groupId, onClose, onSuccess }: any) {
-  const [formData, setFormData] = useState({
-    keyword_group_id: groupId,
-    keyword: '',
-    is_negative: false,
-    match_type: 'contains',
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await keywords.createKeyword(formData);
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to create keyword:', error);
-      alert('Không thể tạo từ khóa');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl">
-        <h2 className="text-xl font-bold text-gray-900">Thêm từ khóa mới</h2>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Từ khóa *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.keyword}
-              onChange={(e) => setFormData({ ...formData, keyword: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="VD: tên thương hiệu"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Kiểu khớp
-            </label>
-            <select
-              value={formData.match_type}
-              onChange={(e) => setFormData({ ...formData, match_type: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="contains">Chứa từ khóa</option>
-              <option value="exact">Khớp chính xác</option>
-              <option value="starts_with">Bắt đầu bằng</option>
-              <option value="ends_with">Kết thúc bằng</option>
-            </select>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_negative"
-              checked={formData.is_negative}
-              onChange={(e) => setFormData({ ...formData, is_negative: e.target.checked })}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="is_negative" className="ml-2 text-sm text-gray-700">
-              Từ khóa loại trừ (bỏ qua kết quả chứa từ này)
-            </label>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Đang lưu...' : 'Thêm từ khóa'}
-            </button>
-          </div>
-        </form>
-      </div>
+      )}
     </div>
   );
 }
