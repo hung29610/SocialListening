@@ -57,12 +57,12 @@ def create_service_category(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new service category"""
-    category = ServiceCategory(**category_data.model_dump())
+    category = ServiceCategory(**category_data.dict())
     db.add(category)
     db.commit()
     db.refresh(category)
     
-    return ServiceCategoryResponse.model_validate(category)
+    return ServiceCategoryResponse.from_orm(category)
 
 
 @router.get("/categories/{category_id}", response_model=ServiceCategoryResponse)
@@ -79,7 +79,7 @@ def get_service_category(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    return ServiceCategoryResponse.model_validate(category)
+    return ServiceCategoryResponse.from_orm(category)
 
 
 @router.put("/categories/{category_id}", response_model=ServiceCategoryResponse)
@@ -97,13 +97,13 @@ def update_service_category(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    for field, value in category_data.model_dump(exclude_unset=True).items():
+    for field, value in category_data.dict(exclude_unset=True).items():
         setattr(category, field, value)
     
     db.commit()
     db.refresh(category)
     
-    return ServiceCategoryResponse.model_validate(category)
+    return ServiceCategoryResponse.from_orm(category)
 
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -282,7 +282,7 @@ def create_service(
     if not category:
         raise HTTPException(status_code=404, detail="Service category not found")
     
-    service = Service(**service_data.model_dump())
+    service = Service(**service_data.dict())
     db.add(service)
     db.commit()
     db.refresh(service)
@@ -290,7 +290,7 @@ def create_service(
     # Load category relationship
     db.refresh(service, ['category'])
     
-    return ServiceResponse.model_validate(service)
+    return ServiceResponse.from_orm(service)
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)
@@ -307,7 +307,7 @@ def get_service(
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     
-    return ServiceResponse.model_validate(service)
+    return ServiceResponse.from_orm(service)
 
 
 @router.put("/{service_id}", response_model=ServiceResponse)
@@ -334,13 +334,13 @@ def update_service(
         if not category:
             raise HTTPException(status_code=404, detail="Service category not found")
     
-    for field, value in service_data.model_dump(exclude_unset=True).items():
+    for field, value in service_data.dict(exclude_unset=True).items():
         setattr(service, field, value)
     
     db.commit()
     db.refresh(service)
     
-    return ServiceResponse.model_validate(service)
+    return ServiceResponse.from_orm(service)
 
 
 @router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -419,7 +419,7 @@ def create_service_request(
     approval_status = ApprovalStatus.PENDING if service.requires_approval else ApprovalStatus.NOT_REQUIRED
     
     service_request = ServiceRequest(
-        **request_data.model_dump(),
+        **request_data.dict(),
         requester_id=current_user.id,
         approval_status=approval_status
     )
@@ -441,7 +441,7 @@ def create_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.get("/requests/{request_id}", response_model=ServiceRequestResponse)
@@ -460,7 +460,7 @@ def get_service_request(
     if not service_request:
         raise HTTPException(status_code=404, detail="Service request not found")
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.put("/requests/{request_id}", response_model=ServiceRequestResponse)
@@ -482,7 +482,7 @@ def update_service_request(
     
     old_status = service_request.status
     
-    for field, value in request_data.model_dump(exclude_unset=True).items():
+    for field, value in request_data.dict(exclude_unset=True).items():
         setattr(service_request, field, value)
     
     db.commit()
@@ -501,7 +501,7 @@ def update_service_request(
         db.add(log)
         db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 # Service Request Actions
@@ -543,7 +543,7 @@ def submit_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.post("/requests/{request_id}/approve", response_model=ServiceRequestResponse)
@@ -588,7 +588,7 @@ def approve_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.post("/requests/{request_id}/reject", response_model=ServiceRequestResponse)
@@ -630,7 +630,7 @@ def reject_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.post("/requests/{request_id}/complete", response_model=ServiceRequestResponse)
@@ -672,7 +672,7 @@ def complete_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 @router.post("/requests/{request_id}/cancel", response_model=ServiceRequestResponse)
@@ -713,7 +713,7 @@ def cancel_service_request(
     db.add(log)
     db.commit()
     
-    return ServiceRequestResponse.model_validate(service_request)
+    return ServiceRequestResponse.from_orm(service_request)
 
 
 # Service Request Logs
@@ -761,13 +761,13 @@ def create_service_request_log(
     log = ServiceRequestLog(
         service_request_id=request_id,
         created_by=current_user.id,
-        **log_data.model_dump()
+        **log_data.dict()
     )
     db.add(log)
     db.commit()
     db.refresh(log)
     
-    return ServiceRequestLogResponse.model_validate(log)
+    return ServiceRequestLogResponse.from_orm(log)
 
 
 # Service Deliverables
@@ -814,13 +814,13 @@ def create_service_deliverable(
     
     deliverable = ServiceDeliverable(
         service_request_id=request_id,
-        **deliverable_data.model_dump()
+        **deliverable_data.dict()
     )
     db.add(deliverable)
     db.commit()
     db.refresh(deliverable)
     
-    return ServiceDeliverableResponse.model_validate(deliverable)
+    return ServiceDeliverableResponse.from_orm(deliverable)
 
 
 @router.put("/deliverables/{deliverable_id}", response_model=ServiceDeliverableResponse)
@@ -838,11 +838,11 @@ def update_service_deliverable(
     if not deliverable:
         raise HTTPException(status_code=404, detail="Service deliverable not found")
     
-    for field, value in deliverable_data.model_dump(exclude_unset=True).items():
+    for field, value in deliverable_data.dict(exclude_unset=True).items():
         setattr(deliverable, field, value)
     
     db.commit()
     db.refresh(deliverable)
     
-    return ServiceDeliverableResponse.model_validate(deliverable)
+    return ServiceDeliverableResponse.from_orm(deliverable)
 

@@ -109,7 +109,7 @@ def create_service_request(
     approval_status = ApprovalStatus.PENDING if service.requires_approval else ApprovalStatus.NOT_REQUIRED
 
     sr = ServiceRequest(
-        **request_data.model_dump(),
+        **request_data.dict(),
         requester_id=current_user.id,
         approval_status=approval_status
     )
@@ -174,7 +174,7 @@ def update_service_request(
         raise HTTPException(status_code=404, detail="YÃªu cáº§u dá»‹ch vá»¥ khÃ´ng tá»“n táº¡i")
 
     old_status = sr.status
-    for field, value in request_data.model_dump(exclude_unset=True).items():
+    for field, value in request_data.dict(exclude_unset=True).items():
         setattr(sr, field, value)
 
     db.commit()
@@ -473,13 +473,13 @@ def create_service_request_log(
     log = ServiceRequestLog(
         service_request_id=request_id,
         created_by=current_user.id,
-        **log_data.model_dump()
+        **log_data.dict()
     )
     db.add(log)
     db.commit()
     db.refresh(log)
 
-    return ServiceRequestLogResponse.model_validate(log)
+    return ServiceRequestLogResponse.from_orm(log)
 
 
 @router.get("/{request_id}/deliverables")
@@ -501,7 +501,7 @@ def get_service_deliverables(
         .order_by(ServiceDeliverable.created_at.desc())
     ).scalars().all()
 
-    return [ServiceDeliverableResponse.model_validate(d) for d in deliverables]
+    return [ServiceDeliverableResponse.from_orm(d) for d in deliverables]
 
 
 @router.post("/{request_id}/deliverables", status_code=201)
@@ -520,12 +520,12 @@ def create_service_deliverable(
 
     deliverable = ServiceDeliverable(
         service_request_id=request_id,
-        **deliverable_data.model_dump()
+        **deliverable_data.dict()
     )
     db.add(deliverable)
     db.commit()
     db.refresh(deliverable)
 
-    return ServiceDeliverableResponse.model_validate(deliverable)
+    return ServiceDeliverableResponse.from_orm(deliverable)
 
 

@@ -31,7 +31,8 @@ class KeywordResponse(KeywordBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Keyword Group Schemas
@@ -61,7 +62,8 @@ class KeywordGroupResponse(KeywordGroupBase):
     updated_at: Optional[datetime] = None
     keywords: List[KeywordResponse] = []
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 class KeywordGroupListResponse(KeywordGroupBase):
@@ -69,5 +71,6 @@ class KeywordGroupListResponse(KeywordGroupBase):
     created_at: datetime
     keyword_count: int = 0
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 

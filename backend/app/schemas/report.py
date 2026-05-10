@@ -32,7 +32,8 @@ class ReportResponse(ReportBase):
     email_recipients: Optional[str]
     email_sent_at: Optional[datetime]
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 class ReportFilter(BaseModel):
@@ -134,5 +135,6 @@ class SystemSettingResponse(SystemSettingBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 

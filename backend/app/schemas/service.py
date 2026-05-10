@@ -95,7 +95,8 @@ class ServiceCategoryResponse(ServiceCategoryBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Service Schemas
@@ -149,7 +150,8 @@ class ServiceResponse(ServiceBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Service Request Schemas
@@ -200,7 +202,8 @@ class ServiceRequestResponse(ServiceRequestBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Service Request Action Schemas
@@ -244,7 +247,8 @@ class ServiceRequestLogResponse(ServiceRequestLogBase):
     created_by: int
     created_at: datetime
 
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Service Deliverable Schemas
@@ -274,7 +278,8 @@ class ServiceDeliverableResponse(ServiceDeliverableBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Dashboard Schemas

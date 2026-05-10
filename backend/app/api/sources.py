@@ -99,7 +99,7 @@ def create_source_group(
 ):
     """Create a new source group."""
     try:
-        group = SourceGroup(**group_data.model_dump())
+        group = SourceGroup(**group_data.dict())
         db.add(group)
         db.commit()
         db.refresh(group)
@@ -149,7 +149,7 @@ def update_source_group(
     group = db.execute(select(SourceGroup).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Source group not found")
-    for field, value in group_data.model_dump(exclude_unset=True).items():
+    for field, value in group_data.dict(exclude_unset=True).items():
         setattr(group, field, value)
     db.commit()
     db.refresh(group)
@@ -220,7 +220,7 @@ def create_source(
             if not group:
                 raise HTTPException(status_code=404, detail="Source group not found")
 
-        data = source_data.model_dump()
+        data = source_data.dict()
 
         # Parse crawl_time string → datetime.time for DB column
         crawl_time_obj = None
@@ -280,7 +280,7 @@ def update_source(
         raise HTTPException(status_code=404, detail="Source not found")
 
     try:
-        update_dict = source_data.model_dump(exclude_unset=True)
+        update_dict = source_data.dict(exclude_unset=True)
 
         # Parse crawl_time string if provided
         if 'crawl_time' in update_dict and update_dict['crawl_time']:

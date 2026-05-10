@@ -61,7 +61,7 @@ def create_keyword_group(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new keyword group"""
-    group = KeywordGroup(**group_data.model_dump())
+    group = KeywordGroup(**group_data.dict())
     db.add(group)
     db.commit()
     db.refresh(group)
@@ -92,7 +92,7 @@ def get_keyword_group(
     if not group:
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
-    return KeywordGroupResponse.model_validate(group)
+    return KeywordGroupResponse.from_orm(group)
 
 
 @router.put("/groups/{group_id}", response_model=KeywordGroupResponse)
@@ -111,13 +111,13 @@ def update_keyword_group(
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
     # Update fields
-    for field, value in group_data.model_dump(exclude_unset=True).items():
+    for field, value in group_data.dict(exclude_unset=True).items():
         setattr(group, field, value)
     
     db.commit()
     db.refresh(group)
     
-    return KeywordGroupResponse.model_validate(group)
+    return KeywordGroupResponse.from_orm(group)
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -157,7 +157,7 @@ def list_keywords_in_group(
     result = db.execute(query)
     keywords = result.scalars().all()
     
-    return [KeywordResponse.model_validate(k) for k in keywords]
+    return [KeywordResponse.from_orm(k) for k in keywords]
 
 
 @router.post("/keywords", response_model=KeywordResponse, status_code=status.HTTP_201_CREATED)
@@ -175,12 +175,12 @@ def create_keyword(
     if not group:
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
-    keyword = Keyword(**keyword_data.model_dump())
+    keyword = Keyword(**keyword_data.dict())
     db.add(keyword)
     db.commit()
     db.refresh(keyword)
     
-    return KeywordResponse.model_validate(keyword)
+    return KeywordResponse.from_orm(keyword)
 
 
 @router.get("/keywords/{keyword_id}", response_model=KeywordResponse)
@@ -197,7 +197,7 @@ def get_keyword(
     if not keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
     
-    return KeywordResponse.model_validate(keyword)
+    return KeywordResponse.from_orm(keyword)
 
 
 @router.put("/keywords/{keyword_id}", response_model=KeywordResponse)
@@ -216,13 +216,13 @@ def update_keyword(
         raise HTTPException(status_code=404, detail="Keyword not found")
     
     # Update fields
-    for field, value in keyword_data.model_dump(exclude_unset=True).items():
+    for field, value in keyword_data.dict(exclude_unset=True).items():
         setattr(keyword, field, value)
     
     db.commit()
     db.refresh(keyword)
     
-    return KeywordResponse.model_validate(keyword)
+    return KeywordResponse.from_orm(keyword)
 
 
 @router.delete("/keywords/{keyword_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -35,7 +35,8 @@ class MentionResponse(MentionBase):
     metadata: Optional[Dict[str, Any]]
     collected_at: datetime
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 class MentionWithAnalysis(MentionResponse):
@@ -69,7 +70,8 @@ class AIAnalysisResponse(AIAnalysisBase):
     processing_time_ms: Optional[int]
     analyzed_at: datetime
     
-    model_config = {'from_attributes': True}
+    class Config:
+        orm_mode = True
 
 
 # Search and Filter

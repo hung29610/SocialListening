@@ -155,7 +155,7 @@ def list_reports(
     total_pages = ceil(total / page_size) if total > 0 else 1
 
     return ReportListResponse(
-        items=[ReportResponse.model_validate(r) for r in reports],
+        items=[ReportResponse.from_orm(r) for r in reports],
         total=total,
         page=page,
         page_size=page_size,
@@ -171,7 +171,7 @@ def create_report(
 ):
     """Create a new report and generate it inline"""
     report = Report(
-        **report_data.model_dump(),
+        **report_data.dict(),
         generated_by=current_user.id,
         status=ReportStatus.GENERATING
     )
@@ -187,7 +187,7 @@ def create_report(
         pass
 
     db.refresh(report)
-    return ReportResponse.model_validate(report)
+    return ReportResponse.from_orm(report)
 
 
 @router.get("/{report_id}", response_model=ReportResponse)
@@ -204,7 +204,7 @@ def get_report(
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    return ReportResponse.model_validate(report)
+    return ReportResponse.from_orm(report)
 
 
 @router.delete("/{report_id}", status_code=204)
