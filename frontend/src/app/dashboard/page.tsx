@@ -9,15 +9,20 @@ export default function DashboardPage() {
   useEffect(() => {
     // Check if user is logged in
     const token = localStorage.getItem('access_token');
+    console.log('Token in dashboard:', token);
+    
     if (!token) {
-      window.location.href = '/login';
-      return;
+      console.log('No token found, redirecting to login');
+      // Tạm thời comment out để debug
+      // window.location.href = '/login';
+      // return;
     }
 
     // Mock user data for now
     setUser({
       email: 'user@example.com',
-      full_name: 'User Name'
+      full_name: 'User Name',
+      token: token
     });
   }, []);
 
@@ -45,6 +50,7 @@ export default function DashboardPage() {
                 Social Listening Dashboard
               </h1>
               <p className="text-gray-600">Chào mừng, {user.full_name || user.email}!</p>
+              <p className="text-xs text-gray-400">Token: {user.token ? 'Có' : 'Không có'}</p>
             </div>
             <button
               onClick={handleLogout}
