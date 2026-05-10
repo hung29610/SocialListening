@@ -20,8 +20,11 @@ export default function LoginPage() {
       const result = await auth.login(email, password);
       console.log('Login successful:', result);
       
-      // Force redirect
-      window.location.href = '/dashboard';
+      // Multiple redirect methods to ensure it works
+      setTimeout(() => {
+        window.location.replace('/dashboard');
+      }, 100);
+      
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.response?.data?.detail || 'Đăng nhập thất bại');
