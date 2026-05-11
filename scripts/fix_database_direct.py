@@ -24,16 +24,16 @@ if not DATABASE_URL:
     print("="*80)
     print("\n1. Vào Render Dashboard:")
     print("   https://dashboard.render.com/")
-    print("\n2. Click service: social-listening-backend")
-    print("\n3. Click tab: Environment")
-    print("\n4. Tìm biến: DATABASE_URL")
-    print("\n5. Click Copy")
-    print("\n6. Chạy lệnh:")
-    print("   Windows CMD:")
-    print('   set DATABASE_URL="<paste_url_here>"')
-    print("\n   Windows PowerShell:")
-    print('   $env:DATABASE_URL="<paste_url_here>"')
-    print("\n7. Chạy lại script này:")
+    print("\n2. Click vào DATABASE (không phải service backend):")
+    print("   Tên: social-listening-db-v2")
+    print("\n3. Tìm phần 'Connections'")
+    print("\n4. Copy 'External Database URL' (KHÔNG phải Internal)")
+    print("   - External URL có dạng: postgresql://...@dpg-xxxxx.oregon-postgres.render.com/...")
+    print("   - Internal URL có dạng: postgresql://...@dpg-xxxxx-a/... (có -a ở cuối)")
+    print("\n5. Chạy lệnh:")
+    print("   Windows PowerShell:")
+    print('   $env:DATABASE_URL="<paste_EXTERNAL_url_here>"')
+    print("\n6. Chạy lại script này:")
     print("   python fix_database_direct.py")
     print("\n" + "="*80)
     sys.exit(1)
@@ -45,29 +45,35 @@ print(f"\nDatabase URL: {DATABASE_URL[:50]}...")
 
 # SQL statements to fix the database
 sql_statements = [
-    # Create enum types
-    ("Create crawlfrequency enum", 
-     "CREATE TYPE IF NOT EXISTS crawlfrequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'manual')"),
-    
-    ("Create sourcetype enum",
-     "CREATE TYPE IF NOT EXISTS sourcetype AS ENUM ('facebook_page', 'facebook_group', 'facebook_profile', 'youtube_channel', 'youtube_video', 'website', 'news', 'rss', 'forum', 'manual_url')"),
-    
-    # Drop old crawl_frequency
+    # Drop old crawl_frequency first
     ("Drop old crawl_frequency column",
      "ALTER TABLE sources DROP COLUMN IF EXISTS crawl_frequency CASCADE"),
+    
+    # Drop and recreate enum types (to ensure correct values)
+    ("Drop old crawlfrequency enum",
+     "DROP TYPE IF EXISTS crawlfrequency CASCADE"),
+    
+    ("Create crawlfrequency enum", 
+     "CREATE TYPE crawlfrequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'manual')"),
+    
+    ("Drop old sourcetype enum",
+     "DROP TYPE IF EXISTS sourcetype CASCADE"),
+    
+    ("Create sourcetype enum",
+     "CREATE TYPE sourcetype AS ENUM ('facebook_page', 'facebook_group', 'facebook_profile', 'youtube_channel', 'youtube_video', 'website', 'news', 'rss', 'forum', 'manual_url')"),
     
     # Add all missing columns
     ("Add group_id",
      "ALTER TABLE sources ADD COLUMN IF NOT EXISTS group_id INTEGER"),
+    
+    ("Add source_type (ENUM)",
+     "ALTER TABLE sources ADD COLUMN IF NOT EXISTS source_type sourcetype NOT NULL DEFAULT 'website'"),
     
     ("Add platform_id",
      "ALTER TABLE sources ADD COLUMN IF NOT EXISTS platform_id VARCHAR(255)"),
     
     ("Add meta_data",
      "ALTER TABLE sources ADD COLUMN IF NOT EXISTS meta_data JSON"),
-    
-    ("Add crawl_frequency (ENUM)",
-     "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_frequency crawlfrequency DEFAULT 'manual'"),
     
     ("Add crawl_time",
      "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_time TIME"),
@@ -98,6 +104,10 @@ sql_statements = [
     
     ("Add error_count",
      "ALTER TABLE sources ADD COLUMN IF NOT EXISTS error_count INTEGER DEFAULT 0 NOT NULL"),
+    
+    # Now add crawl_frequency with the new enum
+    ("Add crawl_frequency (ENUM)",
+     "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_frequency crawlfrequency DEFAULT 'manual'"),
     
     # Create indexes
     ("Create index on group_id",

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { 
   LayoutDashboard, 
   Key, 
@@ -64,9 +65,10 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Đang tải...</div>
-      </div>
+      <LoadingSpinner 
+        message="Đang khởi động..."
+        submessage="Lần đầu truy cập có thể mất 30-60 giây để server khởi động. Vui lòng đợi trong giây lát."
+      />
     );
   }
 

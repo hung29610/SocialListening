@@ -65,8 +65,8 @@ if settings.FRONTEND_URL and settings.FRONTEND_URL not in _cors_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # wildcard so 500 errors also carry CORS header
-    allow_credentials=False,       # must be False when allow_origins=["*"]
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

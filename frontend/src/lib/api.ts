@@ -54,6 +54,16 @@ export function getErrorMessage(error: any, fallback = 'Lỗi không xác địn
   return status ? `${msg} (HTTP ${status})` : msg;
 }
 
+export function getUserFacingErrorMessage(
+  error: any,
+  productionFallback = 'Lỗi khi tải dữ liệu. Vui lòng kiểm tra backend hoặc database migration.'
+): string {
+  if (process.env.NODE_ENV === 'production') {
+    return productionFallback;
+  }
+  return getErrorMessage(error, productionFallback);
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const auth = {
   login: async (email: string, password: string) => {

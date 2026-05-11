@@ -7,7 +7,6 @@ Create Date: 2026-05-10 12:00:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '002_add_crawl_schedule'
@@ -17,23 +16,36 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create enum type for crawl frequency
-    crawl_frequency_enum = postgresql.ENUM(
-        'daily', 'weekly', 'monthly', 'yearly', 'manual',
-        name='crawlfrequency'
-    )
-    crawl_frequency_enum.create(op.get_bind())
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_columns = {column["name"] for column in inspector.get_columns("sources")}
+
+    bind.execute(sa.text("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'crawlfrequency') THEN
+            CREATE TYPE crawlfrequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'manual');
+        END IF;
+    END
+    $$;
+    """))
     
     # Add crawl schedule columns to sources table
-    op.add_column('sources', sa.Column('crawl_frequency', crawl_frequency_enum, server_default='manual'))
-    op.add_column('sources', sa.Column('crawl_time', sa.Time(), nullable=True))
-    op.add_column('sources', sa.Column('crawl_day_of_week', sa.Integer(), nullable=True))
-    op.add_column('sources', sa.Column('crawl_day_of_month', sa.Integer(), nullable=True))
-    op.add_column('sources', sa.Column('crawl_month', sa.Integer(), nullable=True))
-    op.add_column('sources', sa.Column('next_crawl_at', sa.DateTime(timezone=True), nullable=True))
+    if 'crawl_frequency' not in existing_columns:
+        op.add_column('sources', sa.Column('crawl_frequency', sa.String(), nullable=True, server_default='manual'))
+    if 'crawl_time' not in existing_columns:
+        op.add_column('sources', sa.Column('crawl_time', sa.Time(), nullable=True))
+    if 'crawl_day_of_week' not in existing_columns:
+        op.add_column('sources', sa.Column('crawl_day_of_week', sa.Integer(), nullable=True))
+    if 'crawl_day_of_month' not in existing_columns:
+        op.add_column('sources', sa.Column('crawl_day_of_month', sa.Integer(), nullable=True))
+    if 'crawl_month' not in existing_columns:
+        op.add_column('sources', sa.Column('crawl_month', sa.Integer(), nullable=True))
+    if 'next_crawl_at' not in existing_columns:
+        op.add_column('sources', sa.Column('next_crawl_at', sa.DateTime(timezone=True), nullable=True))
     
     # Create index on crawl_frequency for better query performance
-    op.create_index('ix_sources_crawl_frequency', 'sources', ['crawl_frequency'])
+    bind.execute(sa.text("CREATE INDEX IF NOT EXISTS ix_sources_crawl_frequency ON sources (crawl_frequency)"))
 
 
 def downgrade() -> None:
@@ -49,5 +61,4 @@ def downgrade() -> None:
     op.drop_column('sources', 'crawl_frequency')
     
     # Drop enum type
-    crawl_frequency_enum = postgresql.ENUM(name='crawlfrequency')
-    crawl_frequency_enum.drop(op.get_bind())
+    op.execute("DROP TYPE IF EXISTS crawlfrequency")

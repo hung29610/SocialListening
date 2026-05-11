@@ -27,18 +27,27 @@ def upgrade() -> None:
     
     # Execute each ALTER TABLE separately with error handling
     statements = [
-        # Create enums
-        "CREATE TYPE IF NOT EXISTS crawlfrequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'manual')",
-        "CREATE TYPE IF NOT EXISTS sourcetype AS ENUM ('facebook_page', 'facebook_group', 'facebook_profile', 'youtube_channel', 'youtube_video', 'website', 'news', 'rss', 'forum', 'manual_url')",
-        
-        # Drop old crawl_frequency if it's INTEGER
-        "ALTER TABLE sources DROP COLUMN IF EXISTS crawl_frequency CASCADE",
+        # Create enums without relying on unsupported CREATE TYPE IF NOT EXISTS syntax.
+        """DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'crawlfrequency') THEN
+                CREATE TYPE crawlfrequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'manual');
+            END IF;
+        END
+        $$""",
+        """DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sourcetype') THEN
+                CREATE TYPE sourcetype AS ENUM ('facebook_page', 'facebook_group', 'facebook_profile', 'youtube_channel', 'youtube_video', 'website', 'news', 'rss', 'forum', 'manual_url');
+            END IF;
+        END
+        $$""",
         
         # Add all columns
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS group_id INTEGER",
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS platform_id VARCHAR(255)",
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS meta_data JSON",
-        "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_frequency crawlfrequency DEFAULT 'manual'",
+        "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_frequency VARCHAR DEFAULT 'manual'",
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_time TIME",
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_day_of_week INTEGER",
         "ALTER TABLE sources ADD COLUMN IF NOT EXISTS crawl_day_of_month INTEGER",

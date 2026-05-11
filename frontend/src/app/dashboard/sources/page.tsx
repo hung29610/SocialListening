@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Search, Globe, Facebook, Youtube, Clock } from 'lucide-react';
-import { sources as sourcesApi, getErrorMessage } from '@/lib/api';
+import { sources as sourcesApi, getErrorMessage, getUserFacingErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface Source {
@@ -48,7 +48,10 @@ export default function SourcesPage() {
       setSources(data);
     } catch (error: any) {
       console.error('Error fetching sources:', error);
-      toast.error(`Lỗi khi tải danh sách nguồn: ${getErrorMessage(error)}`);
+      toast.error(getUserFacingErrorMessage(
+        error,
+        'Lỗi khi tải danh sách nguồn. Vui lòng kiểm tra backend hoặc database migration.'
+      ));
     } finally {
       setLoading(false);
     }
