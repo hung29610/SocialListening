@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
-from app.core.security import get_current_active_user
+from app.core.security import get_current_active_user, get_current_superuser
 from app.models.user import User
 from app.models.service import ServiceCategory, Service, ServiceType, Platform, RiskLevel
 from decimal import Decimal
@@ -10,6 +10,21 @@ import subprocess
 import os
 
 router = APIRouter()
+
+
+@router.get("/check-admin-status")
+def check_admin_status(
+    current_user: User = Depends(get_current_superuser)
+):
+    """Check if current user is admin - Only accessible by superusers"""
+    return {
+        "is_admin": True,
+        "user_id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_superuser": current_user.is_superuser,
+        "message": "You have admin access!"
+    }
 
 
 def seed_service_categories_inline(db: Session):
