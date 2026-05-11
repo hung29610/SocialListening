@@ -66,7 +66,9 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [showServiceDetail, setShowServiceDetail] = useState(false);
+  const [showRequestDetail, setShowRequestDetail] = useState(false);
   const [showCreateRequest, setShowCreateRequest] = useState(false);
   
   // Form state for creating service request
@@ -107,6 +109,53 @@ export default function ServicesPage() {
   const handleServiceClick = (service: Service) => {
     setSelectedService(service);
     setShowServiceDetail(true);
+  };
+
+  const handleRequestClick = (request: ServiceRequest) => {
+    setSelectedRequest(request);
+    setShowRequestDetail(true);
+  };
+
+  const handleApproveRequest = async (requestId: number) => {
+    try {
+      await serviceRequestsApi.approve(requestId, {});
+      toast.success('Đã phê duyệt yêu cầu!');
+      fetchData();
+      setShowRequestDetail(false);
+    } catch (error: any) {
+      console.error('Error approving request:', error);
+      toast.error(getErrorMessage(error) || 'Lỗi khi phê duyệt');
+    }
+  };
+
+  const handleRejectRequest = async (requestId: number) => {
+    const reason = prompt('Lý do từ chối:');
+    if (!reason) return;
+    
+    try {
+      await serviceRequestsApi.reject(requestId, { note: reason });
+      toast.success('Đã từ chối yêu cầu!');
+      fetchData();
+      setShowRequestDetail(false);
+    } catch (error: any) {
+      console.error('Error rejecting request:', error);
+      toast.error(getErrorMessage(error) || 'Lỗi khi từ chối');
+    }
+  };
+
+  const handleCompleteRequest = async (requestId: number) => {
+    const summary = prompt('Tóm tắt kết quả:');
+    if (!summary) return;
+    
+    try {
+      await serviceRequestsApi.complete(requestId, { result_summary: summary });
+      toast.success('Đã hoàn thành yêu cầu!');
+      fetchData();
+      setShowRequestDetail(false);
+    } catch (error: any) {
+      console.error('Error completing request:', error);
+      toast.error(getErrorMessage(error) || 'Lỗi khi hoàn thành');
+    }
   };
 
   const handleCreateRequest = (service: Service) => {
@@ -517,6 +566,7 @@ export default function ServicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
+                          onClick={() => handleRequestClick(request)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Xem chi tiết"
                         >
@@ -648,6 +698,190 @@ export default function ServicesPage() {
         </div>
       )}
       
+      {/* Service Request Detail Modal */}
+      {showRequestDetail && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Chi Tiết Yêu Cầu Dịch Vụ #{selectedRequest.id}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{selectedRequest.service.name}</p>
+                </div>
+                <button
+                  onClick={() => setShowRequestDetail(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Status Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Trạng thái</p>
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(selectedRequest.status)}`}>
+                    {selectedRequest.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Ưu tiên</p>
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPriorityColor(selectedRequest.priority)}`}>
+                    {selectedRequest.priority}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Phê duyệt</p>
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${getApprovalStatusColor(selectedRequest.approval_status)}`}>
+                    {selectedRequest.approval_status.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Service Info */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Thông tin dịch vụ</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-gray-700">Dịch vụ:</span>
+                    <span className="text-sm text-gray-900">{selectedRequest.service.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-gray-700">Danh mục:</span>
+                    <span className="text-sm text-gray-900">{selectedRequest.service.category.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-gray-700">Nền tảng:</span>
+                    <span className="text-sm text-gray-900 capitalize">{selectedRequest.service.platform.replace('_', ' ')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Chi tiết yêu cầu</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Lý do yêu cầu:</p>
+                    <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{(selectedRequest as any).request_reason || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Tóm tắt bằng chứng:</p>
+                    <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{(selectedRequest as any).evidence_summary || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Kết quả mong muốn:</p>
+                    <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{(selectedRequest as any).desired_outcome || 'N/A'}</p>
+                  </div>
+                  {(selectedRequest as any).result_summary && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Kết quả thực tế:</p>
+                      <p className="text-sm text-gray-900 bg-green-50 p-3 rounded-lg border border-green-200">{(selectedRequest as any).result_summary}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Giá cả</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Giá báo</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {selectedRequest.quoted_price ? formatPrice(selectedRequest.quoted_price) : 'Chưa báo giá'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Giá cuối cùng</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {selectedRequest.final_price ? formatPrice(selectedRequest.final_price) : 'Chưa xác định'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Thời gian</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tạo lúc:</span>
+                    <span className="text-gray-900">{new Date(selectedRequest.created_at).toLocaleString('vi-VN')}</span>
+                  </div>
+                  {selectedRequest.deadline && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Deadline:</span>
+                      <span className="text-gray-900">{new Date(selectedRequest.deadline).toLocaleString('vi-VN')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Actions */}
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl">
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => setShowRequestDetail(false)}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Đóng
+                </button>
+                
+                <div className="flex space-x-3">
+                  {selectedRequest.approval_status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleRejectRequest(selectedRequest.id)}
+                        className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Từ chối
+                      </button>
+                      <button
+                        onClick={() => handleApproveRequest(selectedRequest.id)}
+                        className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Phê duyệt
+                      </button>
+                    </>
+                  )}
+                  
+                  {(selectedRequest.status === 'in_progress' || selectedRequest.status === 'waiting_external_response') && (
+                    <button
+                      onClick={() => handleCompleteRequest(selectedRequest.id)}
+                      className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Hoàn thành
+                    </button>
+                  )}
+                  
+                  {selectedRequest.status === 'approved' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await serviceRequestsApi.update(selectedRequest.id, { status: 'in_progress' });
+                          toast.success('Đã chuyển sang trạng thái đang xử lý!');
+                          fetchData();
+                          setShowRequestDetail(false);
+                        } catch (error: any) {
+                          toast.error('Lỗi khi cập nhật trạng thái');
+                        }
+                      }}
+                      className="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      Bắt đầu xử lý
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Service Request Modal */}
       {showCreateRequest && selectedService && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
