@@ -25,8 +25,8 @@ class Alert(Base):
     mention_id = Column(Integer, nullable=False, index=True)
     
     # Alert details
-    severity = Column(SQLEnum(AlertSeverity), nullable=False, index=True)
-    status = Column(SQLEnum(AlertStatus), default=AlertStatus.NEW, index=True)
+    severity = Column(SQLEnum(AlertSeverity, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
+    status = Column(SQLEnum(AlertStatus, values_callable=lambda x: [e.value for e in x]), default=AlertStatus.NEW, index=True)
     title = Column(String(500), nullable=False)
     message = Column(Text)
     

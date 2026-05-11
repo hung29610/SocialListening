@@ -38,8 +38,8 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True, index=True)
     group_id = Column(Integer, nullable=False, index=True)
     keyword = Column(String(500), nullable=False, index=True)
-    keyword_type = Column(SQLEnum(KeywordType), default=KeywordType.GENERAL)
-    logic_operator = Column(SQLEnum(LogicOperator), default=LogicOperator.OR)
+    keyword_type = Column(SQLEnum(KeywordType, values_callable=lambda x: [e.value for e in x]), default=KeywordType.GENERAL)
+    logic_operator = Column(SQLEnum(LogicOperator, values_callable=lambda x: [e.value for e in x]), default=LogicOperator.OR)
     is_excluded = Column(Boolean, default=False)  # Excluded keyword
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

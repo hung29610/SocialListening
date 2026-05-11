@@ -44,7 +44,7 @@ class Incident(Base):
     # Incident details
     title = Column(String(500), nullable=False)
     description = Column(Text)
-    status = Column(SQLEnum(IncidentStatus), default=IncidentStatus.NEW, index=True)
+    status = Column(SQLEnum(IncidentStatus, values_callable=lambda x: [e.value for e in x]), default=IncidentStatus.NEW, index=True)
     
     # Deadline
     deadline = Column(DateTime(timezone=True), index=True)
@@ -112,13 +112,13 @@ class TakedownRequest(Base):
     incident_id = Column(Integer, nullable=False, index=True)
     
     # Request details
-    platform = Column(SQLEnum(TakedownPlatform), nullable=False)
+    platform = Column(SQLEnum(TakedownPlatform, values_callable=lambda x: [e.value for e in x]), nullable=False)
     content_url = Column(Text, nullable=False)
     reason = Column(String(100), nullable=False)  # defamation, misinformation, copyright, etc.
     description = Column(Text, nullable=False)
     
     # Status
-    status = Column(SQLEnum(TakedownStatus), default=TakedownStatus.DRAFT)
+    status = Column(SQLEnum(TakedownStatus, values_callable=lambda x: [e.value for e in x]), default=TakedownStatus.DRAFT)
     
     # Approval workflow
     submitted_by = Column(Integer)  # User ID

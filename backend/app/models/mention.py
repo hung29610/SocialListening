@@ -51,7 +51,7 @@ class AIAnalysis(Base):
     mention_id = Column(Integer, unique=True, nullable=False, index=True)
     
     # Analysis results
-    sentiment = Column(SQLEnum(SentimentScore), nullable=False, index=True)
+    sentiment = Column(SQLEnum(SentimentScore, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     risk_score = Column(Float, nullable=False, index=True)  # 0-100
     crisis_level = Column(Integer, nullable=False, index=True)  # 1-5
     

@@ -43,7 +43,7 @@ class Source(Base):
     id = Column(Integer, primary_key=True, index=True)
     group_id = Column(Integer, index=True)
     name = Column(String(500), nullable=False)
-    source_type = Column(SQLEnum(SourceType), nullable=False, index=True)
+    source_type = Column(SQLEnum(SourceType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     url = Column(Text, nullable=False)
     
     # Metadata
@@ -51,7 +51,7 @@ class Source(Base):
     meta_data = Column(JSON)  # Additional platform-specific data (renamed from metadata)
     
     # Crawl Schedule
-    crawl_frequency = Column(SQLEnum(CrawlFrequency), default=CrawlFrequency.MANUAL, index=True)
+    crawl_frequency = Column(SQLEnum(CrawlFrequency, values_callable=lambda x: [e.value for e in x]), default=CrawlFrequency.MANUAL, index=True)
     crawl_time = Column(Time)  # For daily: specific time (e.g., 09:00)
     crawl_day_of_week = Column(Integer)  # For weekly: 0=Monday, 6=Sunday
     crawl_day_of_month = Column(Integer)  # For monthly: 1-31

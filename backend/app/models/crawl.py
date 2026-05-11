@@ -23,7 +23,7 @@ class CrawlJob(Base):
     keyword_group_ids = Column(JSON)  # List of keyword group IDs to match
     
     # Status
-    status = Column(SQLEnum(CrawlJobStatus), default=CrawlJobStatus.PENDING, index=True)
+    status = Column(SQLEnum(CrawlJobStatus, values_callable=lambda x: [e.value for e in x]), default=CrawlJobStatus.PENDING, index=True)
     
     # Progress
     total_sources = Column(Integer, default=0)

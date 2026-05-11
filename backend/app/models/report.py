@@ -24,7 +24,7 @@ class Report(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Report details
-    report_type = Column(SQLEnum(ReportType), nullable=False, index=True)
+    report_type = Column(SQLEnum(ReportType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     description = Column(Text)
     
@@ -33,7 +33,7 @@ class Report(Base):
     end_date = Column(DateTime(timezone=True), nullable=False, index=True)
     
     # Status
-    status = Column(SQLEnum(ReportStatus), default=ReportStatus.GENERATING, index=True)
+    status = Column(SQLEnum(ReportStatus, values_callable=lambda x: [e.value for e in x]), default=ReportStatus.GENERATING, index=True)
     
     # Report data (JSON)
     data = Column(JSON)  # Contains all metrics and charts data

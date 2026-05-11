@@ -94,8 +94,8 @@ class Service(Base):
     code = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(500), nullable=False)
     description = Column(Text)
-    service_type = Column(SQLEnum(ServiceType), nullable=False, index=True)
-    platform = Column(SQLEnum(Platform), nullable=False, index=True)
+    service_type = Column(SQLEnum(ServiceType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
+    platform = Column(SQLEnum(Platform, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     legal_basis = Column(Text)  # Legal compliance notes
     workflow_template = Column(JSON)  # Workflow steps
     deliverables = Column(JSON)  # Expected deliverables
@@ -104,7 +104,7 @@ class Service(Base):
     base_price = Column(Numeric(15, 2))  # Base price in VND
     min_quantity = Column(Integer, default=1)
     unit = Column(String(50))  # e.g., "request", "mention", "month"
-    risk_level = Column(SQLEnum(RiskLevel), default=RiskLevel.LOW, index=True)
+    risk_level = Column(SQLEnum(RiskLevel, values_callable=lambda x: [e.value for e in x]), default=RiskLevel.LOW, index=True)
     requires_approval = Column(Boolean, default=True, index=True)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -127,14 +127,14 @@ class ServiceRequest(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     
     # Request details
-    status = Column(SQLEnum(ServiceRequestStatus), default=ServiceRequestStatus.DRAFT, index=True)
-    priority = Column(SQLEnum(Priority), default=Priority.MEDIUM, index=True)
+    status = Column(SQLEnum(ServiceRequestStatus, values_callable=lambda x: [e.value for e in x]), default=ServiceRequestStatus.DRAFT, index=True)
+    priority = Column(SQLEnum(Priority, values_callable=lambda x: [e.value for e in x]), default=Priority.MEDIUM, index=True)
     request_reason = Column(Text)
     evidence_summary = Column(Text)
     desired_outcome = Column(Text)
     
     # Approval
-    approval_status = Column(SQLEnum(ApprovalStatus), default=ApprovalStatus.NOT_REQUIRED, index=True)
+    approval_status = Column(SQLEnum(ApprovalStatus, values_callable=lambda x: [e.value for e in x]), default=ApprovalStatus.NOT_REQUIRED, index=True)
     
     # Pricing
     quoted_price = Column(Numeric(15, 2))
@@ -183,11 +183,11 @@ class ServiceDeliverable(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     service_request_id = Column(Integer, ForeignKey("service_requests.id"), nullable=False, index=True)
-    deliverable_type = Column(SQLEnum(DeliverableType), nullable=False, index=True)
+    deliverable_type = Column(SQLEnum(DeliverableType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     content = Column(Text)
     file_url = Column(String(1000))
-    approval_status = Column(SQLEnum(ApprovalStatus), default=ApprovalStatus.PENDING, index=True)
+    approval_status = Column(SQLEnum(ApprovalStatus, values_callable=lambda x: [e.value for e in x]), default=ApprovalStatus.PENDING, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
