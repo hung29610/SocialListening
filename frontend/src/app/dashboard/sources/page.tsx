@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Search, Globe, Facebook, Youtube, Clock } from 'lucide-react';
 import { sources as sourcesApi, getErrorMessage, getUserFacingErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Source {
   id: number;
@@ -26,6 +27,11 @@ export default function SourcesPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; sourceId: number | null; sourceName: string }>({
+    isOpen: false,
+    sourceId: null,
+    sourceName: ''
+  });
   const [newSource, setNewSource] = useState({
     name: '',
     url: '',
@@ -108,11 +114,11 @@ export default function SourcesPage() {
     }
   };
 
-  const handleDeleteSource = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa nguồn này?')) return;
+  const handleDeleteSource = async () => {
+    if (!deleteConfirm.sourceId) return;
 
     try {
-      await sourcesApi.delete(id);
+      await sourcesApi.delete(deleteConfirm.sourceId);
       toast.success('Xóa nguồn thành công!');
       fetchSources();
     } catch (error: any) {
@@ -300,7 +306,7 @@ export default function SourcesPage() {
 
               <div className="flex justify-end">
                 <button
-                  onClick={() => handleDeleteSource(source.id)}
+                  onClick={() => setDeleteConfirm({ isOpen: true, sourceId: source.id, sourceName: source.name })}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -310,6 +316,18 @@ export default function SourcesPage() {
           ))
         )}
       </div>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, sourceId: null, sourceName: '' })}
+        onConfirm={handleDeleteSource}
+        title="Xóa nguồn"
+        message={`Bạn có chắc muốn xóa nguồn "${deleteConfirm.sourceName}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
 
       {/* Add Modal */}
       {showAddModal && (

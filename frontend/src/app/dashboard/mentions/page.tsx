@@ -5,6 +5,7 @@ import { Search, Eye, Trash2, AlertTriangle, FileText, X } from 'lucide-react';
 import { mentions as mentionsApi, alerts as alertsApi, incidents as incidentsApi } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function MentionsPage() {
   const [mentions, setMentions] = useState<any[]>([]);
@@ -12,6 +13,11 @@ export default function MentionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; mentionId: number | null; mentionTitle: string }>({
+    isOpen: false,
+    mentionId: null,
+    mentionTitle: ''
+  });
 
   useEffect(() => {
     fetchMentions();
@@ -35,11 +41,11 @@ export default function MentionsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa mention này?')) return;
+  const handleDelete = async () => {
+    if (!deleteConfirm.mentionId) return;
     
     try {
-      await mentionsApi.delete(id);
+      await mentionsApi.delete(deleteConfirm.mentionId);
       toast.success('Xóa mention thành công!');
       fetchMentions();
     } catch (error: any) {
@@ -143,7 +149,7 @@ export default function MentionsPage() {
                       <Eye className="w-5 h-5" />
                     </Link>
                     <button
-                      onClick={() => handleDelete(mention.id)}
+                      onClick={() => setDeleteConfirm({ isOpen: true, mentionId: mention.id, mentionTitle: mention.title || 'No title' })}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Xóa"
                     >
@@ -156,6 +162,18 @@ export default function MentionsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, mentionId: null, mentionTitle: '' })}
+        onConfirm={handleDelete}
+        title="Xóa mention"
+        message={`Bạn có chắc muốn xóa mention "${deleteConfirm.mentionTitle}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (

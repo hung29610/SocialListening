@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { keywords as keywordsApi } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Keyword {
   id: number;
@@ -33,6 +34,17 @@ export default function KeywordsPage() {
   const [showAddKeywordModal, setShowAddKeywordModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState<{ isOpen: boolean; groupId: number | null; groupName: string }>({
+    isOpen: false,
+    groupId: null,
+    groupName: ''
+  });
+  const [deleteKeywordConfirm, setDeleteKeywordConfirm] = useState<{ isOpen: boolean; keywordId: number | null; keyword: string; groupId: number | null }>({
+    isOpen: false,
+    keywordId: null,
+    keyword: '',
+    groupId: null
+  });
   
   const [newGroup, setNewGroup] = useState({
     name: '',
@@ -134,14 +146,14 @@ export default function KeywordsPage() {
     }
   };
 
-  const handleDeleteKeyword = async (keywordId: number, groupId: number) => {
-    if (!confirm('Bạn có chắc muốn xóa từ khóa này?')) return;
+  const handleDeleteKeyword = async () => {
+    if (!deleteKeywordConfirm.keywordId || !deleteKeywordConfirm.groupId) return;
 
     try {
-      await keywordsApi.deleteKeyword(keywordId);
+      await keywordsApi.deleteKeyword(deleteKeywordConfirm.keywordId);
       toast.success('Xóa từ khóa thành công!');
       
-      await fetchKeywordsInGroup(groupId);
+      await fetchKeywordsInGroup(deleteKeywordConfirm.groupId);
       fetchGroups();
     } catch (error: any) {
       console.error('Error deleting keyword:', error);
@@ -162,11 +174,11 @@ export default function KeywordsPage() {
     }
   };
 
-  const handleDeleteGroup = async (groupId: number) => {
-    if (!confirm('Bạn có chắc muốn xóa nhóm này? Tất cả từ khóa trong nhóm cũng sẽ bị xóa.')) return;
+  const handleDeleteGroup = async () => {
+    if (!deleteGroupConfirm.groupId) return;
 
     try {
-      await keywordsApi.deleteGroup(groupId);
+      await keywordsApi.deleteGroup(deleteGroupConfirm.groupId);
       toast.success('Xóa nhóm thành công!');
       fetchGroups();
     } catch (error: any) {
@@ -291,7 +303,7 @@ export default function KeywordsPage() {
                     Thêm từ khóa
                   </button>
                   <button
-                    onClick={() => handleDeleteGroup(group.id)}
+                    onClick={() => setDeleteGroupConfirm({ isOpen: true, groupId: group.id, groupName: group.name })}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Xóa nhóm"
                   >
@@ -333,7 +345,7 @@ export default function KeywordsPage() {
                               {keyword.is_active ? 'ON' : 'OFF'}
                             </button>
                             <button
-                              onClick={() => handleDeleteKeyword(keyword.id, group.id)}
+                              onClick={() => setDeleteKeywordConfirm({ isOpen: true, keywordId: keyword.id, keyword: keyword.keyword, groupId: group.id })}
                               className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -418,6 +430,30 @@ export default function KeywordsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Group Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteGroupConfirm.isOpen}
+        onClose={() => setDeleteGroupConfirm({ isOpen: false, groupId: null, groupName: '' })}
+        onConfirm={handleDeleteGroup}
+        title="Xóa nhóm từ khóa"
+        message={`Bạn có chắc muốn xóa nhóm "${deleteGroupConfirm.groupName}"? Tất cả từ khóa trong nhóm cũng sẽ bị xóa.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
+
+      {/* Delete Keyword Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteKeywordConfirm.isOpen}
+        onClose={() => setDeleteKeywordConfirm({ isOpen: false, keywordId: null, keyword: '', groupId: null })}
+        onConfirm={handleDeleteKeyword}
+        title="Xóa từ khóa"
+        message={`Bạn có chắc muốn xóa từ khóa "${deleteKeywordConfirm.keyword}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
 
       {/* Add Keyword Modal */}
       {showAddKeywordModal && (
