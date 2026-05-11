@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Search, ChevronDown, ChevronRight, Edit } from 'lucide-react';
 import { keywords as keywordsApi } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
