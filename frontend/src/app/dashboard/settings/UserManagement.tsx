@@ -439,7 +439,7 @@ export default function UserManagement() {
           }
           setConfirmDelete({ show: false, user: null });
         }}
-        onCancel={() => setConfirmDelete({ show: false, user: null })}
+        onClose={() => setConfirmDelete({ show: false, user: null })}
       />
 
       <ConfirmDialog
@@ -453,7 +453,7 @@ export default function UserManagement() {
           }
           setConfirmToggle({ show: false, user: null });
         }}
-        onCancel={() => setConfirmToggle({ show: false, user: null })}
+        onClose={() => setConfirmToggle({ show: false, user: null })}
       />
     </div>
   );
