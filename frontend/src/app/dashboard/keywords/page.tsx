@@ -162,6 +162,19 @@ export default function KeywordsPage() {
     }
   };
 
+  const handleDeleteGroup = async (groupId: number) => {
+    if (!confirm('Bạn có chắc muốn xóa nhóm này? Tất cả từ khóa trong nhóm cũng sẽ bị xóa.')) return;
+
+    try {
+      await keywordsApi.deleteGroup(groupId);
+      toast.success('Xóa nhóm thành công!');
+      fetchGroups();
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast.error('Lỗi khi xóa nhóm');
+    }
+  };
+
   const openAddKeywordModal = (groupId: number) => {
     setSelectedGroupId(groupId);
     setShowAddKeywordModal(true);
@@ -269,13 +282,22 @@ export default function KeywordsPage() {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => openAddKeywordModal(group.id)}
-                  className="ml-4 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Plus className="w-4 h-4 inline mr-1" />
-                  Thêm từ khóa
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => openAddKeywordModal(group.id)}
+                    className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 inline mr-1" />
+                    Thêm từ khóa
+                  </button>
+                  <button
+                    onClick={() => handleDeleteGroup(group.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Xóa nhóm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Keywords List */}
