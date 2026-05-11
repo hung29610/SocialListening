@@ -531,3 +531,57 @@ def get_service_catalog_status(
         
     except Exception as e:
         return {"error": str(e)}
+
+
+
+@router.post("/run-schedule-migration")
+def run_schedule_migration(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superuser)
+):
+    """Run migration 013 to add schedule arrays - SUPERUSER ONLY"""
+    try:
+        # Check if columns already exist
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'sources' 
+            AND column_name = 'schedule_days_of_week';
+        """))
+        
+        if result.scalar():
+            return {
+                "success": True,
+                "message": "Schedule columns already exist",
+                "status": "skipped"
+            }
+        
+        # Add schedule columns
+        db.execute(text("""
+            ALTER TABLE sources 
+            ADD COLUMN IF NOT EXISTS schedule_days_of_week JSON,
+            ADD COLUMN IF NOT EXISTS schedule_days_of_month JSON,
+            ADD COLUMN IF NOT EXISTS schedule_months JSON,
+            ADD COLUMN IF NOT EXISTS schedule_hours JSON;
+        """))
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Schedule columns added successfully",
+            "status": "completed",
+            "columns_added": [
+                "schedule_days_of_week",
+                "schedule_days_of_month",
+                "schedule_months",
+                "schedule_hours"
+            ]
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Migration failed: {str(e)}"
+        )
