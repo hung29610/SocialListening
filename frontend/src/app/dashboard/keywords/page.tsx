@@ -32,7 +32,9 @@ export default function KeywordsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddGroupModal, setShowAddGroupModal] = useState(false);
   const [showAddKeywordModal, setShowAddKeywordModal] = useState(false);
+  const [showEditKeywordModal, setShowEditKeywordModal] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState<{ isOpen: boolean; groupId: number | null; groupName: string }>({
     isOpen: false,
@@ -144,6 +146,36 @@ export default function KeywordsPage() {
       console.error('Error adding keyword:', error);
       toast.error('Lỗi khi thêm từ khóa');
     }
+  };
+
+  const handleEditKeyword = async () => {
+    if (!selectedKeyword || !selectedKeyword.keyword.trim()) {
+      toast.error('Vui lòng nhập từ khóa');
+      return;
+    }
+
+    try {
+      await keywordsApi.updateKeyword(selectedKeyword.id, {
+        keyword: selectedKeyword.keyword,
+        keyword_type: selectedKeyword.keyword_type,
+        is_active: selectedKeyword.is_active,
+      });
+      
+      setShowEditKeywordModal(false);
+      setSelectedKeyword(null);
+      toast.success('Cập nhật từ khóa thành công!');
+      
+      await fetchKeywordsInGroup(selectedKeyword.group_id);
+      fetchGroups();
+    } catch (error: any) {
+      console.error('Error updating keyword:', error);
+      toast.error('Lỗi khi cập nhật từ khóa');
+    }
+  };
+
+  const openEditKeywordModal = (keyword: Keyword) => {
+    setSelectedKeyword({ ...keyword });
+    setShowEditKeywordModal(true);
   };
 
   const handleDeleteKeyword = async () => {
@@ -335,6 +367,13 @@ export default function KeywordsPage() {
                           
                           <div className="flex items-center space-x-2">
                             <button
+                              onClick={() => openEditKeywordModal(keyword)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Sửa từ khóa"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleToggleKeywordActive(keyword)}
                               className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
                                 keyword.is_active
@@ -507,6 +546,80 @@ export default function KeywordsPage() {
                 className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Thêm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Keyword Modal */}
+      {showEditKeywordModal && selectedKeyword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Sửa từ khóa</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Từ khóa *
+                </label>
+                <input
+                  type="text"
+                  value={selectedKeyword.keyword}
+                  onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập từ khóa..."
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Loại từ khóa
+                </label>
+                <select
+                  value={selectedKeyword.keyword_type}
+                  onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword_type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="general">General</option>
+                  <option value="brand">Brand</option>
+                  <option value="product">Product</option>
+                  <option value="competitor">Competitor</option>
+                </select>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="edit_is_active"
+                  checked={selectedKeyword.is_active}
+                  onChange={(e) => setSelectedKeyword({ ...selectedKeyword, is_active: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="edit_is_active" className="ml-2 text-sm text-gray-700">
+                  Kích hoạt từ khóa
+                </label>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowEditKeywordModal(false);
+                  setSelectedKeyword(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleEditKeyword}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Cập nhật
               </button>
             </div>
           </div>

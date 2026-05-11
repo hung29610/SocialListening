@@ -53,9 +53,16 @@ class Source(Base):
     # Crawl Schedule
     crawl_frequency = Column(SQLEnum(CrawlFrequency, values_callable=lambda x: [e.value for e in x]), default=CrawlFrequency.MANUAL, index=True)
     crawl_time = Column(Time)  # For daily: specific time (e.g., 09:00)
-    crawl_day_of_week = Column(Integer)  # For weekly: 0=Monday, 6=Sunday
-    crawl_day_of_month = Column(Integer)  # For monthly: 1-31
-    crawl_month = Column(Integer)  # For yearly: 1-12
+    crawl_day_of_week = Column(Integer)  # For weekly: 0=Monday, 6=Sunday (legacy single value)
+    crawl_day_of_month = Column(Integer)  # For monthly: 1-31 (legacy single value)
+    crawl_month = Column(Integer)  # For yearly: 1-12 (legacy single value)
+    
+    # New: Multiple selections support
+    schedule_days_of_week = Column(JSON)  # Array of integers [0-6] for weekly
+    schedule_days_of_month = Column(JSON)  # Array of integers [1-31] for monthly
+    schedule_months = Column(JSON)  # Array of integers [1-12] for yearly
+    schedule_hours = Column(JSON)  # Array of hours [0-23] for daily
+    
     next_crawl_at = Column(DateTime(timezone=True))  # Calculated next crawl time
     
     # Status
