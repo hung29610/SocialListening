@@ -9,7 +9,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 from app.core.database import get_db
-from app.core.security import get_current_superuser, get_password_hash
+from app.core.security import get_current_superuser, get_password_hash, require_roles
 from app.models.user import User
 
 router = APIRouter()
@@ -57,7 +57,7 @@ def list_users(
     is_active: Optional[bool] = None,
     is_superuser: Optional[bool] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(require_roles(["admin", "super_admin"]))
 ):
     """List all users - Admin only"""
     query = select(User)

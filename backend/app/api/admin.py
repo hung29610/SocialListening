@@ -585,3 +585,63 @@ def run_schedule_migration(
             status_code=500,
             detail=f"Migration failed: {str(e)}"
         )
+
+
+@router.post("/add-user-role-column")
+def add_user_role_column(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superuser)
+):
+    """Add role column to users table - SUPERUSER ONLY"""
+    try:
+        # Check if column already exists
+        result = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            AND column_name = 'role';
+        """))
+        
+        if result.scalar():
+            return {
+                "success": True,
+                "message": "Role column already exists",
+                "status": "skipped"
+            }
+        
+        # Add role column
+        db.execute(text("""
+            ALTER TABLE users 
+            ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'viewer';
+        """))
+        
+        # Create index
+        db.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_users_role ON users (role);
+        """))
+        
+        # Set role based on is_superuser
+        db.execute(text("""
+            UPDATE users 
+            SET role = CASE 
+                WHEN is_superuser = TRUE THEN 'super_admin'
+                ELSE 'viewer'
+            END
+            WHERE role IS NULL OR role = 'viewer';
+        """))
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Role column added and initialized successfully",
+            "status": "completed",
+            "details": "Superusers set to 'super_admin', others set to 'viewer'"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Migration failed: {str(e)}"
+        )

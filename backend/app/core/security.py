@@ -93,3 +93,44 @@ def get_current_superuser(
             detail="Not enough permissions. Admin access required."
         )
     return current_user
+
+
+
+def require_roles(allowed_roles: list[str]):
+    """
+    Dependency to require specific roles
+    Usage: current_user: User = Depends(require_roles(["admin", "super_admin"]))
+    """
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        # Check role field first
+        if hasattr(current_user, 'role') and current_user.role:
+            if current_user.role in allowed_roles:
+                return current_user
+        
+        # Fallback: check is_superuser for backward compatibility
+        if current_user.is_superuser and ("admin" in allowed_roles or "super_admin" in allowed_roles):
+            return current_user
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Required roles: " + ", ".join(allowed_roles)
+        )
+    
+    return role_checker
+
+
+def can_access_admin(user: User) -> bool:
+    """Check if user can access admin features"""
+    if not user:
+        return False
+    
+    # Check role field
+    if hasattr(user, 'role') and user.role:
+        if user.role in ["admin", "super_admin"]:
+            return True
+    
+    # Fallback: check is_superuser
+    if user.is_superuser:
+        return True
+    
+    return False
