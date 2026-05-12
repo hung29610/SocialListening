@@ -8,6 +8,10 @@ import { canAccessAdmin, type User } from '@/lib/permissions';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Forbidden from '@/components/Forbidden';
 import UserManagement from './UserManagement';
+import RoleManagement from './RoleManagement';
+import OrganizationSettings from './OrganizationSettings';
+import EmailSettings from './EmailSettings';
+import NotificationSettings from './NotificationSettings';
 
 type TabId = 'users' | 'permissions' | 'organization' | 'email' | 'notifications' | 'api' | 'branding' | 'logs';
 
@@ -70,13 +74,13 @@ export default function SettingsPage() {
       case 'users':
         return <UserManagement />;
       case 'permissions':
-        return <ComingSoon title="Quản lý quyền" />;
+        return <RoleManagement />;
       case 'organization':
-        return <ComingSoon title="Thông tin tổ chức" />;
+        return <OrganizationSettings />;
       case 'email':
-        return <ComingSoon title="Cấu hình Email" />;
+        return <EmailSettings />;
       case 'notifications':
-        return <ComingSoon title="Cấu hình thông báo" />;
+        return <NotificationSettings />;
       case 'api':
         return <ComingSoon title="API & Webhooks" />;
       case 'branding':

@@ -410,6 +410,121 @@ export default function SourcesPage() {
                 </select>
               </div>
 
+              {/* Dynamic form based on source type */}
+              {/* Website, News, Forum, Manual URL - just need URL */}
+              {['website', 'news', 'forum', 'manual_url'].includes(newSource.source_type) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Website/News/Forum:</strong> Chỉ cần nhập URL ở trên. Hệ thống sẽ tự động crawl nội dung.
+                  </p>
+                </div>
+              )}
+
+              {/* Facebook - need login credentials */}
+              {newSource.source_type.startsWith('facebook_') && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    <strong>Facebook:</strong> Cần thông tin đăng nhập để truy cập nội dung
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email/Username Facebook
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="email@example.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    ⚠️ Thông tin đăng nhập được mã hóa và chỉ dùng để crawl dữ liệu
+                  </p>
+                </div>
+              )}
+
+              {/* YouTube - need API key or login */}
+              {newSource.source_type.startsWith('youtube_') && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-red-800 font-medium">
+                    <strong>YouTube:</strong> Chọn phương thức truy cập
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phương thức
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="public">Public (không cần đăng nhập)</option>
+                      <option value="api_key">YouTube API Key</option>
+                      <option value="login">Đăng nhập Google</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      YouTube API Key (tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="AIzaSy..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    💡 API Key giúp tăng giới hạn request. Lấy tại: console.cloud.google.com
+                  </p>
+                </div>
+              )}
+
+              {/* RSS - need feed settings */}
+              {newSource.source_type === 'rss' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-green-800 font-medium">
+                    <strong>RSS Feed:</strong> Cấu hình RSS
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      RSS Feed URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/feed.xml"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Số lượng items tối đa mỗi lần crawl
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue={50}
+                      min={1}
+                      max={500}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="rss-full-content"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="rss-full-content" className="ml-2 text-sm text-gray-700">
+                      Lấy full content (nếu RSS chỉ có summary)
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* Crawl Schedule */}
               <div className="border-t pt-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Lịch Quét</h3>
