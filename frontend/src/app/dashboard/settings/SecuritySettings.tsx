@@ -5,6 +5,7 @@ import { Lock, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function SecuritySettings() {
+  const [saving, setSaving] = useState(false);
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
@@ -12,21 +13,25 @@ export default function SecuritySettings() {
   });
 
   const handleChangePassword = async () => {
+    if (saving) return; // Prevent double-click
+
+    // Validation
     if (!passwords.current || !passwords.new || !passwords.confirm) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
+      toast.error('❌ Vui lòng điền đầy đủ thông tin');
       return;
     }
 
     if (passwords.new !== passwords.confirm) {
-      toast.error('Mật khẩu mới không khớp');
+      toast.error('❌ Mật khẩu mới không khớp');
       return;
     }
 
     if (passwords.new.length < 8) {
-      toast.error('Mật khẩu phải có ít nhất 8 ký tự');
+      toast.error('❌ Mật khẩu phải có ít nhất 8 ký tự');
       return;
     }
 
+    setSaving(true);
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/change-password', {
@@ -47,11 +52,13 @@ export default function SecuritySettings() {
         throw new Error(error.detail || 'Failed to change password');
       }
 
-      toast.success('Đã đổi mật khẩu thành công');
+      toast.success('✅ Đã đổi mật khẩu thành công');
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (error: any) {
       console.error('Error changing password:', error);
-      toast.error(error.message || 'Lỗi khi đổi mật khẩu');
+      toast.error(`❌ ${error.message || 'Lỗi khi đổi mật khẩu'}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -115,10 +122,11 @@ export default function SecuritySettings() {
         <div className="flex justify-end pt-4">
           <button
             onClick={handleChangePassword}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4 mr-2" />
-            Đổi mật khẩu
+            {saving ? 'Đang lưu...' : 'Đổi mật khẩu'}
           </button>
         </div>
       </div>
