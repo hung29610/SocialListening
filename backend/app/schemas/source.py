@@ -18,6 +18,11 @@ class SourceBase(BaseModel):
     crawl_day_of_week: Optional[int] = Field(None, ge=0, le=6)
     crawl_day_of_month: Optional[int] = Field(None, ge=1, le=31)
     crawl_month: Optional[int] = Field(None, ge=1, le=12)
+    # New: Schedule arrays for multiple selections
+    schedule_hours: Optional[List[int]] = None  # [0-23] for daily
+    schedule_days_of_week: Optional[List[int]] = None  # [0-6] for weekly
+    schedule_days_of_month: Optional[List[int]] = None  # [1-31] for monthly
+    schedule_months: Optional[List[int]] = None  # [1-12] for yearly
 
 
 class SourceCreate(SourceBase):
@@ -37,6 +42,11 @@ class SourceUpdate(BaseModel):
     crawl_day_of_week: Optional[int] = Field(None, ge=0, le=6)
     crawl_day_of_month: Optional[int] = Field(None, ge=1, le=31)
     crawl_month: Optional[int] = Field(None, ge=1, le=12)
+    # New: Schedule arrays
+    schedule_hours: Optional[List[int]] = None
+    schedule_days_of_week: Optional[List[int]] = None
+    schedule_days_of_month: Optional[List[int]] = None
+    schedule_months: Optional[List[int]] = None
 
 
 class SourceResponse(SourceBase):
@@ -48,6 +58,13 @@ class SourceResponse(SourceBase):
     last_error: Optional[str] = None
     crawl_count: int = 0
     error_count: int = 0
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Include schedule arrays in response
+    schedule_hours: Optional[List[int]] = None
+    schedule_days_of_week: Optional[List[int]] = None
+    schedule_days_of_month: Optional[List[int]] = None
+    schedule_months: Optional[List[int]] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
