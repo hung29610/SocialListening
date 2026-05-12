@@ -1,97 +1,187 @@
 'use client';
 
-import { useState } from 'react';
-import { Building, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Building, Save, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function OrganizationSettings() {
   const [settings, setSettings] = useState({
-    name: 'TTH Group',
-    email: 'contact@tthgroup.com',
-    phone: '+84 123 456 789',
-    address: 'Hà Nội, Việt Nam',
-    website: 'https://tthgroup.com',
-    taxCode: '0123456789',
-    legalRepresentative: 'Nguyễn Văn A',
-    businessType: 'Công ty TNHH'
+    organizationName: '',
+    logoUrl: '',
+    address: '',
+    contactEmail: '',
+    hotline: '',
+    website: '',
+    timezone: 'Asia/Ho_Chi_Minh',
+    language: 'vi'
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    toast.error('Chưa tích hợp: Backend API chưa được implement');
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/admin/settings/organization', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSettings({
+          organizationName: data.organization_name || '',
+          logoUrl: data.logo_url || '',
+          address: data.address || '',
+          contactEmail: data.contact_email || '',
+          hotline: data.hotline || '',
+          website: data.website || '',
+          timezone: data.timezone || 'Asia/Ho_Chi_Minh',
+          language: data.language || 'vi'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load organization settings:', error);
+      toast.error('Không thể tải thông tin tổ chức');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/admin/settings/organization', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          organization_name: settings.organizationName,
+          logo_url: settings.logoUrl,
+          address: settings.address,
+          contact_email: settings.contactEmail,
+          hotline: settings.hotline,
+          website: settings.website,
+          timezone: settings.timezone,
+          language: settings.language
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Đã lưu thông tin tổ chức');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Không thể lưu thông tin');
+      }
+    } catch (error) {
+      console.error('Failed to save organization settings:', error);
+      toast.error('Không thể lưu thông tin tổ chức');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Thông tin tổ chức</h2>
-        <p className="text-sm text-gray-600 mt-1">Cấu hình thông tin công ty và tổ chức</p>
+        <p className="text-sm text-gray-600 mt-1">Cấu hình thông tin công ty</p>
       </div>
 
-      {/* Pending Integration Notice */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-yellow-800">
-          <strong>⚠️ Chưa tích hợp:</strong> Thông tin tổ chức đang hiển thị dữ liệu mẫu. Backend API chưa được implement.
-        </p>
+      {/* Logo Upload */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <label className="block text-sm font-medium text-gray-900 mb-3">Logo công ty</label>
+        <div className="flex items-center space-x-6">
+          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+            ) : (
+              <Building className="w-12 h-12 text-gray-400" />
+            )}
+          </div>
+          <div>
+            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Upload className="w-4 h-4 mr-2" />
+              Tải logo lên
+            </button>
+            <p className="text-xs text-gray-500 mt-2">PNG, JPG. Tối đa 2MB. Khuyến nghị 200x200px</p>
+          </div>
+        </div>
       </div>
 
-      {/* Form */}
+      {/* Organization Info */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Tên tổ chức *
             </label>
             <input
               type="text"
-              value={settings.name}
-              onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+              value={settings.organizationName}
+              onChange={(e) => setSettings({ ...settings, organizationName: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ví dụ: Công ty TNHH ABC"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Địa chỉ
+            </label>
+            <textarea
+              value={settings.address}
+              onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Địa chỉ văn phòng"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Loại hình doanh nghiệp
-            </label>
-            <select
-              value={settings.businessType}
-              onChange={(e) => setSettings({ ...settings, businessType: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Công ty TNHH">Công ty TNHH</option>
-              <option value="Công ty Cổ phần">Công ty Cổ phần</option>
-              <option value="Doanh nghiệp tư nhân">Doanh nghiệp tư nhân</option>
-              <option value="Hợp tác xã">Hợp tác xã</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Email liên hệ
             </label>
             <input
               type="email"
-              value={settings.email}
-              onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+              value={settings.contactEmail}
+              onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="contact@company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Số điện thoại
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Hotline
             </label>
             <input
               type="tel"
-              value={settings.phone}
-              onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+              value={settings.hotline}
+              onChange={(e) => setSettings({ ...settings, hotline: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="1900 xxxx"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Website
             </label>
             <input
@@ -99,53 +189,49 @@ export default function OrganizationSettings() {
               value={settings.website}
               onChange={(e) => setSettings({ ...settings, website: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mã số thuế
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Múi giờ
             </label>
-            <input
-              type="text"
-              value={settings.taxCode}
-              onChange={(e) => setSettings({ ...settings, taxCode: e.target.value })}
+            <select
+              value={settings.timezone}
+              onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="Asia/Ho_Chi_Minh">Việt Nam (GMT+7)</option>
+              <option value="Asia/Bangkok">Bangkok (GMT+7)</option>
+              <option value="Asia/Singapore">Singapore (GMT+8)</option>
+              <option value="Asia/Tokyo">Tokyo (GMT+9)</option>
+            </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Người đại diện pháp luật
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Ngôn ngữ mặc định
             </label>
-            <input
-              type="text"
-              value={settings.legalRepresentative}
-              onChange={(e) => setSettings({ ...settings, legalRepresentative: e.target.value })}
+            <select
+              value={settings.language}
+              onChange={(e) => setSettings({ ...settings, language: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+            </select>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Địa chỉ
-          </label>
-          <textarea
-            value={settings.address}
-            onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
 
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4 mr-2" />
-            Lưu thay đổi
+            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </div>
       </div>

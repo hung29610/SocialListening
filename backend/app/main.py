@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 from app.api import (
     auth, keywords, sources, mentions, alerts,
-    incidents, reports, dashboard, crawl, takedown, services, admin, users
+    incidents, reports, dashboard, crawl, takedown, services, admin, users, settings as settings_api
 )
 from app.api import service_requests
 
@@ -132,6 +132,7 @@ app.include_router(takedown.router,         prefix="/api/takedown",         tags
 app.include_router(services.router,         prefix="/api/services",         tags=["Services"])
 app.include_router(admin.router,            prefix="/api/admin",            tags=["Admin"])
 app.include_router(users.router,            prefix="/api/admin",            tags=["User Management"])
+app.include_router(settings_api.router,     prefix="/api/admin/settings",   tags=["System Settings"])
 # Separate prefix to avoid path conflict with /api/services/{service_id}
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
 
