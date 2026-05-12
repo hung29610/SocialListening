@@ -28,11 +28,30 @@ export default function SecuritySettings() {
     }
 
     try {
-      // TODO: Call POST /api/me/change-password
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/change-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          current_password: passwords.current,
+          new_password: passwords.new,
+          confirm_password: passwords.confirm
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to change password');
+      }
+
       toast.success('Đã đổi mật khẩu thành công');
       setPasswords({ current: '', new: '', confirm: '' });
-    } catch (error) {
-      toast.error('Lỗi khi đổi mật khẩu');
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      toast.error(error.message || 'Lỗi khi đổi mật khẩu');
     }
   };
 

@@ -105,3 +105,53 @@ def get_current_user_info(current_user: User = Depends(get_current_active_user))
     """Get current user information"""
     return UserResponse.from_orm(current_user)
 
+
+@router.put("/me/profile")
+def update_my_profile(
+    full_name: str | None = None,
+    phone: str | None = None,
+    department: str | None = None,
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update current user's profile"""
+    if full_name is not None:
+        current_user.full_name = full_name
+    # Note: phone and department fields don't exist in User model yet
+    # TODO: Add migration to add these fields
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"message": "Profile updated successfully", "user": UserResponse.from_orm(current_user)}
+
+
+@router.post("/me/change-password")
+def change_my_password(
+    current_password: str,
+    new_password: str,
+    confirm_password: str,
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Change current user's password"""
+    from app.core.security import verify_password, get_password_hash
+    
+    # Verify current password
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Verify new password matches confirm
+    if new_password != confirm_password:
+        raise HTTPException(status_code=400, detail="New passwords do not match")
+    
+    # Validate new password length
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    
+    # Update password
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
+

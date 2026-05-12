@@ -40,9 +40,28 @@ export default function PersonalProfile() {
 
   const handleSave = async () => {
     try {
-      // TODO: Call PUT /api/me/profile
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          full_name: profile.full_name,
+          phone: profile.phone,
+          department: profile.department
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
       toast.success('Đã lưu thông tin cá nhân');
+      loadProfile(); // Reload to verify
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast.error('Lỗi khi lưu thông tin');
     }
   };
