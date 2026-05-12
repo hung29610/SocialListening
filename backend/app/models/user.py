@@ -10,7 +10,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255))
-    role = Column(String(50), default="viewer", index=True)  # viewer, analyst, manager, admin, super_admin, etc.
+    role = Column(String(50), default="viewer", index=True, nullable=True)  # viewer, analyst, manager, admin, super_admin, etc.
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)  # Keep for backward compatibility
     created_at = Column(DateTime(timezone=True), server_default=func.now())
