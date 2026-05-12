@@ -10,7 +10,14 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.models.user import User
+from app.models.user_settings import UserNotificationSettings, UserPreferences, UserSession
+from app.schemas.user_settings import (
+    NotificationSettingsResponse, NotificationSettingsUpdate,
+    UserPreferencesResponse, UserPreferencesUpdate,
+    SessionResponse
+)
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -156,4 +163,129 @@ def change_my_password(
     db.commit()
     
     return {"message": "Password changed successfully"}
+
+
+# ─── Notification Settings Endpoints ──────────────────────────────────────────
+
+@router.get("/me/notification-settings", response_model=NotificationSettingsResponse)
+def get_my_notification_settings(
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get current user's notification settings"""
+    settings = db.execute(
+        select(UserNotificationSettings).where(UserNotificationSettings.user_id == current_user.id)
+    ).scalar_one_or_none()
+    
+    # Create default settings if not exists
+    if not settings:
+        settings = UserNotificationSettings(user_id=current_user.id)
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    
+    return NotificationSettingsResponse.from_orm(settings)
+
+
+@router.put("/me/notification-settings", response_model=NotificationSettingsResponse)
+def update_my_notification_settings(
+    settings_data: NotificationSettingsUpdate,
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update current user's notification settings"""
+    settings = db.execute(
+        select(UserNotificationSettings).where(UserNotificationSettings.user_id == current_user.id)
+    ).scalar_one_or_none()
+    
+    # Create if not exists
+    if not settings:
+        settings = UserNotificationSettings(user_id=current_user.id)
+        db.add(settings)
+    
+    # Update fields
+    for field, value in settings_data.dict(exclude_unset=True).items():
+        setattr(settings, field, value)
+    
+    db.commit()
+    db.refresh(settings)
+    
+    return NotificationSettingsResponse.from_orm(settings)
+
+
+# ─── User Preferences Endpoints ───────────────────────────────────────────────
+
+@router.get("/me/preferences", response_model=UserPreferencesResponse)
+def get_my_preferences(
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get current user's UI preferences"""
+    prefs = db.execute(
+        select(UserPreferences).where(UserPreferences.user_id == current_user.id)
+    ).scalar_one_or_none()
+    
+    # Create default preferences if not exists
+    if not prefs:
+        prefs = UserPreferences(user_id=current_user.id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+    
+    return UserPreferencesResponse.from_orm(prefs)
+
+
+@router.put("/me/preferences", response_model=UserPreferencesResponse)
+def update_my_preferences(
+    prefs_data: UserPreferencesUpdate,
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update current user's UI preferences"""
+    prefs = db.execute(
+        select(UserPreferences).where(UserPreferences.user_id == current_user.id)
+    ).scalar_one_or_none()
+    
+    # Create if not exists
+    if not prefs:
+        prefs = UserPreferences(user_id=current_user.id)
+        db.add(prefs)
+    
+    # Update fields
+    for field, value in prefs_data.dict(exclude_unset=True).items():
+        setattr(prefs, field, value)
+    
+    db.commit()
+    db.refresh(prefs)
+    
+    return UserPreferencesResponse.from_orm(prefs)
+
+
+# ─── Session Management Endpoints ─────────────────────────────────────────────
+
+@router.get("/me/sessions")
+def get_my_sessions(
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get current user's active sessions"""
+    # For now, return placeholder data since we don't track JWT sessions yet
+    # TODO: Implement proper session tracking when JWT is issued
+    return {
+        "sessions": [],
+        "message": "Session tracking not yet implemented. This feature requires JWT token tracking."
+    }
+
+
+@router.post("/me/logout-other-sessions")
+def logout_other_sessions(
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Logout all other sessions except current one"""
+    # TODO: Implement session revocation
+    # This requires storing JWT JTI and checking it on each request
+    return {
+        "message": "Session revocation not yet implemented. This feature requires JWT token tracking."
+    }
 

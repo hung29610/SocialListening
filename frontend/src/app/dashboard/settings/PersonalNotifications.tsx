@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -12,11 +12,80 @@ export default function PersonalNotifications() {
     incidentNotifications: true,
     reportNotifications: false
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    // TODO: Call PUT /api/me/notification-settings
-    toast.success('Đã lưu cài đặt thông báo');
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/notification-settings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSettings({
+          emailNotifications: data.email_notifications,
+          inAppNotifications: data.in_app_notifications,
+          alertNotifications: data.alert_notifications,
+          incidentNotifications: data.incident_notifications,
+          reportNotifications: data.report_notifications
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load notification settings:', error);
+      toast.error('Không thể tải cài đặt thông báo');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/notification-settings', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email_notifications: settings.emailNotifications,
+          in_app_notifications: settings.inAppNotifications,
+          alert_notifications: settings.alertNotifications,
+          incident_notifications: settings.incidentNotifications,
+          report_notifications: settings.reportNotifications
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Đã lưu cài đặt thông báo');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Không thể lưu cài đặt');
+      }
+    } catch (error) {
+      console.error('Failed to save notification settings:', error);
+      toast.error('Không thể lưu cài đặt thông báo');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -57,10 +126,11 @@ export default function PersonalNotifications() {
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4 mr-2" />
-            Lưu cài đặt
+            {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
           </button>
         </div>
       </div>
