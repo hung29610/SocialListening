@@ -1,7 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users, Shield, Building, Mail, Bell, Globe, Palette, FileText } from 'lucide-react';
+import { auth } from '@/lib/api';
+import { canAccessAdmin, type User } from '@/lib/permissions';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import Forbidden from '@/components/Forbidden';
 import UserManagement from './UserManagement';
 
 type TabId = 'users' | 'permissions' | 'organization' | 'email' | 'notifications' | 'api' | 'branding' | 'logs';
@@ -14,7 +19,40 @@ interface Tab {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('users');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          router.push('/login');
+          return;
+        }
+
+        const userData = await auth.getCurrentUser();
+        setUser(userData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to get user:', error);
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
+  }, [router]);
+
+  if (loading) {
+    return <LoadingSpinner message="Đang kiểm tra quyền truy cập..." />;
+  }
+
+  // Check if user has admin access
+  if (!canAccessAdmin(user)) {
+    return <Forbidden message="Chỉ quản trị viên mới có thể truy cập trang Cài đặt." />;
+  }
 
   const tabs: Tab[] = [
     { id: 'users', name: 'Quản lý người dùng', icon: Users, description: 'Thêm, sửa, xóa người dùng' },

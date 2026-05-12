@@ -1,66 +1,85 @@
 """
-Run role migration via API endpoint
+Run role migration to add role column to users table
 """
 import requests
-import json
+import os
+from dotenv import load_dotenv
 
-BASE_URL = "https://social-listening-backend.onrender.com"
+# Load environment
+load_dotenv()
+
+# Get backend URL
+BACKEND_URL = os.getenv("BACKEND_URL", "https://social-listening-backend.onrender.com")
+
+# Admin credentials
 ADMIN_EMAIL = "honguyenhung2010@gmail.com"
 ADMIN_PASSWORD = "Hungnguyen@1515"
 
-print("="*60)
-print("  🔧 RUN ROLE MIGRATION")
-print("="*60)
-
-# Login
-print("\n1. Logging in as superuser...")
-response = requests.post(
-    f"{BASE_URL}/api/auth/login",
-    data={"username": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
-)
-
-if response.status_code != 200:
-    print(f"❌ Login failed: {response.text}")
-    exit(1)
-
-token = response.json()["access_token"]
-print("✅ Login successful\n")
-
-# Run migration
-print("2. Running role migration...")
-response = requests.post(
-    f"{BASE_URL}/api/admin/add-user-role-column",
-    headers={"Authorization": f"Bearer {token}"}
-)
-
-print(f"Status Code: {response.status_code}")
-print(f"\nResponse:")
-print(json.dumps(response.json(), indent=2, ensure_ascii=False))
-
-if response.status_code == 200:
-    result = response.json()
-    if result.get("success"):
-        print("\n✅ MIGRATION SUCCESSFUL!")
-        print(f"   {result.get('details', '')}")
+def main():
+    print("=" * 60)
+    print("RUNNING ROLE MIGRATION")
+    print("=" * 60)
+    
+    # Login as admin
+    print("\n1. Logging in as admin...")
+    login_response = requests.post(
+        f"{BACKEND_URL}/api/auth/login",
+        data={
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
+        }
+    )
+    
+    if login_response.status_code != 200:
+        print(f"❌ Login failed: {login_response.status_code}")
+        print(login_response.text)
+        return
+    
+    token = login_response.json()["access_token"]
+    print(f"✅ Login successful")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Run migration
+    print("\n2. Running role migration...")
+    migration_response = requests.post(
+        f"{BACKEND_URL}/api/admin/add-user-role-column",
+        headers=headers
+    )
+    
+    if migration_response.status_code == 200:
+        result = migration_response.json()
+        print(f"✅ Migration result: {result['message']}")
+        print(f"   Status: {result['status']}")
+        if 'details' in result:
+            print(f"   Details: {result['details']}")
     else:
-        print("\n❌ MIGRATION FAILED!")
-else:
-    print("\n❌ API ERROR!")
+        print(f"❌ Migration failed: {migration_response.status_code}")
+        print(migration_response.text)
+        return
+    
+    # Verify by checking current user
+    print("\n3. Verifying current user role...")
+    me_response = requests.get(
+        f"{BACKEND_URL}/api/auth/me",
+        headers=headers
+    )
+    
+    if me_response.status_code == 200:
+        user = me_response.json()
+        print(f"✅ Current user:")
+        print(f"   Email: {user['email']}")
+        print(f"   Is Superuser: {user['is_superuser']}")
+        if 'role' in user:
+            print(f"   Role: {user['role']}")
+        else:
+            print(f"   ⚠️  Role field not in response yet (need to update model)")
+    else:
+        print(f"❌ Failed to get current user: {me_response.status_code}")
+    
+    print("\n" + "=" * 60)
+    print("MIGRATION COMPLETED")
+    print("=" * 60)
 
-# Test /api/auth/me
-print("\n3. Testing /api/auth/me...")
-response = requests.get(
-    f"{BASE_URL}/api/auth/me",
-    headers={"Authorization": f"Bearer {token}"}
-)
-
-if response.status_code == 200:
-    user = response.json()
-    print("✅ Current user:")
-    print(f"   Email: {user.get('email')}")
-    print(f"   Role: {user.get('role')}")
-    print(f"   Is Superuser: {user.get('is_superuser')}")
-else:
-    print(f"❌ Failed: {response.text}")
-
-print("\n" + "="*60)
+if __name__ == "__main__":
+    main()

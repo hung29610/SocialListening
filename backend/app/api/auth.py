@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     full_name: str | None
     is_active: bool
     is_superuser: bool
+    role: str | None = "viewer"  # admin, super_admin, viewer, manager, analyst, communication, legal, customer_care
     created_at: datetime
     updated_at: Optional[datetime] = None
     
