@@ -48,12 +48,9 @@ export default function DashboardLayout({
         setLoading(false);
       } catch (error) {
         console.error('Auth error:', error);
-        // If API fails, use mock data instead of redirecting
-        setUser({
-          email: 'user@example.com',
-          full_name: 'User'
-        });
-        setLoading(false);
+        // If API fails, redirect to login
+        localStorage.removeItem('access_token');
+        router.push('/login');
       }
     };
 
