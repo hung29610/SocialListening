@@ -80,17 +80,8 @@ export default function DashboardLayout({
     { name: 'Cảnh báo', href: '/dashboard/alerts', icon: Bell },
     { name: 'Sự cố', href: '/dashboard/incidents', icon: AlertTriangle },
     { name: 'Dịch vụ', href: '/dashboard/services', icon: Briefcase },
+    { name: 'Cài đặt', href: '/dashboard/settings', icon: Settings }, // Available to all users
   ];
-
-  // Admin-only menu items
-  const adminNavigation = [
-    { name: 'Cài đặt', href: '/dashboard/settings', icon: Settings },
-  ];
-
-  // Combine navigation based on user role
-  const allNavigation = canAccessAdmin(user) 
-    ? [...navigation, ...adminNavigation]
-    : navigation;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -122,7 +113,7 @@ export default function DashboardLayout({
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {allNavigation.map((item) => {
+            {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
