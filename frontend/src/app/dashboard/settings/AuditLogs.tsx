@@ -1,0 +1,374 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { FileText, Search, Filter, Download, Calendar, User, Activity } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
+interface AuditLog {
+  id: number;
+  user_id: number | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: number | null;
+  details: any;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+interface FilterParams {
+  user_id: string;
+  action: string;
+  resource_type: string;
+  start_date: string;
+  end_date: string;
+  limit: number;
+  offset: number;
+}
+
+export default function AuditLogs() {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterParams>({
+    user_id: '',
+    action: '',
+    resource_type: '',
+    start_date: '',
+    end_date: '',
+    limit: 100,
+    offset: 0
+  });
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    loadLogs();
+    loadStats();
+  }, []);
+
+  const loadLogs = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      // Build query params
+      const params = new URLSearchParams();
+      if (filters.user_id) params.append('user_id', filters.user_id);
+      if (filters.action) params.append('action', filters.action);
+      if (filters.resource_type) params.append('resource_type', filters.resource_type);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      params.append('limit', filters.limit.toString());
+      params.append('offset', filters.offset.toString());
+
+      const response = await fetch(`https://social-listening-backend.onrender.com/api/admin/audit/?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to load audit logs');
+      
+      const data = await response.json();
+      setLogs(data);
+    } catch (error) {
+      console.error('Error loading audit logs:', error);
+      toast.error('Không thể tải audit logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/admin/audit/stats/summary', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to load stats');
+      
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const handleSearch = () => {
+    setLoading(true);
+    loadLogs();
+  };
+
+  const handleReset = () => {
+    setFilters({
+      user_id: '',
+      action: '',
+      resource_type: '',
+      start_date: '',
+      end_date: '',
+      limit: 100,
+      offset: 0
+    });
+    setTimeout(() => {
+      setLoading(true);
+      loadLogs();
+    }, 100);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('vi-VN');
+  };
+
+  const getActionColor = (action: string) => {
+    if (action.includes('create')) return 'text-green-700 bg-green-50';
+    if (action.includes('update')) return 'text-blue-700 bg-blue-50';
+    if (action.includes('delete')) return 'text-red-700 bg-red-50';
+    return 'text-gray-700 bg-gray-50';
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Đang tải...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Audit Logs</h2>
+          <p className="text-sm text-gray-600 mt-1">Lịch sử hoạt động và thay đổi trong hệ thống</p>
+        </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+        >
+          <Filter className="w-4 h-4 mr-2" />
+          {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+        </button>
+      </div>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Tổng số logs</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_logs}</p>
+              </div>
+              <Activity className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Loại hành động</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.by_action?.length || 0}</p>
+              </div>
+              <FileText className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Hiển thị</p>
+                <p className="text-2xl font-bold text-gray-900">{logs.length}</p>
+              </div>
+              <Search className="w-8 h-8 text-purple-600" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      {showFilters && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Bộ lọc</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+              <input
+                type="number"
+                value={filters.user_id}
+                onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="ID người dùng"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hành động</label>
+              <input
+                type="text"
+                value={filters.action}
+                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., user.create"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Loại tài nguyên</label>
+              <input
+                type="text"
+                value={filters.resource_type}
+                onChange={(e) => setFilters({ ...filters, resource_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., user, source"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
+              <input
+                type="datetime-local"
+                value={filters.start_date}
+                onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
+              <input
+                type="datetime-local"
+                value={filters.end_date}
+                onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
+              <select
+                value={filters.limit}
+                onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={500}>500</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-4">
+            <button
+              onClick={handleReset}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Đặt lại
+            </button>
+            <button
+              onClick={handleSearch}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Tìm kiếm
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Logs Table */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {logs.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+            <p className="text-gray-600">Không có audit logs</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hành động</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tài nguyên</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                      {formatDate(log.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {log.user_id ? (
+                        <span className="flex items-center">
+                          <User className="w-4 h-4 mr-1" />
+                          ID: {log.user_id}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">System</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getActionColor(log.action)}`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {log.resource_type && (
+                        <span>
+                          {log.resource_type}
+                          {log.resource_id && ` #${log.resource_id}`}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">
+                      {log.ip_address || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {logs.length > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Hiển thị {filters.offset + 1} - {filters.offset + logs.length} logs
+          </p>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                setFilters({ ...filters, offset: Math.max(0, filters.offset - filters.limit) });
+                setTimeout(loadLogs, 100);
+              }}
+              disabled={filters.offset === 0}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <button
+              onClick={() => {
+                setFilters({ ...filters, offset: filters.offset + filters.limit });
+                setTimeout(loadLogs, 100);
+              }}
+              disabled={logs.length < filters.limit}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Lưu ý:</strong> Audit logs ghi lại tất cả hoạt động quan trọng trong hệ thống. 
+          Dữ liệu này được lưu trữ vĩnh viễn để đảm bảo tính minh bạch và truy vết.
+        </p>
+      </div>
+    </div>
+  );
+}

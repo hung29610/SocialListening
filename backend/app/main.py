@@ -9,7 +9,8 @@ from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 from app.api import (
     auth, keywords, sources, mentions, alerts,
-    incidents, reports, dashboard, crawl, takedown, services, admin, users, settings as settings_api
+    incidents, reports, dashboard, crawl, takedown, services, admin, users, settings as settings_api,
+    roles, api_keys, branding, audit
 )
 from app.api import service_requests
 
@@ -133,6 +134,10 @@ app.include_router(services.router,         prefix="/api/services",         tags
 app.include_router(admin.router,            prefix="/api/admin",            tags=["Admin"])
 app.include_router(users.router,            prefix="/api/admin",            tags=["User Management"])
 app.include_router(settings_api.router,     prefix="/api/admin/settings",   tags=["System Settings"])
+app.include_router(roles.router,            prefix="/api/admin/roles",      tags=["Role Management"])
+app.include_router(api_keys.router,         prefix="/api/api-keys",         tags=["API Keys"])
+app.include_router(branding.router,         prefix="/api/branding",         tags=["Branding"])
+app.include_router(audit.router,            prefix="/api/admin/audit",      tags=["Audit Logs"])
 # Separate prefix to avoid path conflict with /api/services/{service_id}
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
 

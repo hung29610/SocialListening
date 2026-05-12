@@ -16,6 +16,9 @@ import RoleManagement from './RoleManagement';
 import OrganizationSettings from './OrganizationSettings';
 import EmailSettings from './EmailSettings';
 import NotificationSettings from './NotificationSettings';
+import APIWebhooks from './APIWebhooks';
+import BrandingSettings from './BrandingSettings';
+import AuditLogs from './AuditLogs';
 
 type TabId = 'profile' | 'security' | 'personal-notifications' | 'appearance' | 'sessions' | 
              'users' | 'permissions' | 'organization' | 'email' | 'system-notifications' | 'api' | 'branding' | 'logs';
@@ -130,11 +133,11 @@ export default function SettingsPage() {
       case 'system-notifications':
         return <NotificationSettings />;
       case 'api':
-        return <ComingSoon title="API & Webhooks" />;
+        return <APIWebhooks />;
       case 'branding':
-        return <ComingSoon title="Giao diện hệ thống" />;
+        return <BrandingSettings />;
       case 'logs':
-        return <ComingSoon title="Audit Logs" />;
+        return <AuditLogs />;
       default:
         return null;
     }
