@@ -116,10 +116,20 @@ def create_api_key(
     db.refresh(api_key)
     
     # Return response with full key (only time it's shown)
-    response = APIKeyCreateResponse.from_orm(api_key)
-    response.full_key = full_key
+    # Cannot use .from_orm() because full_key is not in model
+    response_data = {
+        "id": api_key.id,
+        "name": api_key.name,
+        "prefix": api_key.prefix,
+        "permissions": api_key.permissions,
+        "is_active": api_key.is_active,
+        "expires_at": api_key.expires_at,
+        "last_used_at": api_key.last_used_at,
+        "created_at": api_key.created_at,
+        "full_key": full_key  # Only returned on creation
+    }
     
-    return response
+    return APIKeyCreateResponse(**response_data)
 
 
 @router.put("/{key_id}", response_model=APIKeyResponse)
