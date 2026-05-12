@@ -43,6 +43,11 @@ def _source_to_response(source: Source) -> SourceResponse:
         crawl_day_of_week=source.crawl_day_of_week,
         crawl_day_of_month=source.crawl_day_of_month,
         crawl_month=source.crawl_month,
+        # Include schedule arrays
+        schedule_hours=source.schedule_hours,
+        schedule_days_of_week=source.schedule_days_of_week,
+        schedule_days_of_month=source.schedule_days_of_month,
+        schedule_months=source.schedule_months,
         next_crawl_at=source.next_crawl_at,
         last_crawled_at=source.last_crawled_at,
         last_success_at=source.last_success_at,

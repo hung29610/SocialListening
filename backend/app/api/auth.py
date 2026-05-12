@@ -108,17 +108,19 @@ def get_current_user_info(current_user: User = Depends(get_current_active_user))
 
 @router.put("/me/profile")
 def update_my_profile(
-    full_name: str | None = None,
-    phone: str | None = None,
-    department: str | None = None,
+    profile_data: dict,
     db = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Update current user's profile"""
-    if full_name is not None:
-        current_user.full_name = full_name
-    # Note: phone and department fields don't exist in User model yet
-    # TODO: Add migration to add these fields
+    if "full_name" in profile_data and profile_data["full_name"] is not None:
+        current_user.full_name = profile_data["full_name"]
+    if "phone" in profile_data and profile_data["phone"] is not None:
+        # Note: phone field doesn't exist in User model yet
+        pass
+    if "department" in profile_data and profile_data["department"] is not None:
+        # Note: department field doesn't exist in User model yet
+        pass
     
     db.commit()
     db.refresh(current_user)
