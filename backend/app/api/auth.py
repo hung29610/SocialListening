@@ -25,7 +25,6 @@ class UserResponse(BaseModel):
     id: int
     email: str
     full_name: str | None
-    role: str | None = "viewer"
     is_active: bool
     is_superuser: bool
     created_at: datetime
