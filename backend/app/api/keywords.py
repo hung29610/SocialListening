@@ -160,7 +160,7 @@ def list_keywords_in_group(
     return [KeywordResponse.from_orm(k) for k in keywords]
 
 
-@router.post("/keywords", response_model=KeywordResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=KeywordResponse, status_code=status.HTTP_201_CREATED)
 def create_keyword(
     keyword_data: KeywordCreate,
     db: Session = Depends(get_db),
@@ -183,7 +183,7 @@ def create_keyword(
     return KeywordResponse.from_orm(keyword)
 
 
-@router.get("/keywords/{keyword_id}", response_model=KeywordResponse)
+@router.get("/{keyword_id}", response_model=KeywordResponse)
 def get_keyword(
     keyword_id: int,
     db: Session = Depends(get_db),
@@ -200,7 +200,7 @@ def get_keyword(
     return KeywordResponse.from_orm(keyword)
 
 
-@router.put("/keywords/{keyword_id}", response_model=KeywordResponse)
+@router.put("/{keyword_id}", response_model=KeywordResponse)
 def update_keyword(
     keyword_id: int,
     keyword_data: KeywordUpdate,
@@ -225,7 +225,7 @@ def update_keyword(
     return KeywordResponse.from_orm(keyword)
 
 
-@router.delete("/keywords/{keyword_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{keyword_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_keyword(
     keyword_id: int,
     db: Session = Depends(get_db),
