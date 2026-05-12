@@ -7,26 +7,103 @@ import toast from 'react-hot-toast';
 export default function AppearanceSettings() {
   const [settings, setSettings] = useState({
     theme: 'system',
-    compactMode: false,
+    language: 'vi',
     sidebarCollapsed: false,
-    language: 'vi'
+    itemsPerPage: 20
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Load from localStorage
-    const saved = localStorage.getItem('appearance_settings');
-    if (saved) {
-      setSettings(JSON.parse(saved));
-    }
+    loadSettings();
   }, []);
 
-  const handleSave = () => {
-    // Save to localStorage
-    localStorage.setItem('appearance_settings', JSON.stringify(settings));
-    toast.success('Đã lưu cài đặt giao diện');
-    
-    // TODO: Optionally call PUT /api/me/preferences to sync with backend
+  const loadSettings = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/preferences', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newSettings = {
+          theme: data.theme,
+          language: data.language,
+          sidebarCollapsed: data.sidebar_collapsed,
+          itemsPerPage: data.items_per_page
+        };
+        setSettings(newSettings);
+        // Apply theme immediately
+        applyTheme(data.theme);
+      }
+    } catch (error) {
+      console.error('Failed to load preferences:', error);
+      toast.error('Không thể tải cài đặt giao diện');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const applyTheme = (theme: string) => {
+    // Apply theme to document
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System theme
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/preferences', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          theme: settings.theme,
+          language: settings.language,
+          sidebar_collapsed: settings.sidebarCollapsed,
+          items_per_page: settings.itemsPerPage
+        })
+      });
+
+      if (response.ok) {
+        // Apply theme immediately
+        applyTheme(settings.theme);
+        toast.success('Đã lưu cài đặt giao diện');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Không thể lưu cài đặt');
+      }
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      toast.error('Không thể lưu cài đặt giao diện');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -40,7 +117,7 @@ export default function AppearanceSettings() {
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
         {/* Theme */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-gray-900 mb-3">
             Chủ đề
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -67,7 +144,7 @@ export default function AppearanceSettings() {
 
         {/* Language */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
             Ngôn ngữ
           </label>
           <select
@@ -80,21 +157,21 @@ export default function AppearanceSettings() {
           </select>
         </div>
 
-        {/* Compact Mode */}
-        <div className="flex items-center justify-between py-3 border-t border-gray-100">
-          <div>
-            <p className="text-sm font-medium text-gray-900">Chế độ thu gọn</p>
-            <p className="text-xs text-gray-500 mt-1">Giảm khoảng cách giữa các phần tử</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.compactMode}
-              onChange={(e) => setSettings({ ...settings, compactMode: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        {/* Items per page */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Số mục mỗi trang
           </label>
+          <select
+            value={settings.itemsPerPage}
+            onChange={(e) => setSettings({ ...settings, itemsPerPage: parseInt(e.target.value) })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
         </div>
 
         {/* Sidebar Collapsed */}
@@ -117,10 +194,11 @@ export default function AppearanceSettings() {
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4 mr-2" />
-            Lưu cài đặt
+            {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
           </button>
         </div>
       </div>
