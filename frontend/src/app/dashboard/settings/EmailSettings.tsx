@@ -19,7 +19,7 @@ export default function EmailSettings() {
   const [testEmail, setTestEmail] = useState('');
 
   const handleSave = () => {
-    toast.success('Đã lưu cấu hình email');
+    toast.error('Chưa tích hợp: Backend API chưa được implement');
   };
 
   const handleTestEmail = () => {
@@ -27,7 +27,7 @@ export default function EmailSettings() {
       toast.error('Vui lòng nhập email để test');
       return;
     }
-    toast.success(`Đã gửi email test đến ${testEmail}`);
+    toast.error('Chưa tích hợp: Backend API chưa được implement');
   };
 
   return (
@@ -36,6 +36,13 @@ export default function EmailSettings() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Cấu hình Email</h2>
         <p className="text-sm text-gray-600 mt-1">Thiết lập SMTP và email templates</p>
+      </div>
+
+      {/* Pending Integration Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-yellow-800">
+          <strong>⚠️ Chưa tích hợp:</strong> Cấu hình Email đang hiển thị dữ liệu mẫu. Backend API chưa được implement.
+        </p>
       </div>
 
       {/* SMTP Settings */}

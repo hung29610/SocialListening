@@ -17,7 +17,7 @@ export default function OrganizationSettings() {
   });
 
   const handleSave = () => {
-    toast.success('Đã lưu thông tin tổ chức');
+    toast.error('Chưa tích hợp: Backend API chưa được implement');
   };
 
   return (
@@ -26,6 +26,13 @@ export default function OrganizationSettings() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Thông tin tổ chức</h2>
         <p className="text-sm text-gray-600 mt-1">Cấu hình thông tin công ty và tổ chức</p>
+      </div>
+
+      {/* Pending Integration Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-yellow-800">
+          <strong>⚠️ Chưa tích hợp:</strong> Thông tin tổ chức đang hiển thị dữ liệu mẫu. Backend API chưa được implement.
+        </p>
       </div>
 
       {/* Form */}

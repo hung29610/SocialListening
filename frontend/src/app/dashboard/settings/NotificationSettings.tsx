@@ -18,7 +18,7 @@ export default function NotificationSettings() {
   });
 
   const handleSave = () => {
-    toast.success('Đã lưu cấu hình thông báo');
+    toast.error('Chưa tích hợp: Backend API chưa được implement');
   };
 
   const notificationGroups = [
@@ -58,6 +58,13 @@ export default function NotificationSettings() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Cấu hình thông báo</h2>
         <p className="text-sm text-gray-600 mt-1">Quản lý các loại thông báo và cảnh báo</p>
+      </div>
+
+      {/* Pending Integration Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-yellow-800">
+          <strong>⚠️ Chưa tích hợp:</strong> Cấu hình thông báo hệ thống đang hiển thị dữ liệu mẫu. Backend API chưa được implement.
+        </p>
       </div>
 
       {/* Master Toggle */}

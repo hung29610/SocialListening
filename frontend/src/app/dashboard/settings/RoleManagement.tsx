@@ -58,16 +58,27 @@ export default function RoleManagement() {
           <h2 className="text-xl font-semibold text-gray-900">Quản lý vai trò</h2>
           <p className="text-sm text-gray-600 mt-1">Định nghĩa vai trò và quyền hạn trong hệ thống</p>
         </div>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button 
+          disabled
+          className="flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Thêm vai trò
         </button>
       </div>
 
+      {/* Pending Integration Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-sm text-yellow-800">
+          <strong>⚠️ Chưa tích hợp:</strong> Quản lý vai trò đang hiển thị dữ liệu mẫu. Backend API chưa được implement. 
+          Các nút thêm/sửa/xóa đã bị vô hiệu hóa.
+        </p>
+      </div>
+
       {/* Roles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {roles.map((role) => (
-          <div key={role.id} className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+          <div key={role.id} className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow opacity-60">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -79,11 +90,11 @@ export default function RoleManagement() {
                 </div>
               </div>
               <div className="flex space-x-1">
-                <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <button disabled className="p-2 text-gray-400 cursor-not-allowed">
                   <Edit2 className="w-4 h-4" />
                 </button>
                 {!['super_admin', 'admin'].includes(role.code) && (
-                  <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button disabled className="p-2 text-gray-400 cursor-not-allowed">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
