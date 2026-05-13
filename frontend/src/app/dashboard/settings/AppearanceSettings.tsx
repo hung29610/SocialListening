@@ -143,10 +143,11 @@ export default function AppearanceSettings() {
               <button
                 key={theme.value}
                 onClick={() => {
-                  alert(`Theme changed to: ${theme.value}`);
                   console.log(`🔴 THEME BUTTON CLICKED - ${theme.value}`);
                   console.log(`🔵 [AppearanceSettings] Theme changed to:`, theme.value);
                   setSettings({ ...settings, theme: theme.value });
+                  // Apply theme immediately
+                  applyTheme(theme.value);
                 }}
                 className={`p-4 border-2 rounded-lg transition-colors ${
                   settings.theme === theme.value
@@ -213,8 +214,7 @@ export default function AppearanceSettings() {
         <div className="flex justify-end pt-4">
           <button
             onClick={() => {
-              alert('Button clicked! Check console.');
-              console.log('🔴 BUTTON CLICKED - If you see this, onClick works!');
+              console.log('🔴 SAVE BUTTON CLICKED');
               console.log('🔴 Current settings:', settings);
               handleSave();
             }}
