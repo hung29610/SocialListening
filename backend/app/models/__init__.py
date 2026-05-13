@@ -41,7 +41,7 @@ from app.models.rbac import Role, UserRole, APIKey, BrandingSettings, AuditLog
 from app.models.user_settings import UserPreferences, UserNotificationSettings, UserSession
 
 # System settings models
-from app.models.system_settings import OrganizationSettings, EmailSettings, NotificationSettings
+from app.models.system_settings import OrganizationSettings, EmailSettings, SystemNotificationSettings
 
 __all__ = [
     "Base",
@@ -58,5 +58,5 @@ __all__ = [
     "ServiceType", "Platform", "RiskLevel", "ServiceRequestStatus", "ApprovalStatus", "Priority", "DeliverableType",
     "Role", "UserRole", "APIKey", "BrandingSettings", "AuditLog",
     "UserPreferences", "UserNotificationSettings", "UserSession",
-    "OrganizationSettings", "EmailSettings", "NotificationSettings"
+    "OrganizationSettings", "EmailSettings", "SystemNotificationSettings"
 ]
