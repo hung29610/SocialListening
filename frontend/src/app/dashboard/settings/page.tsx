@@ -9,8 +9,6 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import PersonalProfile from './PersonalProfile';
 import SecuritySettings from './SecuritySettings';
 import PersonalNotifications from './PersonalNotifications';
-import AppearanceSettings from './AppearanceSettings';
-import SessionsSettings from './SessionsSettings';
 import UserManagement from './UserManagement';
 import RoleManagement from './RoleManagement';
 import OrganizationSettings from './OrganizationSettings';
@@ -21,7 +19,7 @@ import BrandingSettings from './BrandingSettings';
 import AuditLogs from './AuditLogs';
 import TestInteractive from './test-interactive';
 
-type TabId = 'profile' | 'security' | 'personal-notifications' | 'sessions' | 
+type TabId = 'profile' | 'security' | 'personal-notifications' | 
              'users' | 'permissions' | 'organization' | 'email' | 'system-notifications' | 'api' | 'branding' | 'logs' | 'test';
 
 interface Tab {
@@ -78,7 +76,6 @@ export default function SettingsPage() {
     { id: 'profile', name: 'Hồ sơ cá nhân', icon: UserIcon, description: 'Thông tin cá nhân' },
     { id: 'security', name: 'Bảo mật', icon: Lock, description: 'Mật khẩu và bảo mật' },
     { id: 'personal-notifications', name: 'Thông báo', icon: Bell, description: 'Thông báo cá nhân' },
-    { id: 'sessions', name: 'Phiên đăng nhập', icon: Monitor, description: 'Quản lý phiên' },
   ];
 
   // Admin settings tabs - only for admin/super_admin
@@ -121,8 +118,6 @@ export default function SettingsPage() {
         return <SecuritySettings />;
       case 'personal-notifications':
         return <PersonalNotifications />;
-      case 'sessions':
-        return <SessionsSettings />;
       
       // Admin settings
       case 'users':
