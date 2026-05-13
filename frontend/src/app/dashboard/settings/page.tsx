@@ -21,7 +21,7 @@ import BrandingSettings from './BrandingSettings';
 import AuditLogs from './AuditLogs';
 import TestInteractive from './test-interactive';
 
-type TabId = 'profile' | 'security' | 'personal-notifications' | 'appearance' | 'sessions' | 
+type TabId = 'profile' | 'security' | 'personal-notifications' | 'sessions' | 
              'users' | 'permissions' | 'organization' | 'email' | 'system-notifications' | 'api' | 'branding' | 'logs' | 'test';
 
 interface Tab {
@@ -78,7 +78,6 @@ export default function SettingsPage() {
     { id: 'profile', name: 'Hồ sơ cá nhân', icon: UserIcon, description: 'Thông tin cá nhân' },
     { id: 'security', name: 'Bảo mật', icon: Lock, description: 'Mật khẩu và bảo mật' },
     { id: 'personal-notifications', name: 'Thông báo', icon: Bell, description: 'Thông báo cá nhân' },
-    { id: 'appearance', name: 'Giao diện', icon: Palette, description: 'Tùy chỉnh giao diện' },
     { id: 'sessions', name: 'Phiên đăng nhập', icon: Monitor, description: 'Quản lý phiên' },
   ];
 
@@ -122,8 +121,6 @@ export default function SettingsPage() {
         return <SecuritySettings />;
       case 'personal-notifications':
         return <PersonalNotifications />;
-      case 'appearance':
-        return <AppearanceSettings />;
       case 'sessions':
         return <SessionsSettings />;
       
