@@ -135,11 +135,15 @@ def update_my_profile(
     return {"message": "Profile updated successfully", "user": UserResponse.from_orm(current_user)}
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
 @router.post("/me/change-password")
 def change_my_password(
-    current_password: str,
-    new_password: str,
-    confirm_password: str,
+    password_data: ChangePasswordRequest,
     db = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -147,19 +151,19 @@ def change_my_password(
     from app.core.security import verify_password, get_password_hash
     
     # Verify current password
-    if not verify_password(current_password, current_user.hashed_password):
+    if not verify_password(password_data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     
     # Verify new password matches confirm
-    if new_password != confirm_password:
+    if password_data.new_password != password_data.confirm_password:
         raise HTTPException(status_code=400, detail="New passwords do not match")
     
     # Validate new password length
-    if len(new_password) < 8:
+    if len(password_data.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     
     # Update password
-    current_user.hashed_password = get_password_hash(new_password)
+    current_user.hashed_password = get_password_hash(password_data.new_password)
     db.commit()
     
     return {"message": "Password changed successfully"}
