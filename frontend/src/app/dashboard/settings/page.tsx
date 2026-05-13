@@ -19,9 +19,10 @@ import NotificationSettings from './NotificationSettings';
 import APIWebhooks from './APIWebhooks';
 import BrandingSettings from './BrandingSettings';
 import AuditLogs from './AuditLogs';
+import TestInteractive from './test-interactive';
 
 type TabId = 'profile' | 'security' | 'personal-notifications' | 'appearance' | 'sessions' | 
-             'users' | 'permissions' | 'organization' | 'email' | 'system-notifications' | 'api' | 'branding' | 'logs';
+             'users' | 'permissions' | 'organization' | 'email' | 'system-notifications' | 'api' | 'branding' | 'logs' | 'test';
 
 interface Tab {
   id: TabId;
@@ -73,6 +74,7 @@ export default function SettingsPage() {
 
   // Personal settings tabs - available to all users
   const personalTabs: Tab[] = [
+    { id: 'test', name: '🧪 TEST', icon: FileText, description: 'Test interactive' },
     { id: 'profile', name: 'Hồ sơ cá nhân', icon: UserIcon, description: 'Thông tin cá nhân' },
     { id: 'security', name: 'Bảo mật', icon: Lock, description: 'Mật khẩu và bảo mật' },
     { id: 'personal-notifications', name: 'Thông báo', icon: Bell, description: 'Thông báo cá nhân' },
@@ -109,6 +111,10 @@ export default function SettingsPage() {
     }
 
     switch (activeTab) {
+      // Test tab
+      case 'test':
+        return <TestInteractive />;
+      
       // Personal settings
       case 'profile':
         return <PersonalProfile />;
