@@ -47,35 +47,49 @@ export default function PersonalNotifications() {
   };
 
   const handleSave = async () => {
+    console.log('🔵 [PersonalNotifications] handleSave called');
+    console.log('🔵 [PersonalNotifications] Current settings:', settings);
+    
     setSaving(true);
     try {
       const token = localStorage.getItem('access_token');
+      console.log('🔵 [PersonalNotifications] Token:', token ? 'exists' : 'missing');
+      
+      const payload = {
+        email_notifications: settings.emailNotifications,
+        in_app_notifications: settings.inAppNotifications,
+        alert_notifications: settings.alertNotifications,
+        incident_notifications: settings.incidentNotifications,
+        report_notifications: settings.reportNotifications
+      };
+      console.log('🔵 [PersonalNotifications] Payload:', payload);
+      
       const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/notification-settings', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          email_notifications: settings.emailNotifications,
-          in_app_notifications: settings.inAppNotifications,
-          alert_notifications: settings.alertNotifications,
-          incident_notifications: settings.incidentNotifications,
-          report_notifications: settings.reportNotifications
-        })
+        body: JSON.stringify(payload)
       });
 
+      console.log('🔵 [PersonalNotifications] Response status:', response.status);
+
       if (response.ok) {
-        toast.success('Đã lưu cài đặt thông báo');
+        const data = await response.json();
+        console.log('✅ [PersonalNotifications] Success:', data);
+        toast.success('✅ Đã lưu cài đặt thông báo');
       } else {
         const error = await response.json();
+        console.error('❌ [PersonalNotifications] Error:', error);
         toast.error(error.detail || 'Không thể lưu cài đặt');
       }
     } catch (error) {
-      console.error('Failed to save notification settings:', error);
+      console.error('❌ [PersonalNotifications] Exception:', error);
       toast.error('Không thể lưu cài đặt thông báo');
     } finally {
       setSaving(false);
+      console.log('🔵 [PersonalNotifications] handleSave finished');
     }
   };
 
@@ -114,7 +128,10 @@ export default function PersonalNotifications() {
                 <input
                   type="checkbox"
                   checked={settings[item.key as keyof typeof settings]}
-                  onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
+                  onChange={(e) => {
+                    console.log(`🔵 [PersonalNotifications] Toggle ${item.key}:`, e.target.checked);
+                    setSettings({ ...settings, [item.key]: e.target.checked });
+                  }}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

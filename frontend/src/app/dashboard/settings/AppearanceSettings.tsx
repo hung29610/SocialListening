@@ -64,36 +64,50 @@ export default function AppearanceSettings() {
   };
 
   const handleSave = async () => {
+    console.log('🔵 [AppearanceSettings] handleSave called');
+    console.log('🔵 [AppearanceSettings] Current settings:', settings);
+    
     setSaving(true);
     try {
       const token = localStorage.getItem('access_token');
+      console.log('🔵 [AppearanceSettings] Token:', token ? 'exists' : 'missing');
+      
+      const payload = {
+        theme: settings.theme,
+        language: settings.language,
+        sidebar_collapsed: settings.sidebarCollapsed,
+        items_per_page: settings.itemsPerPage
+      };
+      console.log('🔵 [AppearanceSettings] Payload:', payload);
+      
       const response = await fetch('https://social-listening-backend.onrender.com/api/auth/me/preferences', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          theme: settings.theme,
-          language: settings.language,
-          sidebar_collapsed: settings.sidebarCollapsed,
-          items_per_page: settings.itemsPerPage
-        })
+        body: JSON.stringify(payload)
       });
 
+      console.log('🔵 [AppearanceSettings] Response status:', response.status);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('✅ [AppearanceSettings] Success:', data);
         // Apply theme immediately
         applyTheme(settings.theme);
-        toast.success('Đã lưu cài đặt giao diện');
+        toast.success('✅ Đã lưu cài đặt giao diện');
       } else {
         const error = await response.json();
+        console.error('❌ [AppearanceSettings] Error:', error);
         toast.error(error.detail || 'Không thể lưu cài đặt');
       }
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      console.error('❌ [AppearanceSettings] Exception:', error);
       toast.error('Không thể lưu cài đặt giao diện');
     } finally {
       setSaving(false);
+      console.log('🔵 [AppearanceSettings] handleSave finished');
     }
   };
 
@@ -128,7 +142,10 @@ export default function AppearanceSettings() {
             ].map((theme) => (
               <button
                 key={theme.value}
-                onClick={() => setSettings({ ...settings, theme: theme.value })}
+                onClick={() => {
+                  console.log(`🔵 [AppearanceSettings] Theme changed to:`, theme.value);
+                  setSettings({ ...settings, theme: theme.value });
+                }}
                 className={`p-4 border-2 rounded-lg transition-colors ${
                   settings.theme === theme.value
                     ? 'border-blue-600 bg-blue-50'
