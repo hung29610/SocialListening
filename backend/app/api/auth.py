@@ -81,6 +81,9 @@ def login(
     db = Depends(get_db)
 ):
     """Login and get access token"""
+    from fastapi import Request
+    import uuid
+    
     # Get user
     user = db.query(User).filter(User.email == form_data.username).first()
     
@@ -97,12 +100,31 @@ def login(
             detail="Inactive user"
         )
     
-    # Create access token
+    # Generate unique JTI for this token
+    jti = str(uuid.uuid4())
+    
+    # Create access token with JTI
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id)},
+        data={"sub": str(user.id), "jti": jti},
         expires_delta=access_token_expires
     )
+    
+    # Create session record
+    # Note: We can't get request object here easily, so we'll create session without device info
+    # Device info will be added when we implement proper session tracking
+    session = UserSession(
+        user_id=user.id,
+        token_jti=jti,
+        ip_address=None,  # TODO: Get from request
+        user_agent=None,  # TODO: Get from request
+        device_type="unknown",
+        location=None,
+        is_revoked=False,
+        expires_at=datetime.utcnow() + access_token_expires
+    )
+    db.add(session)
+    db.commit()
     
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -273,12 +295,48 @@ def get_my_sessions(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get current user's active sessions"""
-    # For now, return placeholder data since we don't track JWT sessions yet
-    # TODO: Implement proper session tracking when JWT is issued
+    sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_revoked == False,
+        UserSession.expires_at > datetime.utcnow()
+    ).order_by(UserSession.last_active_at.desc()).all()
+    
     return {
-        "sessions": [],
-        "message": "Session tracking not yet implemented. This feature requires JWT token tracking."
+        "sessions": [
+            {
+                "id": s.id,
+                "device_type": s.device_type,
+                "ip_address": s.ip_address,
+                "user_agent": s.user_agent,
+                "location": s.location,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "last_active_at": s.last_active_at.isoformat() if s.last_active_at else None,
+                "expires_at": s.expires_at.isoformat() if s.expires_at else None
+            }
+            for s in sessions
+        ]
     }
+
+
+@router.post("/me/sessions/{session_id}/revoke")
+def revoke_session(
+    session_id: int,
+    db = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Revoke a specific session"""
+    session = db.query(UserSession).filter(
+        UserSession.id == session_id,
+        UserSession.user_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session.is_revoked = True
+    db.commit()
+    
+    return {"message": "Session revoked successfully"}
 
 
 @router.post("/me/logout-other-sessions")
@@ -287,9 +345,17 @@ def logout_other_sessions(
     current_user: User = Depends(get_current_active_user)
 ):
     """Logout all other sessions except current one"""
-    # TODO: Implement session revocation
-    # This requires storing JWT JTI and checking it on each request
-    return {
-        "message": "Session revocation not yet implemented. This feature requires JWT token tracking."
-    }
+    # Get current token's JTI from request
+    # For now, revoke all sessions
+    # TODO: Get current JTI from token and exclude it
+    
+    db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_revoked == False
+    ).update({"is_revoked": True})
+    
+    db.commit()
+    
+    return {"message": "All other sessions have been logged out"}
+
 

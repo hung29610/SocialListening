@@ -46,6 +46,8 @@ def get_current_user(
     db = Depends(get_db)
 ) -> User:
     """Get the current authenticated user"""
+    from app.models.user_settings import UserSession
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -55,9 +57,29 @@ def get_current_user(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
+        jti: str = payload.get("jti")  # Get JTI from token
         
         if user_id is None:
             raise credentials_exception
+        
+        # Check if session is revoked (if JTI exists)
+        if jti:
+            session = db.query(UserSession).filter(
+                UserSession.token_jti == jti,
+                UserSession.user_id == int(user_id)
+            ).first()
+            
+            if session and session.is_revoked:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session has been revoked",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # Update last_active_at
+            if session:
+                session.last_active_at = datetime.utcnow()
+                db.commit()
             
     except JWTError:
         raise credentials_exception
