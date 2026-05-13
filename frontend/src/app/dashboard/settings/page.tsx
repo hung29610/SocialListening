@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Shield, Building, Mail, Bell, Globe, Palette, FileText, User as UserIcon, Lock, Monitor } from 'lucide-react';
+import { Users, Shield, Building, Mail, Bell, Globe, Palette, FileText, User as UserIcon, Lock, Monitor, Settings } from 'lucide-react';
 import { auth } from '@/lib/api';
 import { canAccessAdmin, type User } from '@/lib/permissions';
 import LoadingSpinner from '@/components/LoadingSpinner';
