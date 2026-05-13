@@ -34,6 +34,15 @@ from app.models.service import (
     ServiceType, Platform, RiskLevel, ServiceRequestStatus, ApprovalStatus, Priority, DeliverableType
 )
 
+# RBAC models
+from app.models.rbac import Role, UserRole, APIKey, BrandingSettings, AuditLog
+
+# User settings models
+from app.models.user_settings import UserPreferences, UserNotificationSettings, UserSession
+
+# System settings models
+from app.models.system_settings import OrganizationSettings, EmailSettings, NotificationSettings
+
 __all__ = [
     "Base",
     "User",
@@ -46,5 +55,8 @@ __all__ = [
     "CrawlJob", "ScanSchedule", "CrawlJobStatus",
     "Report", "ReportType", "ReportStatus",
     "ServiceCategory", "Service", "ServiceRequest", "ServiceRequestLog", "ServiceDeliverable",
-    "ServiceType", "Platform", "RiskLevel", "ServiceRequestStatus", "ApprovalStatus", "Priority", "DeliverableType"
+    "ServiceType", "Platform", "RiskLevel", "ServiceRequestStatus", "ApprovalStatus", "Priority", "DeliverableType",
+    "Role", "UserRole", "APIKey", "BrandingSettings", "AuditLog",
+    "UserPreferences", "UserNotificationSettings", "UserSession",
+    "OrganizationSettings", "EmailSettings", "NotificationSettings"
 ]
