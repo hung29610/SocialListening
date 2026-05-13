@@ -150,24 +150,34 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          {isAdmin ? '⚙️ Cài đặt' : '👤 Cài đặt cá nhân'}
-        </h1>
-        <p className="mt-2 text-gray-600">
-          {isAdmin 
-            ? 'Quản lý cấu hình cá nhân, người dùng và hệ thống'
-            : 'Quản lý thông tin cá nhân, bảo mật và tùy chọn hiển thị'
-          }
-        </p>
+    <div className="space-y-8">
+      {/* Header with gradient */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative px-8 py-12">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+              <Settings className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white">
+                {isAdmin ? '⚙️ Cài đặt' : '👤 Cài đặt cá nhân'}
+              </h1>
+              <p className="mt-2 text-blue-100 text-lg">
+                {isAdmin 
+                  ? 'Quản lý cấu hình cá nhân, người dùng và hệ thống'
+                  : 'Quản lý thông tin cá nhân, bảo mật và tùy chọn hiển thị'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <nav className="flex overflow-x-auto -mb-px">
+      {/* Tabs with modern design */}
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="border-b border-gray-100">
+          <nav className="flex overflow-x-auto -mb-px scrollbar-hide">
             {/* Personal Settings Group */}
             {personalTabs.map((tab) => {
               const Icon = tab.icon;
@@ -176,14 +186,17 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                  className={`group relative flex items-center px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200 ${
                     isActive
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 bg-blue-50'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="w-5 h-5 mr-2" />
+                  <Icon className={`w-5 h-5 mr-2 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`} />
                   {tab.name}
+                  {isActive && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                  )}
                 </button>
               );
             })}
@@ -191,7 +204,7 @@ export default function SettingsPage() {
             {/* Admin Settings Group - Only for admin */}
             {isAdmin && (
               <>
-                <div className="border-l border-gray-300 mx-2" />
+                <div className="border-l border-gray-200 mx-2 my-3" />
                 {adminTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -199,14 +212,17 @@ export default function SettingsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                      className={`group relative flex items-center px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200 ${
                         isActive
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          ? 'border-purple-500 text-purple-600 bg-purple-50'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
-                      <Icon className="w-5 h-5 mr-2" />
+                      <Icon className={`w-5 h-5 mr-2 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`} />
                       {tab.name}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                      )}
                     </button>
                   );
                 })}
@@ -215,8 +231,8 @@ export default function SettingsPage() {
           </nav>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
+        {/* Tab Content with animation */}
+        <div className="p-8 animate-fadeIn">
           {renderTabContent()}
         </div>
       </div>
