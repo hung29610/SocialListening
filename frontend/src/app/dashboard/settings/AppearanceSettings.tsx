@@ -143,6 +143,8 @@ export default function AppearanceSettings() {
               <button
                 key={theme.value}
                 onClick={() => {
+                  alert(`Theme changed to: ${theme.value}`);
+                  console.log(`🔴 THEME BUTTON CLICKED - ${theme.value}`);
                   console.log(`🔵 [AppearanceSettings] Theme changed to:`, theme.value);
                   setSettings({ ...settings, theme: theme.value });
                 }}
@@ -210,7 +212,12 @@ export default function AppearanceSettings() {
 
         <div className="flex justify-end pt-4">
           <button
-            onClick={handleSave}
+            onClick={() => {
+              alert('Button clicked! Check console.');
+              console.log('🔴 BUTTON CLICKED - If you see this, onClick works!');
+              console.log('🔴 Current settings:', settings);
+              handleSave();
+            }}
             disabled={saving}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

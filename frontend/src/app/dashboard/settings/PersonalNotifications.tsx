@@ -129,6 +129,8 @@ export default function PersonalNotifications() {
                   type="checkbox"
                   checked={settings[item.key as keyof typeof settings]}
                   onChange={(e) => {
+                    alert(`Toggle ${item.key}: ${e.target.checked}`);
+                    console.log(`🔴 TOGGLE CLICKED - ${item.key}:`, e.target.checked);
                     console.log(`🔵 [PersonalNotifications] Toggle ${item.key}:`, e.target.checked);
                     setSettings({ ...settings, [item.key]: e.target.checked });
                   }}
@@ -142,7 +144,12 @@ export default function PersonalNotifications() {
 
         <div className="flex justify-end pt-4">
           <button
-            onClick={handleSave}
+            onClick={() => {
+              alert('Button clicked! Check console.');
+              console.log('🔴 BUTTON CLICKED - If you see this, onClick works!');
+              console.log('🔴 Current settings:', settings);
+              handleSave();
+            }}
             disabled={saving}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
