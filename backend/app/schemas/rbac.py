@@ -88,8 +88,8 @@ class APIKeyUpdate(BaseModel):
 # ─── Branding Settings Schemas ────────────────────────────────────────────────
 
 class BrandingSettingsBase(BaseModel):
-    primary_color: str = Field('#3B82F6', regex='^#[0-9A-Fa-f]{6}$')
-    secondary_color: str = Field('#10B981', regex='^#[0-9A-Fa-f]{6}$')
+    primary_color: str = Field('#3B82F6', pattern='^#[0-9A-Fa-f]{6}$')
+    secondary_color: str = Field('#10B981', pattern='^#[0-9A-Fa-f]{6}$')
     logo_light_url: Optional[str] = None
     logo_dark_url: Optional[str] = None
     favicon_url: Optional[str] = None
@@ -98,8 +98,8 @@ class BrandingSettingsBase(BaseModel):
 
 
 class BrandingSettingsUpdate(BaseModel):
-    primary_color: Optional[str] = Field(None, regex='^#[0-9A-Fa-f]{6}$')
-    secondary_color: Optional[str] = Field(None, regex='^#[0-9A-Fa-f]{6}$')
+    primary_color: Optional[str] = Field(None, pattern='^#[0-9A-Fa-f]{6}$')
+    secondary_color: Optional[str] = Field(None, pattern='^#[0-9A-Fa-f]{6}$')
     logo_light_url: Optional[str] = None
     logo_dark_url: Optional[str] = None
     favicon_url: Optional[str] = None

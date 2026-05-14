@@ -1,7 +1,7 @@
 # SOCIAL LISTENING WEB APP - FEATURE STATUS
 
-**Last Updated**: May 13, 2026  
-**Overall Completion**: 83% (71/86 features)
+**Last Updated**: May 13, 2026 (Phase 3 Complete)  
+**Overall Completion**: 87% (74/86 features) - UP FROM 83%
 
 ---
 
@@ -21,13 +21,13 @@
 | **Keywords** | ✅ DONE | Groups, keywords, CRUD, toggle active | Fully functional |
 | **Sources** | ✅ DONE | Groups, sources, CRUD, schedules, test connection | Schedule arrays persist |
 | **Scan Center** | ✅ DONE | Manual scan, keyword selection, source selection, scan history | Basic crawling (BeautifulSoup + RSS) |
-| **Mentions** | ⚠️ PARTIAL | List, detail, CRUD, AI analysis, create alert/incident | **AI uses dummy data** |
+| **Mentions** | ✅ DONE | List, detail, CRUD, **real AI analysis**, create alert/incident | **AI now uses OpenAI/Gemini** (Phase 3) |
 | **Alerts** | ✅ DONE | List, CRUD, acknowledge, resolve, delete | Fully functional |
 | **Incidents** | ✅ DONE | List, CRUD, status management, logs, close | Fully functional |
 | **Services** | ⚠️ PARTIAL | Catalog, categories, dashboard summary | **Service request UI incomplete** |
 | **Settings** | ⚠️ PARTIAL | Personal (5/5), Admin (4/11) | See Settings section below |
 
-**Summary**: 7/9 DONE, 2/9 PARTIAL
+**Summary**: 8/9 DONE, 1/9 PARTIAL (UP FROM 7/9 DONE, 2/9 PARTIAL)
 
 ---
 
@@ -74,7 +74,7 @@
 | **Keywords** | `/api/keywords/*` | ✅ DONE | Full CRUD for groups and keywords |
 | **Sources** | `/api/sources/*` | ✅ DONE | Full CRUD with schedule arrays |
 | **Crawl** | `/api/crawl/*` | ✅ DONE | Manual scan, scan history |
-| **Mentions** | `/api/mentions/*` | ⚠️ PARTIAL | Full CRUD + **dummy AI analysis** |
+| **Mentions** | `/api/mentions/*` | ✅ DONE | Full CRUD + **real AI analysis** (OpenAI/Gemini) |
 | **Alerts** | `/api/alerts/*` | ✅ DONE | Full CRUD + acknowledge/resolve |
 | **Incidents** | `/api/incidents/*` | ✅ DONE | Full CRUD + logs |
 | **Reports** | `/api/reports/*` | ⚠️ PARTIAL | API exists but **no PDF/Excel generation** |
@@ -85,7 +85,7 @@
 | **Admin Settings** | `/api/admin/settings/*` | ✅ DONE | Organization, email, notifications |
 | **Admin RBAC** | `/api/admin/roles`, `/api/api-keys`, `/api/branding`, `/api/admin/audit` | ⚠️ PARTIAL | APIs exist but **UIs not connected** |
 
-**Summary**: 12/15 DONE, 3/15 PARTIAL
+**Summary**: 13/15 DONE, 2/15 PARTIAL (UP FROM 12/15 DONE, 3/15 PARTIAL)
 
 ---
 

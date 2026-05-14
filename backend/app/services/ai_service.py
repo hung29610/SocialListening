@@ -1,128 +1,394 @@
 """
-Dummy AI Service for Social Listening MVP
-This is a simple rule-based AI that simulates sentiment analysis and risk scoring
+AI Service for Social Listening Platform
+Supports multiple AI providers: OpenAI, Gemini, and Dummy (for testing)
 """
-import random
+import os
 import time
-from typing import Dict
+import json
+from typing import Dict, Optional
+from abc import ABC, abstractmethod
 
+
+# ============================================================================
+# AI PROVIDER INTERFACE
+# ============================================================================
+
+class AIProvider(ABC):
+    """Abstract base class for AI providers"""
+    
+    @abstractmethod
+    def analyze_mention(self, content: str, title: Optional[str] = None) -> Dict:
+        """
+        Analyze a mention and return structured results
+        
+        Returns:
+            {
+                "sentiment": str,  # positive, neutral, negative_low, negative_medium, negative_high
+                "risk_score": float,  # 0-100
+                "crisis_level": int,  # 1-5
+                "summary_vi": str,  # Vietnamese summary
+                "suggested_action": str,  # monitor, respond, escalate, legal_review
+                "responsible_department": str,  # customer_service, PR, legal, executive
+                "confidence_score": float,  # 0-100
+                "processing_time_ms": int
+            }
+        """
+        pass
+
+
+# ============================================================================
+# DUMMY AI PROVIDER (FOR TESTING)
+# ============================================================================
+
+class DummyAIProvider(AIProvider):
+    """
+    Dummy AI provider using keyword matching
+    Used for testing and development
+    """
+    
+    def analyze_mention(self, content: str, title: Optional[str] = None) -> Dict:
+        start_time = time.time()
+        
+        content_lower = (content or "").lower()
+        title_lower = (title or "").lower()
+        full_text = f"{title_lower} {content_lower}"
+        
+        # Negative keywords (Vietnamese + English)
+        negative_keywords = [
+            'tệ', 'kém', 'dở', 'tồi', 'lừa đảo', 'scam', 'fake', 'giả mạo',
+            'bad', 'terrible', 'awful', 'worst', 'fraud', 'cheat',
+            'không tốt', 'thất vọng', 'disappointed', 'angry', 'tức giận',
+            'lỗi', 'error', 'bug', 'broken', 'hỏng', 'sai', 'wrong',
+            'chậm', 'slow', 'delay', 'trễ', 'không phản hồi', 'no response',
+            'rác', 'trash', 'garbage', 'useless', 'vô dụng'
+        ]
+        
+        # Positive keywords
+        positive_keywords = [
+            'tốt', 'good', 'great', 'excellent', 'xuất sắc', 'tuyệt vời',
+            'hài lòng', 'satisfied', 'happy', 'vui', 'thích', 'like', 'love',
+            'chất lượng', 'quality', 'nhanh', 'fast', 'quick', 'tốc độ',
+            'recommend', 'khuyên dùng', 'đáng tin', 'trust', 'reliable'
+        ]
+        
+        # Crisis keywords (high risk)
+        crisis_keywords = [
+            'chết', 'death', 'die', 'tử vong', 'nguy hiểm', 'danger',
+            'bệnh viện', 'hospital', 'cấp cứu', 'emergency', 'khẩn cấp',
+            'kiện', 'lawsuit', 'sue', 'court', 'tòa án', 'pháp luật',
+            'scandal', 'bê bối', 'rò rỉ', 'leak', 'hack', 'breach',
+            'virus', 'nhiễm độc', 'poison', 'toxic', 'độc hại',
+            'cháy', 'fire', 'nổ', 'explosion', 'tai nạn', 'accident'
+        ]
+        
+        # Count matches
+        negative_count = sum(1 for kw in negative_keywords if kw in full_text)
+        positive_count = sum(1 for kw in positive_keywords if kw in full_text)
+        crisis_count = sum(1 for kw in crisis_keywords if kw in full_text)
+        
+        # Calculate sentiment
+        if crisis_count > 0:
+            sentiment = "negative_high"
+        elif negative_count > positive_count + 2:
+            sentiment = "negative_high"
+        elif negative_count > positive_count:
+            sentiment = "negative_medium"
+        elif negative_count > 0:
+            sentiment = "negative_low"
+        elif positive_count > 0:
+            sentiment = "positive"
+        else:
+            sentiment = "neutral"
+        
+        # Calculate risk score (0-100)
+        base_risk = 30
+        risk_score = base_risk + (negative_count * 10) + (crisis_count * 20)
+        risk_score = min(risk_score, 100)
+        
+        # Calculate crisis level (1-5)
+        if crisis_count > 0:
+            crisis_level = 5
+        elif risk_score >= 80:
+            crisis_level = 4
+        elif risk_score >= 60:
+            crisis_level = 3
+        elif risk_score >= 40:
+            crisis_level = 2
+        else:
+            crisis_level = 1
+        
+        # Generate summary
+        if sentiment == "negative_high":
+            summary_vi = "Phát hiện nội dung tiêu cực nghiêm trọng. Cần xem xét và xử lý ngay."
+        elif sentiment == "negative_medium":
+            summary_vi = "Nội dung có xu hướng tiêu cực. Nên theo dõi và phản hồi."
+        elif sentiment == "negative_low":
+            summary_vi = "Nội dung có một số ý kiến tiêu cực nhẹ."
+        elif sentiment == "positive":
+            summary_vi = "Nội dung tích cực, phản hồi tốt từ người dùng."
+        else:
+            summary_vi = "Nội dung trung lập, không có ý kiến rõ ràng."
+        
+        # Suggested action
+        if crisis_level >= 4:
+            suggested_action = "legal_review"
+            responsible_department = "legal"
+        elif crisis_level >= 3:
+            suggested_action = "escalate"
+            responsible_department = "executive"
+        elif risk_score >= 50:
+            suggested_action = "respond"
+            responsible_department = "PR"
+        elif risk_score >= 30:
+            suggested_action = "monitor"
+            responsible_department = "customer_service"
+        else:
+            suggested_action = "monitor"
+            responsible_department = "customer_service"
+        
+        # Confidence score (keyword-based is less confident)
+        confidence_score = 65.0 + (min(negative_count + positive_count + crisis_count, 10) * 2)
+        
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        return {
+            "sentiment": sentiment,
+            "risk_score": risk_score,
+            "crisis_level": crisis_level,
+            "summary_vi": summary_vi,
+            "suggested_action": suggested_action,
+            "responsible_department": responsible_department,
+            "confidence_score": round(confidence_score, 2),
+            "processing_time_ms": processing_time_ms
+        }
+
+
+# ============================================================================
+# OPENAI PROVIDER
+# ============================================================================
+
+class OpenAIProvider(AIProvider):
+    """OpenAI GPT-4 provider for mention analysis"""
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        try:
+            import openai
+            self.openai = openai
+            self.openai.api_key = api_key
+        except ImportError:
+            raise ImportError("openai package not installed. Run: pip install openai")
+    
+    def analyze_mention(self, content: str, title: Optional[str] = None) -> Dict:
+        start_time = time.time()
+        
+        full_text = f"{title}\n\n{content}" if title else content
+        
+        prompt = f"""Phân tích nội dung sau đây và trả về kết quả dưới dạng JSON:
+
+Nội dung:
+{full_text}
+
+Yêu cầu phân tích:
+1. sentiment: Đánh giá cảm xúc (positive, neutral, negative_low, negative_medium, negative_high)
+2. risk_score: Điểm rủi ro từ 0-100 (0 = không rủi ro, 100 = rủi ro cực cao)
+3. crisis_level: Mức độ khủng hoảng từ 1-5 (1 = bình thường, 5 = khủng hoảng nghiêm trọng)
+4. summary_vi: Tóm tắt ngắn gọn bằng tiếng Việt (1-2 câu)
+5. suggested_action: Hành động đề xuất (monitor, respond, escalate, legal_review)
+6. responsible_department: Bộ phận chịu trách nhiệm (customer_service, PR, legal, executive)
+7. confidence_score: Độ tin cậy của phân tích từ 0-100
+
+LƯU Ý QUAN TRỌNG:
+- KHÔNG đề xuất hành động bất hợp pháp (hack, DDoS, spam, scraping trái phép)
+- Với nội dung có hại: đề xuất thu thập bằng chứng, yêu cầu sửa đổi, dự thảo takedown hợp pháp, báo cáo vi phạm chính sách nền tảng
+- Luôn yêu cầu phê duyệt của con người cho các hành động quan trọng
+
+Trả về JSON thuần túy, không có markdown:"""
+
+        try:
+            response = self.openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "Bạn là chuyên gia phân tích social listening. Trả về JSON thuần túy."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if result_text.startswith("```"):
+                result_text = result_text.split("```")[1]
+                if result_text.startswith("json"):
+                    result_text = result_text[4:]
+                result_text = result_text.strip()
+            
+            result = json.loads(result_text)
+            
+            # Validate and normalize
+            result["sentiment"] = result.get("sentiment", "neutral")
+            result["risk_score"] = float(result.get("risk_score", 50))
+            result["crisis_level"] = int(result.get("crisis_level", 2))
+            result["summary_vi"] = result.get("summary_vi", "Không có tóm tắt")
+            result["suggested_action"] = result.get("suggested_action", "monitor")
+            result["responsible_department"] = result.get("responsible_department", "customer_service")
+            result["confidence_score"] = float(result.get("confidence_score", 80))
+            result["processing_time_ms"] = int((time.time() - start_time) * 1000)
+            
+            return result
+            
+        except Exception as e:
+            # Fallback to dummy analysis if OpenAI fails
+            print(f"OpenAI analysis failed: {e}")
+            dummy = DummyAIProvider()
+            return dummy.analyze_mention(content, title)
+
+
+# ============================================================================
+# GEMINI PROVIDER
+# ============================================================================
+
+class GeminiProvider(AIProvider):
+    """Google Gemini provider for mention analysis"""
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        try:
+            import google.generativeai as genai
+            self.genai = genai
+            self.genai.configure(api_key=api_key)
+            self.model = self.genai.GenerativeModel('gemini-pro')
+        except ImportError:
+            raise ImportError("google-generativeai package not installed. Run: pip install google-generativeai")
+    
+    def analyze_mention(self, content: str, title: Optional[str] = None) -> Dict:
+        start_time = time.time()
+        
+        full_text = f"{title}\n\n{content}" if title else content
+        
+        prompt = f"""Phân tích nội dung sau đây và trả về kết quả dưới dạng JSON:
+
+Nội dung:
+{full_text}
+
+Yêu cầu phân tích:
+1. sentiment: Đánh giá cảm xúc (positive, neutral, negative_low, negative_medium, negative_high)
+2. risk_score: Điểm rủi ro từ 0-100 (0 = không rủi ro, 100 = rủi ro cực cao)
+3. crisis_level: Mức độ khủng hoảng từ 1-5 (1 = bình thường, 5 = khủng hoảng nghiêm trọng)
+4. summary_vi: Tóm tắt ngắn gọn bằng tiếng Việt (1-2 câu)
+5. suggested_action: Hành động đề xuất (monitor, respond, escalate, legal_review)
+6. responsible_department: Bộ phận chịu trách nhiệm (customer_service, PR, legal, executive)
+7. confidence_score: Độ tin cậy của phân tích từ 0-100
+
+LƯU Ý QUAN TRỌNG:
+- KHÔNG đề xuất hành động bất hợp pháp (hack, DDoS, spam, scraping trái phép)
+- Với nội dung có hại: đề xuất thu thập bằng chứng, yêu cầu sửa đổi, dự thảo takedown hợp pháp, báo cáo vi phạm chính sách nền tảng
+- Luôn yêu cầu phê duyệt của con người cho các hành động quan trọng
+
+Trả về JSON thuần túy, không có markdown:
+{{
+  "sentiment": "...",
+  "risk_score": 0,
+  "crisis_level": 0,
+  "summary_vi": "...",
+  "suggested_action": "...",
+  "responsible_department": "...",
+  "confidence_score": 0
+}}"""
+
+        try:
+            response = self.model.generate_content(prompt)
+            result_text = response.text.strip()
+            
+            # Remove markdown code blocks if present
+            if result_text.startswith("```"):
+                result_text = result_text.split("```")[1]
+                if result_text.startswith("json"):
+                    result_text = result_text[4:]
+                result_text = result_text.strip()
+            
+            result = json.loads(result_text)
+            
+            # Validate and normalize
+            result["sentiment"] = result.get("sentiment", "neutral")
+            result["risk_score"] = float(result.get("risk_score", 50))
+            result["crisis_level"] = int(result.get("crisis_level", 2))
+            result["summary_vi"] = result.get("summary_vi", "Không có tóm tắt")
+            result["suggested_action"] = result.get("suggested_action", "monitor")
+            result["responsible_department"] = result.get("responsible_department", "customer_service")
+            result["confidence_score"] = float(result.get("confidence_score", 80))
+            result["processing_time_ms"] = int((time.time() - start_time) * 1000)
+            
+            return result
+            
+        except Exception as e:
+            # Fallback to dummy analysis if Gemini fails
+            print(f"Gemini analysis failed: {e}")
+            dummy = DummyAIProvider()
+            return dummy.analyze_mention(content, title)
+
+
+# ============================================================================
+# AI SERVICE FACTORY
+# ============================================================================
+
+def get_ai_provider() -> AIProvider:
+    """
+    Get the configured AI provider based on environment variables
+    
+    Environment Variables:
+        AI_PROVIDER: "openai", "gemini", or "dummy" (default: "dummy")
+        OPENAI_API_KEY: OpenAI API key (required if AI_PROVIDER=openai)
+        GEMINI_API_KEY: Google Gemini API key (required if AI_PROVIDER=gemini)
+    
+    Returns:
+        AIProvider instance
+    """
+    provider_name = os.getenv("AI_PROVIDER", "dummy").lower()
+    
+    if provider_name == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("WARNING: OPENAI_API_KEY not set, falling back to dummy AI")
+            return DummyAIProvider()
+        return OpenAIProvider(api_key)
+    
+    elif provider_name == "gemini":
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            print("WARNING: GEMINI_API_KEY not set, falling back to dummy AI")
+            return DummyAIProvider()
+        return GeminiProvider(api_key)
+    
+    else:
+        # Default to dummy provider
+        return DummyAIProvider()
+
+
+def analyze_mention(content: str, title: Optional[str] = None) -> Dict:
+    """
+    Analyze a mention using the configured AI provider
+    
+    Args:
+        content: The mention content to analyze
+        title: Optional title of the mention
+    
+    Returns:
+        Analysis results dictionary
+    """
+    provider = get_ai_provider()
+    return provider.analyze_mention(content, title)
+
+
+# ============================================================================
+# BACKWARD COMPATIBILITY
+# ============================================================================
 
 def analyze_mention_with_dummy_ai(content: str, title: str = None) -> Dict:
     """
-    Dummy AI analysis that uses simple keyword matching
-    In production, this would call OpenAI, Gemini, or other AI providers
+    DEPRECATED: Use analyze_mention() instead
+    Kept for backward compatibility
     """
-    start_time = time.time()
-    
-    content_lower = (content or "").lower()
-    title_lower = (title or "").lower()
-    full_text = f"{title_lower} {content_lower}"
-    
-    # Negative keywords (Vietnamese + English)
-    negative_keywords = [
-        'tệ', 'kém', 'dở', 'tồi', 'lừa đảo', 'scam', 'fake', 'giả mạo',
-        'bad', 'terrible', 'awful', 'worst', 'fraud', 'cheat',
-        'không tốt', 'thất vọng', 'disappointed', 'angry', 'tức giận',
-        'lỗi', 'error', 'bug', 'broken', 'hỏng', 'sai', 'wrong',
-        'chậm', 'slow', 'delay', 'trễ', 'không phản hồi', 'no response',
-        'rác', 'trash', 'garbage', 'useless', 'vô dụng'
-    ]
-    
-    # Positive keywords
-    positive_keywords = [
-        'tốt', 'good', 'great', 'excellent', 'xuất sắc', 'tuyệt vời',
-        'hài lòng', 'satisfied', 'happy', 'vui', 'thích', 'like', 'love',
-        'chất lượng', 'quality', 'nhanh', 'fast', 'quick', 'tốc độ',
-        'recommend', 'khuyên dùng', 'đáng tin', 'trust', 'reliable'
-    ]
-    
-    # Crisis keywords (high risk)
-    crisis_keywords = [
-        'chết', 'death', 'die', 'tử vong', 'nguy hiểm', 'danger',
-        'bệnh viện', 'hospital', 'cấp cứu', 'emergency', 'khẩn cấp',
-        'kiện', 'lawsuit', 'sue', 'court', 'tòa án', 'pháp luật',
-        'scandal', 'bê bối', 'rò rỉ', 'leak', 'hack', 'breach',
-        'virus', 'nhiễm độc', 'poison', 'toxic', 'độc hại',
-        'cháy', 'fire', 'nổ', 'explosion', 'tai nạn', 'accident'
-    ]
-    
-    # Count matches
-    negative_count = sum(1 for kw in negative_keywords if kw in full_text)
-    positive_count = sum(1 for kw in positive_keywords if kw in full_text)
-    crisis_count = sum(1 for kw in crisis_keywords if kw in full_text)
-    
-    # Calculate sentiment
-    if crisis_count > 0:
-        sentiment = "negative_high"
-    elif negative_count > positive_count + 2:
-        sentiment = "negative_high"
-    elif negative_count > positive_count:
-        sentiment = "negative_medium"
-    elif negative_count > 0:
-        sentiment = "negative_low"
-    elif positive_count > 0:
-        sentiment = "positive"
-    else:
-        sentiment = "neutral"
-    
-    # Calculate risk score (0-100)
-    base_risk = 30
-    risk_score = base_risk + (negative_count * 10) + (crisis_count * 20)
-    risk_score = min(risk_score, 100)
-    
-    # Calculate crisis level (1-5)
-    if crisis_count > 0:
-        crisis_level = 5
-    elif risk_score >= 80:
-        crisis_level = 4
-    elif risk_score >= 60:
-        crisis_level = 3
-    elif risk_score >= 40:
-        crisis_level = 2
-    else:
-        crisis_level = 1
-    
-    # Generate summary
-    if sentiment == "negative_high":
-        summary_vi = "Phát hiện nội dung tiêu cực nghiêm trọng. Cần xem xét và xử lý ngay."
-    elif sentiment == "negative_medium":
-        summary_vi = "Nội dung có xu hướng tiêu cực. Nên theo dõi và phản hồi."
-    elif sentiment == "negative_low":
-        summary_vi = "Nội dung có một số ý kiến tiêu cực nhẹ."
-    elif sentiment == "positive":
-        summary_vi = "Nội dung tích cực, phản hồi tốt từ người dùng."
-    else:
-        summary_vi = "Nội dung trung lập, không có ý kiến rõ ràng."
-    
-    # Suggested action
-    if crisis_level >= 4:
-        suggested_action = "legal_review"
-        responsible_department = "legal"
-    elif crisis_level >= 3:
-        suggested_action = "escalate"
-        responsible_department = "executive"
-    elif risk_score >= 50:
-        suggested_action = "respond"
-        responsible_department = "PR"
-    elif risk_score >= 30:
-        suggested_action = "monitor"
-        responsible_department = "customer_service"
-    else:
-        suggested_action = "monitor"
-        responsible_department = "customer_service"
-    
-    # Confidence score (simulated)
-    confidence_score = random.uniform(75, 95)
-    
-    processing_time_ms = int((time.time() - start_time) * 1000)
-    
-    return {
-        "sentiment": sentiment,
-        "risk_score": risk_score,
-        "crisis_level": crisis_level,
-        "summary_vi": summary_vi,
-        "suggested_action": suggested_action,
-        "responsible_department": responsible_department,
-        "confidence_score": round(confidence_score, 2),
-        "processing_time_ms": processing_time_ms
-    }
+    return analyze_mention(content, title)

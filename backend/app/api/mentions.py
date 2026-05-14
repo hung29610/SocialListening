@@ -11,7 +11,9 @@ from app.models.user import User
 from app.models.mention import Mention, AIAnalysis
 from app.models.alert import Alert, AlertStatus, AlertSeverity
 from app.models.incident import Incident, IncidentStatus, IncidentLog
-from app.services.ai_service import analyze_mention_with_dummy_ai
+from app.services.ai_service import analyze_mention
+from app.services.notification_service import notify_high_risk_mention
+import os
 from math import ceil
 
 router = APIRouter()
@@ -151,7 +153,11 @@ def analyze_mention(
         select(AIAnalysis).where(AIAnalysis.mention_id == mention_id)
     ).scalar_one_or_none()
 
-    analysis_result = analyze_mention_with_dummy_ai(mention.content, mention.title)
+    analysis_result = analyze_mention(mention.content, mention.title)
+    
+    # Get AI provider name for tracking
+    ai_provider = os.getenv("AI_PROVIDER", "dummy").lower()
+    model_version = "gpt-4" if ai_provider == "openai" else ("gemini-pro" if ai_provider == "gemini" else "keyword-v1.0")
 
     if existing:
         # Update existing analysis
@@ -163,6 +169,8 @@ def analyze_mention(
         existing.responsible_department = analysis_result['responsible_department']
         existing.confidence_score = analysis_result['confidence_score']
         existing.processing_time_ms = analysis_result['processing_time_ms']
+        existing.ai_provider = ai_provider
+        existing.model_version = model_version
         db.commit()
         db.refresh(existing)
         analysis = existing
@@ -176,13 +184,20 @@ def analyze_mention(
             suggested_action=analysis_result['suggested_action'],
             responsible_department=analysis_result['responsible_department'],
             confidence_score=analysis_result['confidence_score'],
-            ai_provider="dummy_ai",
-            model_version="1.0",
+            ai_provider=ai_provider,
+            model_version=model_version,
             processing_time_ms=analysis_result['processing_time_ms']
         )
         db.add(analysis)
         db.commit()
         db.refresh(analysis)
+    
+    # Send notification if high risk
+    if analysis_result['risk_score'] >= 70:
+        try:
+            notify_high_risk_mention(db, mention_id, analysis_result)
+        except Exception as e:
+            print(f"Failed to send notification: {e}")
 
     return {
         "mention_id": mention_id,

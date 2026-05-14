@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.alert import Alert, AlertStatus, AlertSeverity
+from app.services.notification_service import notify_alert_created
 
 router = APIRouter()
 
@@ -95,6 +96,12 @@ def create_alert(
     db.add(alert)
     db.commit()
     db.refresh(alert)
+    
+    # Send notification
+    try:
+        notify_alert_created(db, alert.id)
+    except Exception as e:
+        print(f"Failed to send alert notification: {e}")
 
     return {
         "id": alert.id,

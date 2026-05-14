@@ -1,283 +1,373 @@
 """
-Notification Service - Send alerts via multiple channels
+Notification Service for Social Listening Platform
+Handles email (SMTP) and webhook notifications
 """
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import List, Dict, Any
-import httpx
-from app.core.config import settings
+from typing import Dict, Optional
+from datetime import datetime
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+from app.models.system_settings import EmailSettings, SystemNotificationSettings
 
 
-class NotificationService:
-    """Service for sending notifications via multiple channels"""
+def send_email_notification(
+    db: Session,
+    to_email: str,
+    subject: str,
+    body_html: str,
+    body_text: Optional[str] = None
+) -> Dict:
+    """
+    Send email notification using SMTP
     
-    async def send_email(
-        self,
-        to_emails: List[str],
-        subject: str,
-        body_html: str,
-        body_text: str = None
-    ) -> Dict[str, Any]:
-        """Send email notification"""
-        if not settings.SMTP_HOST or not settings.SMTP_USER:
-            return {"success": False, "error": "Email not configured"}
+    Args:
+        db: Database session
+        to_email: Recipient email address
+        subject: Email subject
+        body_html: HTML email body
+        body_text: Plain text email body (optional)
         
-        try:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = settings.SMTP_FROM or settings.SMTP_USER
-            msg['To'] = ', '.join(to_emails)
-            
-            # Add text version
-            if body_text:
-                part1 = MIMEText(body_text, 'plain', 'utf-8')
-                msg.attach(part1)
-            
-            # Add HTML version
-            part2 = MIMEText(body_html, 'html', 'utf-8')
-            msg.attach(part2)
-            
-            # Send email
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
-            
-            return {
-                "success": True,
-                "channel": "email",
-                "recipients": to_emails
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "channel": "email",
-                "error": str(e)
-            }
+    Returns:
+        dict with success status and message
+    """
+    # Get email settings
+    settings = db.execute(
+        select(EmailSettings).limit(1)
+    ).scalar_one_or_none()
     
-    async def send_telegram(
-        self,
-        message: str,
-        chat_id: str = None,
-        parse_mode: str = "HTML"
-    ) -> Dict[str, Any]:
-        """Send Telegram notification"""
-        if not settings.TELEGRAM_BOT_TOKEN:
-            return {"success": False, "error": "Telegram not configured"}
-        
-        chat_id = chat_id or settings.TELEGRAM_CHAT_ID
-        if not chat_id:
-            return {"success": False, "error": "Telegram chat ID not configured"}
-        
-        try:
-            url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    json={
-                        "chat_id": chat_id,
-                        "text": message,
-                        "parse_mode": parse_mode
-                    }
-                )
-                response.raise_for_status()
-            
-            return {
-                "success": True,
-                "channel": "telegram",
-                "chat_id": chat_id
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "channel": "telegram",
-                "error": str(e)
-            }
+    if not settings or not settings.smtp_enabled:
+        return {
+            "success": False,
+            "message": "Email notifications not configured or disabled"
+        }
     
-    async def send_sms(
-        self,
-        phone_number: str,
-        message: str
-    ) -> Dict[str, Any]:
-        """Send SMS notification via Twilio"""
-        if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN:
-            return {"success": False, "error": "Twilio not configured"}
-        
-        try:
-            from twilio.rest import Client
-            
-            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-            
-            message = client.messages.create(
-                body=message,
-                from_=settings.TWILIO_PHONE_NUMBER,
-                to=phone_number
-            )
-            
-            return {
-                "success": True,
-                "channel": "sms",
-                "phone_number": phone_number,
-                "message_sid": message.sid
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "channel": "sms",
-                "error": str(e)
-            }
+    if not all([settings.smtp_host, settings.smtp_port, settings.smtp_user, settings.smtp_password]):
+        return {
+            "success": False,
+            "message": "SMTP configuration incomplete"
+        }
     
-    async def send_zalo(
-        self,
-        message: str,
-        user_id: str = None
-    ) -> Dict[str, Any]:
-        """Send Zalo OA notification"""
-        if not settings.ZALO_OA_ID or not settings.ZALO_ACCESS_TOKEN:
-            return {"success": False, "error": "Zalo not configured"}
+    try:
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = settings.smtp_from or settings.smtp_user
+        msg['To'] = to_email
         
-        try:
-            url = "https://openapi.zalo.me/v2.0/oa/message"
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    headers={
-                        "access_token": settings.ZALO_ACCESS_TOKEN
-                    },
-                    json={
-                        "recipient": {
-                            "user_id": user_id
-                        },
-                        "message": {
-                            "text": message
-                        }
-                    }
-                )
-                response.raise_for_status()
-            
-            return {
-                "success": True,
-                "channel": "zalo",
-                "user_id": user_id
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "channel": "zalo",
-                "error": str(e)
-            }
-    
-    def format_alert_email(
-        self,
-        alert_title: str,
-        alert_message: str,
-        mention_url: str,
-        risk_score: float,
-        crisis_level: int,
-        sentiment: str
-    ) -> str:
-        """Format alert as HTML email"""
-        severity_color = {
-            "critical": "#dc2626",
-            "high": "#ea580c",
-            "medium": "#f59e0b",
-            "low": "#3b82f6"
+        # Add plain text part
+        if body_text:
+            part1 = MIMEText(body_text, 'plain', 'utf-8')
+            msg.attach(part1)
+        
+        # Add HTML part
+        part2 = MIMEText(body_html, 'html', 'utf-8')
+        msg.attach(part2)
+        
+        # Connect to SMTP server
+        if settings.smtp_use_tls:
+            server = smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10)
+            server.starttls()
+        else:
+            server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=10)
+        
+        # Login
+        server.login(settings.smtp_user, settings.smtp_password)
+        
+        # Send email
+        server.send_message(msg)
+        server.quit()
+        
+        print(f"[Email] ✅ Sent to {to_email}: {subject}")
+        
+        return {
+            "success": True,
+            "message": f"Email sent to {to_email}",
+            "sent_at": datetime.utcnow().isoformat()
         }
         
-        color = severity_color.get("high", "#3b82f6")
-        
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background-color: {color}; color: white; padding: 20px; border-radius: 5px 5px 0 0; }}
-                .content {{ background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }}
-                .metrics {{ display: flex; gap: 20px; margin: 20px 0; }}
-                .metric {{ flex: 1; background: white; padding: 15px; border-radius: 5px; text-align: center; }}
-                .metric-value {{ font-size: 24px; font-weight: bold; color: {color}; }}
-                .metric-label {{ font-size: 12px; color: #6b7280; margin-top: 5px; }}
-                .button {{ display: inline-block; background-color: {color}; color: white; padding: 12px 24px; 
-                          text-decoration: none; border-radius: 5px; margin-top: 20px; }}
-                .footer {{ text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h2>🚨 Cảnh Báo Rủi Ro Danh Tiếng</h2>
-                </div>
-                <div class="content">
-                    <h3>{alert_title}</h3>
-                    <p>{alert_message}</p>
-                    
-                    <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-value">{risk_score:.0f}</div>
-                            <div class="metric-label">Risk Score</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">{crisis_level}</div>
-                            <div class="metric-label">Crisis Level</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">{sentiment}</div>
-                            <div class="metric-label">Sentiment</div>
-                        </div>
-                    </div>
-                    
-                    <a href="{mention_url}" class="button">Xem Chi Tiết</a>
-                </div>
-                <div class="footer">
-                    <p>Social Listening Platform - Powered by AI</p>
-                    <p>Email này được gửi tự động, vui lòng không trả lời.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        return html
+    except Exception as e:
+        print(f"[Email] ❌ Failed to send to {to_email}: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to send email: {str(e)}"
+        }
+
+
+def send_webhook_notification(
+    db: Session,
+    event_type: str,
+    data: Dict
+) -> Dict:
+    """
+    Send webhook notification via HTTP POST
     
-    def format_alert_telegram(
-        self,
-        alert_title: str,
-        alert_message: str,
-        mention_url: str,
-        risk_score: float,
-        crisis_level: int,
-        sentiment: str
-    ) -> str:
-        """Format alert as Telegram message"""
-        emoji = "🚨" if crisis_level >= 4 else "⚠️" if crisis_level >= 3 else "ℹ️"
+    Args:
+        db: Database session
+        event_type: Type of event (mention_high_risk, alert_created, etc.)
+        data: Event data to send
         
-        message = f"""
-{emoji} <b>CẢNH BÁO RỦI RO DANH TIẾNG</b>
-
-<b>{alert_title}</b>
-
-{alert_message}
-
-📊 <b>Chỉ Số:</b>
-• Risk Score: {risk_score:.0f}/100
-• Crisis Level: {crisis_level}/5
-• Sentiment: {sentiment}
-
-🔗 <a href="{mention_url}">Xem chi tiết</a>
-        """
+    Returns:
+        dict with success status and message
+    """
+    # Get notification settings
+    settings = db.execute(
+        select(SystemNotificationSettings).limit(1)
+    ).scalar_one_or_none()
+    
+    if not settings or not settings.webhook_enabled:
+        return {
+            "success": False,
+            "message": "Webhook notifications not configured or disabled"
+        }
+    
+    if not settings.webhook_url:
+        return {
+            "success": False,
+            "message": "Webhook URL not configured"
+        }
+    
+    try:
+        # Prepare payload
+        payload = {
+            "event_type": event_type,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": data
+        }
         
-        return message.strip()
+        # Prepare headers
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "SocialListening/1.0"
+        }
+        
+        # Add custom headers if configured
+        if settings.webhook_headers:
+            headers.update(settings.webhook_headers)
+        
+        # Send POST request
+        response = requests.post(
+            settings.webhook_url,
+            json=payload,
+            headers=headers,
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        
+        print(f"[Webhook] ✅ Sent {event_type} to {settings.webhook_url}")
+        
+        return {
+            "success": True,
+            "message": f"Webhook sent successfully",
+            "status_code": response.status_code,
+            "sent_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"[Webhook] ❌ Failed to send {event_type}: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to send webhook: {str(e)}"
+        }
 
 
-# Singleton instance
-notification_service = NotificationService()
+def notify_high_risk_mention(db: Session, mention_id: int, analysis: Dict):
+    """
+    Send notifications for high-risk mention detection
+    
+    Args:
+        db: Database session
+        mention_id: Mention ID
+        analysis: AI analysis results
+    """
+    from app.models.mention import Mention
+    
+    # Get mention
+    mention = db.execute(
+        select(Mention).where(Mention.id == mention_id)
+    ).scalar_one_or_none()
+    
+    if not mention:
+        return
+    
+    # Email notification
+    subject = f"⚠️ High Risk Mention Detected (Risk: {analysis['risk_score']})"
+    
+    body_html = f"""
+    <html>
+    <body>
+        <h2>High Risk Mention Detected</h2>
+        <p><strong>Risk Score:</strong> {analysis['risk_score']}/100</p>
+        <p><strong>Crisis Level:</strong> {analysis['crisis_level']}/5</p>
+        <p><strong>Sentiment:</strong> {analysis['sentiment']}</p>
+        <p><strong>Summary:</strong> {analysis['summary_vi']}</p>
+        <p><strong>Suggested Action:</strong> {analysis['suggested_action']}</p>
+        <p><strong>Department:</strong> {analysis['responsible_department']}</p>
+        <hr>
+        <p><strong>Title:</strong> {mention.title or 'No title'}</p>
+        <p><strong>URL:</strong> <a href="{mention.url}">{mention.url}</a></p>
+        <p><strong>Content Preview:</strong></p>
+        <p>{mention.content[:500]}...</p>
+        <hr>
+        <p><small>Detected at: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</small></p>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+    High Risk Mention Detected
+    
+    Risk Score: {analysis['risk_score']}/100
+    Crisis Level: {analysis['crisis_level']}/5
+    Sentiment: {analysis['sentiment']}
+    Summary: {analysis['summary_vi']}
+    Suggested Action: {analysis['suggested_action']}
+    Department: {analysis['responsible_department']}
+    
+    Title: {mention.title or 'No title'}
+    URL: {mention.url}
+    Content: {mention.content[:500]}...
+    
+    Detected at: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+    """
+    
+    # Get email settings to find recipient
+    email_settings = db.execute(
+        select(EmailSettings).limit(1)
+    ).scalar_one_or_none()
+    
+    if email_settings and email_settings.smtp_enabled:
+        # Send to configured recipient or default
+        recipient = email_settings.smtp_from or "admin@sociallistening.com"
+        send_email_notification(db, recipient, subject, body_html, body_text)
+    
+    # Webhook notification
+    webhook_data = {
+        "mention_id": mention_id,
+        "risk_score": analysis['risk_score'],
+        "crisis_level": analysis['crisis_level'],
+        "sentiment": analysis['sentiment'],
+        "summary": analysis['summary_vi'],
+        "suggested_action": analysis['suggested_action'],
+        "responsible_department": analysis['responsible_department'],
+        "mention_url": mention.url,
+        "mention_title": mention.title
+    }
+    
+    send_webhook_notification(db, "mention_high_risk", webhook_data)
+
+
+def notify_alert_created(db: Session, alert_id: int):
+    """
+    Send notifications when an alert is created
+    
+    Args:
+        db: Database session
+        alert_id: Alert ID
+    """
+    from app.models.alert import Alert
+    
+    # Get alert
+    alert = db.execute(
+        select(Alert).where(Alert.id == alert_id)
+    ).scalar_one_or_none()
+    
+    if not alert:
+        return
+    
+    # Email notification
+    subject = f"🚨 New Alert: {alert.title}"
+    
+    body_html = f"""
+    <html>
+    <body>
+        <h2>New Alert Created</h2>
+        <p><strong>Title:</strong> {alert.title}</p>
+        <p><strong>Severity:</strong> {alert.severity.value if hasattr(alert.severity, 'value') else alert.severity}</p>
+        <p><strong>Status:</strong> {alert.status.value if hasattr(alert.status, 'value') else alert.status}</p>
+        <p><strong>Message:</strong> {alert.message or 'No message'}</p>
+        <hr>
+        <p><small>Created at: {alert.created_at.strftime('%Y-%m-%d %H:%M:%S') if alert.created_at else 'Unknown'}</small></p>
+    </body>
+    </html>
+    """
+    
+    # Get email settings
+    email_settings = db.execute(
+        select(EmailSettings).limit(1)
+    ).scalar_one_or_none()
+    
+    if email_settings and email_settings.smtp_enabled:
+        recipient = email_settings.smtp_from or "admin@sociallistening.com"
+        send_email_notification(db, recipient, subject, body_html)
+    
+    # Webhook notification
+    webhook_data = {
+        "alert_id": alert_id,
+        "title": alert.title,
+        "severity": alert.severity.value if hasattr(alert.severity, 'value') else alert.severity,
+        "status": alert.status.value if hasattr(alert.status, 'value') else alert.status,
+        "message": alert.message,
+        "mention_id": alert.mention_id
+    }
+    
+    send_webhook_notification(db, "alert_created", webhook_data)
+
+
+def notify_incident_assigned(db: Session, incident_id: int, assigned_to_id: int):
+    """
+    Send notifications when an incident is assigned
+    
+    Args:
+        db: Database session
+        incident_id: Incident ID
+        assigned_to_id: User ID of assignee
+    """
+    from app.models.incident import Incident
+    from app.models.user import User
+    
+    # Get incident and user
+    incident = db.execute(
+        select(Incident).where(Incident.id == incident_id)
+    ).scalar_one_or_none()
+    
+    user = db.execute(
+        select(User).where(User.id == assigned_to_id)
+    ).scalar_one_or_none()
+    
+    if not incident or not user:
+        return
+    
+    # Email notification
+    subject = f"📋 Incident Assigned: {incident.title}"
+    
+    body_html = f"""
+    <html>
+    <body>
+        <h2>Incident Assigned to You</h2>
+        <p><strong>Title:</strong> {incident.title}</p>
+        <p><strong>Status:</strong> {incident.status.value if hasattr(incident.status, 'value') else incident.status}</p>
+        <p><strong>Description:</strong> {incident.description or 'No description'}</p>
+        <hr>
+        <p><small>Assigned at: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</small></p>
+    </body>
+    </html>
+    """
+    
+    if user.email:
+        send_email_notification(db, user.email, subject, body_html)
+    
+    # Webhook notification
+    webhook_data = {
+        "incident_id": incident_id,
+        "title": incident.title,
+        "status": incident.status.value if hasattr(incident.status, 'value') else incident.status,
+        "assigned_to": user.email,
+        "assigned_to_id": assigned_to_id
+    }
+    
+    send_webhook_notification(db, "incident_assigned", webhook_data)

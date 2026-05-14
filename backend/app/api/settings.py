@@ -133,25 +133,56 @@ def test_email_settings(
     current_user: User = Depends(get_current_superuser)
 ):
     """Test email configuration by sending a test email - Admin only"""
+    from app.services.notification_service import send_email_notification
+    
     settings = db.execute(
         select(EmailSettings).where(EmailSettings.id == 1)
     ).scalar_one_or_none()
     
-    if not settings or not settings.is_configured:
+    if not settings or not settings.smtp_enabled:
         raise HTTPException(
             status_code=400,
-            detail="Email settings not configured. Please configure SMTP settings first."
+            detail="Email settings not configured or disabled"
         )
     
-    # TODO: Implement actual email sending
-    # For now, just return success
-    return {
-        "success": True,
-        "message": "Email test functionality not yet implemented. SMTP settings are saved.",
-        "smtp_host": settings.smtp_host,
-        "smtp_port": settings.smtp_port,
-        "from_email": settings.from_email
-    }
+    # Send test email
+    test_subject = "🧪 Test Email from Social Listening Platform"
+    test_body_html = """
+    <html>
+    <body>
+        <h2>Test Email</h2>
+        <p>This is a test email from Social Listening Platform.</p>
+        <p>If you received this email, your SMTP configuration is working correctly!</p>
+        <hr>
+        <p><small>Sent at: {}</small></p>
+    </body>
+    </html>
+    """.format(__import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))
+    
+    test_body_text = """
+    Test Email
+    
+    This is a test email from Social Listening Platform.
+    If you received this email, your SMTP configuration is working correctly!
+    
+    Sent at: {}
+    """.format(__import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))
+    
+    # Send to configured from_email
+    recipient = settings.smtp_from or settings.smtp_user
+    result = send_email_notification(db, recipient, test_subject, test_body_html, test_body_text)
+    
+    if result['success']:
+        return {
+            "success": True,
+            "message": f"Test email sent successfully to {recipient}",
+            "sent_at": result.get('sent_at')
+        }
+    else:
+        raise HTTPException(
+            status_code=500,
+            detail=result['message']
+        )
 
 
 # ─── System Notification Settings ─────────────────────────────────────────────
@@ -213,11 +244,13 @@ def update_system_notification_settings(
 
 @router.post("/notifications/test")
 def test_notification_settings(
-    channel: str,  # 'telegram', 'slack', 'discord', 'webhook'
+    channel: str,  # 'webhook'
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser)
 ):
     """Test notification channel by sending a test message - Admin only"""
+    from app.services.notification_service import send_webhook_notification
+    
     settings = db.execute(
         select(SystemNotificationSettings).where(SystemNotificationSettings.id == 1)
     ).scalar_one_or_none()
@@ -225,25 +258,37 @@ def test_notification_settings(
     if not settings:
         raise HTTPException(status_code=404, detail="Notification settings not found")
     
-    # TODO: Implement actual notification sending
-    # For now, just return success
-    webhook_map = {
-        'telegram': settings.telegram_webhook,
-        'slack': settings.slack_webhook,
-        'discord': settings.discord_webhook,
-        'webhook': settings.webhook_url
-    }
-    
-    webhook = webhook_map.get(channel)
-    if not webhook:
+    if channel == 'webhook':
+        if not settings.webhook_enabled or not settings.webhook_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Webhook not configured or disabled"
+            )
+        
+        # Send test webhook
+        test_data = {
+            "message": "This is a test webhook from Social Listening Platform",
+            "test": True,
+            "timestamp": __import__('datetime').datetime.utcnow().isoformat()
+        }
+        
+        result = send_webhook_notification(db, "test_webhook", test_data)
+        
+        if result['success']:
+            return {
+                "success": True,
+                "message": f"Test webhook sent successfully",
+                "webhook_url": settings.webhook_url,
+                "status_code": result.get('status_code'),
+                "sent_at": result.get('sent_at')
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=result['message']
+            )
+    else:
         raise HTTPException(
             status_code=400,
-            detail=f"{channel.capitalize()} webhook not configured"
+            detail=f"Channel '{channel}' not supported. Use 'webhook'"
         )
-    
-    return {
-        "success": True,
-        "message": f"{channel.capitalize()} test functionality not yet implemented. Webhook URL is saved.",
-        "channel": channel,
-        "webhook": webhook[:50] + "..." if len(webhook) > 50 else webhook
-    }

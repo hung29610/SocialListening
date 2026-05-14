@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create tables + seed data."""
+    """Startup: create tables + seed data + start scheduler."""
     logger.info("Starting Social Listening Platform...")
 
     # Create tables (fallback if alembic hasn't run)
@@ -42,7 +42,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Service seed skipped: {e}")
 
+    # Start background scheduler
+    try:
+        from app.services.scheduler_service import start_scheduler
+        start_scheduler()
+        logger.info("Background scheduler started")
+    except Exception as e:
+        logger.warning(f"Scheduler start failed: {e}")
+
     yield
+    
+    # Shutdown scheduler
+    try:
+        from app.services.scheduler_service import stop_scheduler
+        stop_scheduler()
+        logger.info("Background scheduler stopped")
+    except Exception as e:
+        logger.warning(f"Scheduler stop failed: {e}")
+    
     logger.info("Shutting down...")
 
 

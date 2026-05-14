@@ -300,3 +300,64 @@ def get_scan_history(
         "total_pages": ceil(total / page_size) if total > 0 else 1
     }
 
+
+@router.get("/scheduler/status")
+def get_scheduler_status(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get background scheduler status"""
+    from app.services.scheduler_service import get_scheduler_status
+    return get_scheduler_status()
+
+
+@router.get("/jobs")
+def get_crawl_jobs(
+    page: int = 1,
+    page_size: int = 20,
+    source_id: Optional[int] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get crawl job history"""
+    from app.models.crawl import CrawlJob
+    from math import ceil
+    
+    query = select(CrawlJob)
+    
+    if source_id:
+        query = query.where(CrawlJob.source_id == source_id)
+    
+    if status:
+        query = query.where(CrawlJob.status == status)
+    
+    total = db.execute(select(func.count()).select_from(query.subquery())).scalar() or 0
+    
+    offset = (page - 1) * page_size
+    jobs = db.execute(
+        query.order_by(CrawlJob.scheduled_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    ).scalars().all()
+    
+    return {
+        "items": [
+            {
+                "id": j.id,
+                "source_id": j.source_id,
+                "status": j.status.value if hasattr(j.status, 'value') else j.status,
+                "is_manual": j.is_manual,
+                "scheduled_at": j.scheduled_at.isoformat() if j.scheduled_at else None,
+                "started_at": j.started_at.isoformat() if j.started_at else None,
+                "completed_at": j.completed_at.isoformat() if j.completed_at else None,
+                "mentions_found": j.mentions_found,
+                "mentions_new": j.mentions_new,
+                "error_message": j.error_message
+            }
+            for j in jobs
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": ceil(total / page_size) if total > 0 else 1
+    }

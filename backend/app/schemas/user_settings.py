@@ -32,15 +32,15 @@ class NotificationSettingsResponse(NotificationSettingsBase):
 
 # User Preferences Schemas
 class UserPreferencesBase(BaseModel):
-    theme: str = Field('system', regex='^(light|dark|system)$')
-    language: str = Field('vi', regex='^(vi|en)$')
+    theme: str = Field('system', pattern='^(light|dark|system)$')
+    language: str = Field('vi', pattern='^(vi|en)$')
     sidebar_collapsed: bool = False
     items_per_page: int = Field(20, ge=10, le=100)
 
 
 class UserPreferencesUpdate(BaseModel):
-    theme: Optional[str] = Field(None, regex='^(light|dark|system)$')
-    language: Optional[str] = Field(None, regex='^(vi|en)$')
+    theme: Optional[str] = Field(None, pattern='^(light|dark|system)$')
+    language: Optional[str] = Field(None, pattern='^(vi|en)$')
     sidebar_collapsed: Optional[bool] = None
     items_per_page: Optional[int] = Field(None, ge=10, le=100)
 

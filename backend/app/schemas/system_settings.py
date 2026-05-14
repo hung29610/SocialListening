@@ -12,7 +12,7 @@ class OrganizationSettingsBase(BaseModel):
     hotline: Optional[str] = None
     website: Optional[str] = None
     timezone: str = 'Asia/Ho_Chi_Minh'
-    language: str = Field('vi', regex='^(vi|en)$')
+    language: str = Field('vi', pattern='^(vi|en)$')
 
 
 class OrganizationSettingsUpdate(BaseModel):
@@ -23,7 +23,7 @@ class OrganizationSettingsUpdate(BaseModel):
     hotline: Optional[str] = None
     website: Optional[str] = None
     timezone: Optional[str] = None
-    language: Optional[str] = Field(None, regex='^(vi|en)$')
+    language: Optional[str] = Field(None, pattern='^(vi|en)$')
 
 
 class OrganizationSettingsResponse(OrganizationSettingsBase):
