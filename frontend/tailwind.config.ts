@@ -103,6 +103,12 @@ const config: Config = {
           strong: 'hsl(var(--edge-strong) / <alpha-value>)',
         },
       },
+      fontFamily: {
+        /* SIGNAL display face — Space Grotesk via next/font (--font-display
+           set on <body> in src/app/layout.tsx); Inter fallback keeps SSR/
+           no-JS rendering sane. */
+        display: ['var(--font-display)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       fontSize: {
         'display-2xl': ['var(--text-display-2xl)', { lineHeight: 'var(--leading-display)', letterSpacing: 'var(--tracking-display)' }],
         'display-xl': ['var(--text-display-xl)', { lineHeight: 'var(--leading-display)', letterSpacing: 'var(--tracking-display)' }],

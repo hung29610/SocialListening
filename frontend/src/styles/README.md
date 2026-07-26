@@ -49,8 +49,8 @@ must read as **light emitted from the void**. `--signal` keeps the hue
 (243°) at full chroma and lifts lightness to 62% → `#473DFF`: contrast
 3.3:1 on void — passes WCAG for large display type and graphics, which is
 what the accent is for. For **small accent text on dark** use
-`--signal-bright` (`#6E66FF`, 4.9:1). In light mode the same hue is
-re-inked to 74%/48% → `#2920D5` (8.5:1 on the paper canvas).
+`--signal-bright` (`#6E66FF`, 4.8:1). In light mode the same hue is
+re-inked to 74%/48% → `#2920D5` (8.4:1 on the paper canvas).
 
 One accent means one: no second accent hue anywhere. Sentiment colors are
 data encoding, not accents.
@@ -64,7 +64,7 @@ the same magazine, not a flipped negative.
   dark theme's paper text), never plain white and never an inverted void.
   Surfaces are white like mounted prints on that paper.
 - Foreground is a violet-cast **ink** (`#121221`), not `#000`.
-- The accent is **re-inked deeper**, not reused: `#2920D5` holds 8.5:1 on
+- The accent is **re-inked deeper**, not reused: `#2920D5` holds 8.4:1 on
   paper where the dark theme's `#473DFF` would wash out.
 - **Glow becomes shadow**: `--glow-signal` is a neon emission on dark and a
   soft ink shadow on light. Light emits in the void; ink absorbs on paper.
@@ -97,7 +97,11 @@ All spacing sits on an 8px grid. Tailwind's default rem scale already is
   exposed as `py-band`,
 - Tailwind spacing `18` (72px), `22` (88px), `30` (120px).
 
-Never introduce off-grid values (no `py-[13px]`).
+**Layout spacing sits on the 8px grid** (section rhythm, gaps between
+blocks, container padding). **4px half-steps are allowed for micro-spacing
+inside components** — badge padding, icon gaps, dot offsets (`px-2.5`,
+`gap-1.5`, `py-0.5`), matching the shipped primitives and legacy pills.
+Never introduce values off the 4px lattice (no `py-[13px]`).
 
 ## Type scale
 
@@ -114,8 +118,14 @@ Never introduce off-grid values (no `py-[13px]`).
 Display sizes embed leading `0.95–1.05` and tracking `-0.045em`
 (`tracking-display`); metrics embed `-0.04em` and must add
 `tabular-nums`; eyebrows embed `+0.18em` (`tracking-eyebrow`) and are
-composed with `uppercase font-semibold`. Face: Inter (already loaded via
-`next/font` in `layout.tsx`) serves as the grotesque sans — no new fonts.
+composed with `uppercase font-semibold`.
+
+**Faces:** the SIGNAL display face is **Space Grotesk**, loaded
+dependency-free via `next/font/google` in `layout.tsx` and exposed as the
+CSS variable `--font-display` on `<body>`. Consume it via the Tailwind
+utility `font-display` (fallbacks: Inter → system sans) — `Display` and
+`Section`'s eyebrow already apply it. Body/UI text stays **Inter**
+(`next/font`, applied on `<body>`). Do not load additional fonts.
 
 ## Radii
 
@@ -134,6 +144,16 @@ Existing `--radius-*` family (globals.css) still applies. SIGNAL adds
 
 `MentionParticleField` is **not** here — it belongs to the motion engine
 (W-B, `lib/motion` + hero).
+
+> **Migration note (W-D):** TWO legacy sentiment pills predate
+> `ui/SentimentBadge` and must be migrated to it during the dashboard sync:
+> `components/dashboard/SentimentTag.tsx` (default export) and the
+> same-named `SentimentBadge` in `components/dashboard/Badges.tsx`
+> (used by `MentionCard.tsx` and `CrisisWarRoomModal.tsx`). The name
+> collision is intentional until then and conflict-free: both are only ever
+> imported by explicit module path (`@/components/dashboard/Badges` vs
+> `@/components/ui/SentimentBadge`) and `components/ui/` has no barrel
+> index, so imports cannot ambiguate.
 
 ## Usage rules
 

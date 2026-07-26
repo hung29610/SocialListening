@@ -68,7 +68,7 @@ export const Section: React.FC<SectionProps> = ({
         {hasHeader && (
           <div className={`mb-10 md:mb-16 ${centered ? 'mx-auto max-w-3xl text-center' : 'max-w-3xl'}`}>
             {eyebrow && (
-              <p className="mb-4 text-eyebrow font-semibold uppercase text-signal dark:text-signal-bright">
+              <p className="mb-4 font-display text-eyebrow font-semibold uppercase text-signal dark:text-signal-bright">
                 {eyebrow}
               </p>
             )}

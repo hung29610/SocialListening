@@ -36,7 +36,7 @@ export const Display: React.FC<DisplayProps> = ({
 }) => {
   return (
     <Tag
-      className={`font-bold ${sizes[size]} ${balance ? 'text-balance' : ''} ${className}`.trim()}
+      className={`font-display font-bold ${sizes[size]} ${balance ? 'text-balance' : ''} ${className}`.trim()}
       {...props}
     >
       {children}
