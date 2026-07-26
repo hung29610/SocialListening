@@ -151,7 +151,7 @@ export default function RoleManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-signal"></div>
       </div>
     );
   }
@@ -161,12 +161,12 @@ export default function RoleManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.roleManagement.title')}</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.roleManagement.subtitle')}</p>
+          <h2 className="text-xl font-bold text-paper tracking-wide">{t('settingsPage.roleManagement.title')}</h2>
+          <p className="text-sm text-paper-muted mt-1">{t('settingsPage.roleManagement.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={handleCreate}
-          className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
+          className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
         >
           <Plus className="w-5 h-5 mr-2" />
           {t('settingsPage.roleManagement.addRole')}
@@ -176,34 +176,34 @@ export default function RoleManagement() {
       {/* Roles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {roles.map((role) => (
-          <div key={role.id} className={`bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow ${!role.is_active ? 'opacity-50' : ''}`}>
+          <div key={role.id} className={`bg-void-surface border border-edge rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow motion-reduce:transition-none ${!role.is_active ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl border ${role.is_system ? 'bg-purple-500/10 border-purple-500/20' : 'bg-indigo-500/10 border-indigo-500/20'}`}>
-                  <Shield className={`w-6 h-6 ${role.is_system ? 'text-purple-400' : 'text-indigo-400'}`} />
+                <div className={`p-3 rounded-xl border ${role.is_system ? 'bg-void-raised border-edge-strong' : 'bg-signal/10 border-signal/25'}`}>
+                  <Shield className={`w-6 h-6 ${role.is_system ? 'text-paper-muted' : 'text-signal dark:text-signal-bright'}`} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{role.display_name}</h3>
-                  <p className="text-xs text-slate-500 dark:text-gray-400 font-mono mt-0.5">{role.name}</p>
+                  <h3 className="text-lg font-bold text-paper tracking-wide">{role.display_name}</h3>
+                  <p className="text-xs text-paper-muted font-mono mt-0.5">{role.name}</p>
                   {role.is_system && (
-                    <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md">
+                    <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-void-raised text-paper-muted border border-edge-strong rounded-md">
                       {t('settingsPage.roleManagement.systemBadge')}
                     </span>
                   )}
                 </div>
               </div>
               <div className="flex space-x-1">
-                <button 
+                <button
                   onClick={() => handleEdit(role)}
-                  className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                  className="p-2 text-signal dark:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                   title={t('settingsPage.roleManagement.actions.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 {!role.is_system && (
-                  <button 
+                  <button
                     onClick={() => handleDelete(role)}
-                    className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                     title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -213,22 +213,22 @@ export default function RoleManagement() {
             </div>
 
             {role.description && (
-              <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">{role.description}</p>
+              <p className="text-sm text-paper-muted mb-4">{role.description}</p>
             )}
 
             <div>
-              <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mb-2.5">{t('settingsPage.roleManagement.permissionsCount', { count: role.permissions.length })}</p>
+              <p className="text-xs font-medium text-paper-muted mb-2.5">{t('settingsPage.roleManagement.permissionsCount', { count: role.permissions.length })}</p>
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(role.permissions) && role.permissions.slice(0, 5).map((perm, idx) => (
                   <span
                     key={idx}
-                    className="px-2.5 py-1 text-xs bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md"
+                    className="px-2.5 py-1 text-xs bg-void-raised text-paper-muted border border-edge rounded-md"
                   >
                     {perm}
                   </span>
                 ))}
                 {role.permissions.length > 5 && (
-                  <span className="px-2.5 py-1 text-xs bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md">
+                  <span className="px-2.5 py-1 text-xs bg-void-raised text-paper-faint border border-edge rounded-md tabular-nums">
                     {t('settingsPage.roleManagement.morePermissions', { count: role.permissions.length - 5 })}
                   </span>
                 )}
@@ -240,37 +240,37 @@ export default function RoleManagement() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-edge flex items-center justify-between">
+              <h3 className="text-lg font-bold text-paper tracking-wide">
                 {editingRole
                   ? t('settingsPage.roleManagement.editModalTitle', { name: editingRole.display_name })
                   : t('settingsPage.roleManagement.createModalTitle')}
               </h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:text-gray-300 transition-colors">
+              <button onClick={() => setShowModal(false)} className="text-paper-faint hover:text-paper transition-colors duration-150 motion-reduce:transition-none rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {editingRole?.is_system && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-200">
-                  <strong className="text-amber-300">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.systemRoleNote')}
+                <div className="bg-warning/10 border border-warning/25 rounded-xl p-4 text-sm text-paper-muted">
+                  <strong className="text-warning">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.systemRoleNote')}
                 </div>
               )}
 
               {!editingRole?.is_system && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      {t('settingsPage.roleManagement.form.code')} <span className="text-rose-500">*</span>
+                    <label className="block text-sm font-medium text-paper-muted mb-2">
+                      {t('settingsPage.roleManagement.form.code')} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                       placeholder={t('settingsPage.roleManagement.form.codePlaceholder')}
                       required
                       disabled={!!editingRole}
@@ -278,25 +278,25 @@ export default function RoleManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      {t('settingsPage.roleManagement.form.displayName')} <span className="text-rose-500">*</span>
+                    <label className="block text-sm font-medium text-paper-muted mb-2">
+                      {t('settingsPage.roleManagement.form.displayName')} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                       placeholder={t('settingsPage.roleManagement.form.displayNamePlaceholder')}
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.roleManagement.form.description')}</label>
+                    <label className="block text-sm font-medium text-paper-muted mb-2">{t('settingsPage.roleManagement.form.description')}</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                       rows={2}
                       placeholder={t('settingsPage.roleManagement.form.descriptionPlaceholder')}
                     />
@@ -305,26 +305,26 @@ export default function RoleManagement() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  {t('settingsPage.roleManagement.form.permissions')} <span className="text-rose-500">*</span>
+                <label className="block text-sm font-medium text-paper-muted mb-2">
+                  {t('settingsPage.roleManagement.form.permissions')} <span className="text-destructive">*</span>
                 </label>
-                <div className="border border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B] rounded-xl p-4 max-h-60 overflow-y-auto">
+                <div className="border border-edge bg-void-raised rounded-xl p-4 max-h-60 overflow-y-auto">
                   <div className="grid grid-cols-2 gap-3">
                     {availablePermissions.map((permission) => (
-                      <label key={permission} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-800 p-2 rounded-lg transition-colors">
+                      <label key={permission} className="flex items-center space-x-3 cursor-pointer hover:bg-paper/[0.04] p-2 rounded-lg transition-colors duration-150 motion-reduce:transition-none">
                         <input
                           type="checkbox"
                           checked={formData.permissions.includes(permission)}
                           onChange={() => togglePermission(permission)}
-                          className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                          className="w-4 h-4 rounded accent-signal bg-void-surface border-edge-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                         />
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{permission}</span>
+                        <span className="text-sm font-medium text-paper-muted">{permission}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-2 font-medium">
-                  {t('settingsPage.roleManagement.form.selectedPrefix')} <span className="text-indigo-400">{formData.permissions.length}</span> {t('settingsPage.roleManagement.form.selectedSuffix')}
+                <p className="text-xs text-paper-muted mt-2 font-medium">
+                  {t('settingsPage.roleManagement.form.selectedPrefix')} <span className="text-signal dark:text-signal-bright tabular-nums">{formData.permissions.length}</span> {t('settingsPage.roleManagement.form.selectedSuffix')}
                 </p>
               </div>
 
@@ -334,24 +334,24 @@ export default function RoleManagement() {
                   id="is_active"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                  className="w-4 h-4 rounded accent-signal bg-void-surface border-edge-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 />
-                <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-gray-300">
+                <label htmlFor="is_active" className="text-sm font-medium text-paper-muted">
                   {t('settingsPage.roleManagement.form.isActive')}
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-gray-800">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-edge">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-6 py-2.5 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+                  className="px-6 py-2.5 bg-void-surface text-paper-muted border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
+                  className="px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                 >
                   {editingRole ? t('common.update') : t('settingsPage.roleManagement.form.submitCreate')}
                 </button>
@@ -362,9 +362,9 @@ export default function RoleManagement() {
       )}
 
       {/* Info Box */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-        <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.infoNote')}
+      <div className="bg-signal/10 border border-signal/25 rounded-xl p-4">
+        <p className="text-sm text-paper-muted">
+          <strong className="text-signal dark:text-signal-bright">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.infoNote')}
         </p>
       </div>
     </div>

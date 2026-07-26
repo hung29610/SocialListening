@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { reputation } from '@/lib/api';
 import { toast } from 'react-hot-toast';
+import { SeverityBadge } from '@/components/dashboard/Badges';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ReputationPage() {
@@ -18,11 +19,11 @@ export default function ReputationPage() {
   const [userRole, setUserRole] = useState<string>('');
   
   // Stats
-  const stats = [
-    { label: t('reputationPage.stats.openCases'), value: cases.filter(c => c.status !== 'closed' && c.status !== 'resolved').length, icon: ShieldAlert, color: 'text-amber-500' },
-    { label: t('reputationPage.stats.highRisk'), value: cases.filter(c => c.risk_level === 'high' || c.risk_level === 'critical').length, icon: AlertTriangle, color: 'text-red-500' },
-    { label: t('reputationPage.stats.waitingApproval'), value: cases.filter(c => c.status === 'waiting_approval').length, icon: FileSearch, color: 'text-blue-500' },
-    { label: t('reputationPage.stats.resolved'), value: cases.filter(c => c.status === 'resolved').length, icon: ShieldCheck, color: 'text-emerald-500' },
+  const statCards = [
+    { label: t('reputationPage.stats.openCases'), value: cases.filter(c => c.status !== 'closed' && c.status !== 'resolved').length, icon: ShieldAlert, color: 'text-warning' },
+    { label: t('reputationPage.stats.highRisk'), value: cases.filter(c => c.risk_level === 'high' || c.risk_level === 'critical').length, icon: AlertTriangle, color: 'text-destructive' },
+    { label: t('reputationPage.stats.waitingApproval'), value: cases.filter(c => c.status === 'waiting_approval').length, icon: FileSearch, color: 'text-info' },
+    { label: t('reputationPage.stats.resolved'), value: cases.filter(c => c.status === 'resolved').length, icon: ShieldCheck, color: 'text-success' },
   ];
 
   useEffect(() => {
@@ -87,50 +88,50 @@ export default function ReputationPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 motion-reduce:animate-none">
       <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold font-display tracking-tight text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-            <Scale className="w-8 h-8 text-indigo-400" />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold font-display tracking-tight text-paper mb-2 flex items-center gap-2">
+            <Scale className="w-8 h-8 text-signal dark:text-signal-bright" />
             {t('reputationPage.title')}
           </h1>
-          <p className="text-zinc-400">
+          <p className="text-paper-muted">
             {t('reputationPage.subtitle')}
           </p>
         </div>
       </div>
 
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-4 items-start">
-        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-200">
+      <div className="bg-warning/10 border border-warning/25 rounded-xl p-4 flex gap-4 items-start">
+        <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+        <div className="text-sm text-warning">
           <p className="font-semibold mb-1">{t('reputationPage.compliance.title')}</p>
-          <p className="text-amber-200/80">
+          <p className="text-paper-muted">
             {t('reputationPage.compliance.body')}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-xl hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+        {statCards.map((stat, idx) => (
+          <div key={idx} className="bg-void-surface border border-edge rounded-2xl p-5 hover:border-edge-strong transition-all duration-200 motion-reduce:transition-none hover:-translate-y-1 motion-reduce:hover:translate-y-0">
             <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl bg-white/5 shadow-inner ${stat.color}`}>
-                <stat.icon className="w-5 h-5 drop-shadow-[0_0_8px_currentColor]" />
+              <div className={`p-3 rounded-xl bg-void-raised ${stat.color}`}>
+                <stat.icon className="w-5 h-5" />
               </div>
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight drop-shadow-md mb-1">{stat.value}</div>
-            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{stat.label}</div>
+            <div className="text-3xl font-black text-paper tracking-tight tabular-nums mb-1">{stat.value}</div>
+            <div className="text-eyebrow font-semibold uppercase text-paper-faint">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl">
-        <div className="border-b border-white/5">
+      <div className="bg-void-surface border border-edge rounded-2xl overflow-hidden">
+        <div className="border-b border-edge">
           <div className="flex gap-1 p-2">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                activeTab === 'overview' ? 'bg-indigo-500 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 ${
+                activeTab === 'overview' ? 'bg-signal/10 text-signal dark:text-signal-bright border-signal/25' : 'border-transparent text-paper-muted hover:text-paper hover:bg-void-raised'
               }`}
             >
               {t('reputationPage.tabs.cases')}
@@ -140,54 +141,49 @@ export default function ReputationPage() {
 
         <div className="p-4">
           {isLoading ? (
-            <div className="text-center py-12 text-zinc-500">{t('common.loadingData')}</div>
+            <div className="text-center py-12 text-paper-faint">{t('common.loadingData')}</div>
           ) : cases.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck className="w-8 h-8 text-zinc-500" />
+              <div className="w-16 h-16 bg-void-raised rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck className="w-8 h-8 text-paper-faint" />
               </div>
-              <p className="text-zinc-400">{t('reputationPage.emptyCases')}</p>
+              <p className="text-paper-muted">{t('reputationPage.emptyCases')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.fields.title')}</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.table.caseType')}</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.table.riskLevel')}</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.fields.status')}</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase text-right">{t('reputationPage.table.actions')}</th>
+                <thead className="bg-void-raised">
+                  <tr className="border-b border-edge text-eyebrow font-semibold uppercase text-paper-faint">
+                    <th scope="col" className="py-3 px-4">{t('reputationPage.fields.title')}</th>
+                    <th scope="col" className="py-3 px-4">{t('reputationPage.table.caseType')}</th>
+                    <th scope="col" className="py-3 px-4">{t('reputationPage.table.riskLevel')}</th>
+                    <th scope="col" className="py-3 px-4">{t('reputationPage.fields.status')}</th>
+                    <th scope="col" className="py-3 px-4 text-right">{t('reputationPage.table.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody>
                   {cases.map((c) => (
-                    <tr key={c.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => setSelectedCaseId(c.id)}>
+                    <tr key={c.id} className="border-b border-edge hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none group cursor-pointer" onClick={() => setSelectedCaseId(c.id)}>
                       <td className="py-3 px-4">
-                        <div className="text-sm font-medium text-zinc-200 line-clamp-1">{c.title}</div>
-                        <div className="text-xs text-zinc-500 mt-1">{new Date(c.created_at).toLocaleString()}</div>
+                        <div className="text-sm font-medium text-paper line-clamp-1">{c.title}</div>
+                        <div className="text-xs text-paper-faint mt-1">{new Date(c.created_at).toLocaleString()}</div>
                       </td>
-                      <td className="py-3 px-4 text-sm text-zinc-400">
+                      <td className="py-3 px-4 text-sm text-paper-muted">
                         {c.case_type}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          c.risk_level === 'critical' || c.risk_level === 'high' ? 'bg-red-500/10 text-red-400' :
-                          c.risk_level === 'medium' ? 'bg-amber-500/10 text-amber-400' : 'bg-zinc-500/10 text-zinc-400'
-                        }`}>
-                          {c.risk_level.toUpperCase()}
-                        </span>
+                        <SeverityBadge severity={c.risk_level} />
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          c.status === 'resolved' || c.status === 'closed' ? 'bg-emerald-500/10 text-emerald-400' :
-                          'bg-indigo-500/10 text-indigo-400'
+                          c.status === 'resolved' || c.status === 'closed' ? 'bg-success/10 text-success' :
+                          'bg-info/10 text-info'
                         }`}>
                           {c.status.replace('_', ' ').toUpperCase()}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button className="p-1.5 text-zinc-400 hover:text-slate-900 dark:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
+                        <button className="p-1.5 text-paper-muted hover:text-paper bg-void-raised hover:bg-paper/[0.08] rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70">
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       </td>

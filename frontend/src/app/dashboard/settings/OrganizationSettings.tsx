@@ -73,7 +73,7 @@ export default function OrganizationSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-signal"></div>
       </div>
     );
   }
@@ -82,107 +82,107 @@ export default function OrganizationSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.organization')}</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.organization.subtitle')}</p>
+        <h2 className="text-xl font-bold text-paper tracking-wide">{t('settings.tabs.organization')}</h2>
+        <p className="text-sm text-paper-muted mt-1">{t('settingsPage.organization.subtitle')}</p>
       </div>
 
       {/* Logo Upload */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
-        <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">{t('settingsPage.organization.companyLogo')}</label>
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6">
+        <label className="block text-sm font-medium text-paper-muted mb-4">{t('settingsPage.organization.companyLogo')}</label>
         <div className="flex items-center space-x-6">
-          <div className="w-24 h-24 bg-white dark:bg-[#1E293B] rounded-xl flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700">
+          <div className="w-24 h-24 bg-void-raised rounded-xl flex items-center justify-center border-2 border-dashed border-edge-strong">
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt={t('settingsPage.organization.companyLogo')} className="w-full h-full object-contain rounded-xl p-2" />
             ) : (
-              <Building className="w-10 h-10 text-gray-500" />
+              <Building className="w-10 h-10 text-paper-faint" />
             )}
           </div>
           <div>
-            <button className="flex items-center px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium shadow-sm">
-              <Upload className="w-4 h-4 mr-2 text-slate-500 dark:text-gray-400" />
+            <button className="flex items-center px-4 py-2.5 bg-void-surface border border-edge-strong text-paper-muted rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70">
+              <Upload className="w-4 h-4 mr-2 text-paper-faint" />
               {t('settingsPage.organization.uploadLogo')}
             </button>
-            <p className="text-xs text-gray-500 mt-2.5 font-medium">{t('settingsPage.organization.logoHint')}</p>
+            <p className="text-xs text-paper-faint mt-2.5 font-medium">{t('settingsPage.organization.logoHint')}</p>
           </div>
         </div>
       </div>
 
       {/* Organization Info */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.orgName')} *
             </label>
             <input
               type="text"
               value={settings.organizationName}
               onChange={(e) => setSettings({ ...settings, organizationName: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder={t('settingsPage.organization.orgNamePlaceholder')}
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.address')}
             </label>
             <textarea
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
               rows={3}
-              className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
+              className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal resize-none"
               placeholder={t('settingsPage.organization.addressPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.contactEmail')}
             </label>
             <input
               type="email"
               value={settings.contactEmail}
               onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder={t('settingsPage.organization.contactEmailPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.hotline')}
             </label>
             <input
               type="tel"
               value={settings.hotline}
               onChange={(e) => setSettings({ ...settings, hotline: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder="1900 xxxx"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.website')}
             </label>
             <input
               type="url"
               value={settings.website}
               onChange={(e) => setSettings({ ...settings, website: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder="https://company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.timezone')}
             </label>
             <select
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
             >
               <option value="Asia/Ho_Chi_Minh">{t('settingsPage.organization.timezoneVietnam')}</option>
               <option value="Asia/Bangkok">{t('settingsPage.organization.timezoneBangkok')}</option>
@@ -192,13 +192,13 @@ export default function OrganizationSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.organization.defaultLanguage')}
             </label>
             <select
               value={settings.language}
               onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
             >
               <option value="vi">{languageNames.vi}</option>
               <option value="en">{languageNames.en}</option>
@@ -206,11 +206,11 @@ export default function OrganizationSettings() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-gray-800">
+        <div className="flex justify-end pt-4 border-t border-edge">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 font-medium"
+            className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none disabled:bg-void-raised disabled:text-paper-faint disabled:cursor-not-allowed font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
           >
             <Save className="w-4 h-4 mr-2" />
             {saving ? t('common.saving') : t('settings.saveChanges')}

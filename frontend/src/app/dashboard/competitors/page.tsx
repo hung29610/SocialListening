@@ -16,6 +16,14 @@ import {
   Legend,
   Cell
 } from 'recharts';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartTooltipStyle,
+  chartTooltipItemStyle,
+  chartLegendStyle,
+} from '@/components/dashboard/chartTheme';
 
 export default function CompetitorsPage() {
   const { t } = useLanguage();
@@ -41,8 +49,8 @@ export default function CompetitorsPage() {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500 dark:text-gray-400 font-medium tracking-wide flex items-center">
-          <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-indigo-400" />
+        <div className="text-paper-muted font-medium tracking-wide flex items-center">
+          <RefreshCcw className="w-5 h-5 mr-2 animate-spin motion-reduce:animate-none text-signal dark:text-signal-bright" />
           {t('misc.competitors.loading')}
         </div>
       </div>
@@ -52,11 +60,11 @@ export default function CompetitorsPage() {
   if (data && !data.has_competitors) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <div className="w-24 h-24 bg-gray-800/50 rounded-full flex items-center justify-center mb-6">
-          <BarChartIcon className="w-12 h-12 text-gray-500" />
+        <div className="w-24 h-24 bg-void-raised rounded-full flex items-center justify-center mb-6">
+          <BarChartIcon className="w-12 h-12 text-paper-faint" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mb-2">{t('misc.competitors.emptyState.title')}</h2>
-        <p className="text-slate-500 dark:text-gray-400 max-w-md">
+        <h2 className="text-2xl font-bold text-paper tracking-wide mb-2">{t('misc.competitors.emptyState.title')}</h2>
+        <p className="text-paper-muted max-w-md">
           {t('misc.competitors.emptyState.desc')}
         </p>
       </div>
@@ -68,16 +76,16 @@ export default function CompetitorsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('misc.competitors.title')}</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('misc.competitors.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-paper tracking-wide">{t('misc.competitors.title')}</h1>
+          <p className="text-sm text-paper-muted mt-1">{t('misc.competitors.subtitle')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Share of Voice Chart */}
-        <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-indigo-400" />
+        <div className="bg-void-surface border border-edge rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-paper mb-6 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-signal dark:text-signal-bright" />
             {t('misc.competitors.charts.shareOfVoice')}
           </h3>
           <div className="h-80">
@@ -86,21 +94,21 @@ export default function CompetitorsPage() {
                 data={data?.data || []}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="name" stroke="#94A3B8" tick={{ fill: '#94A3B8' }} />
-                <YAxis stroke="#94A3B8" tick={{ fill: '#94A3B8' }} tickFormatter={(val) => `${val}%`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px' }}
-                  itemStyle={{ color: '#E2E8F0' }}
+                <CartesianGrid {...chartGrid} vertical={false} />
+                <XAxis dataKey="name" stroke={chartGrid.stroke} tick={chartAxisTick} />
+                <YAxis stroke={chartGrid.stroke} tick={chartAxisTick} tickFormatter={(val) => `${val}%`} />
+                <Tooltip
+                  contentStyle={chartTooltipStyle}
+                  itemStyle={chartTooltipItemStyle}
                   formatter={(value: number) => [`${value}%`, 'Share of Voice']}
                 />
-                <Bar 
-                  dataKey="share_of_voice" 
+                <Bar
+                  dataKey="share_of_voice"
                   radius={[6, 6, 0, 0]}
                 >
                   {
                     (data?.data || []).map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.is_brand ? '#6366F1' : '#475569'} />
+                      <Cell key={`cell-${index}`} fill={entry.is_brand ? chartColors.accent : chartColors.inkFaint} />
                     ))
                   }
                 </Bar>
@@ -110,9 +118,9 @@ export default function CompetitorsPage() {
         </div>
 
         {/* Sentiment Comparison */}
-        <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
-            <BarChartIcon className="w-5 h-5 mr-2 text-emerald-400" />
+        <div className="bg-void-surface border border-edge rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-paper mb-6 flex items-center">
+            <BarChartIcon className="w-5 h-5 mr-2 text-paper-faint" />
             {t('misc.competitors.charts.sentiment')}
           </h3>
           <div className="h-80">
@@ -122,17 +130,17 @@ export default function CompetitorsPage() {
                 data={data?.data || []}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                <XAxis type="number" stroke="#94A3B8" tick={{ fill: '#94A3B8' }} />
-                <YAxis dataKey="name" type="category" stroke="#94A3B8" tick={{ fill: '#94A3B8' }} width={120} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px' }}
-                  itemStyle={{ color: '#E2E8F0' }}
+                <CartesianGrid {...chartGrid} horizontal={false} />
+                <XAxis type="number" stroke={chartGrid.stroke} tick={chartAxisTick} />
+                <YAxis dataKey="name" type="category" stroke={chartGrid.stroke} tick={chartAxisTick} width={120} />
+                <Tooltip
+                  contentStyle={chartTooltipStyle}
+                  itemStyle={chartTooltipItemStyle}
                 />
-                <Legend />
-                <Bar dataKey="sentiment.positive" name={t('summary.page.positive')} stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="sentiment.neutral" name={t('summary.page.neutral')} stackId="a" fill="#64748B" />
-                <Bar dataKey="sentiment.negative" name={t('summary.page.negative')} stackId="a" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                <Legend wrapperStyle={chartLegendStyle} />
+                <Bar dataKey="sentiment.positive" name={t('summary.page.positive')} stackId="a" fill={chartColors.positive} radius={[0, 0, 0, 0]} />
+                <Bar dataKey="sentiment.neutral" name={t('summary.page.neutral')} stackId="a" fill={chartColors.neutral} />
+                <Bar dataKey="sentiment.negative" name={t('summary.page.negative')} stackId="a" fill={chartColors.negative} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -140,34 +148,34 @@ export default function CompetitorsPage() {
       </div>
 
       {/* Raw Data Table */}
-      <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('misc.competitors.tableTitle')}</h3>
+      <div className="bg-void-surface border border-edge rounded-2xl overflow-hidden mt-8">
+        <div className="px-6 py-4 border-b border-edge">
+          <h3 className="text-lg font-bold text-paper">{t('misc.competitors.tableTitle')}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-[#0F172A]/50 text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-800">
-                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.brand')}</th>
-                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.shareOfVoice')}</th>
-                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.totalMentions')}</th>
-                <th className="px-6 py-4 font-medium">{t('summary.page.positive')}</th>
-                <th className="px-6 py-4 font-medium">{t('summary.page.negative')}</th>
+              <tr className="bg-void-raised text-eyebrow font-semibold uppercase text-paper-faint border-b border-edge">
+                <th scope="col" className="px-6 py-4">{t('misc.competitors.table.brand')}</th>
+                <th scope="col" className="px-6 py-4">{t('misc.competitors.table.shareOfVoice')}</th>
+                <th scope="col" className="px-6 py-4">{t('misc.competitors.table.totalMentions')}</th>
+                <th scope="col" className="px-6 py-4">{t('summary.page.positive')}</th>
+                <th scope="col" className="px-6 py-4">{t('summary.page.negative')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody>
               {(data?.data || []).map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-slate-50 dark:bg-[#0F172A]/30 transition-colors">
+                <tr key={i} className="border-b border-edge hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-3 ${row.is_brand ? 'bg-indigo-500' : 'bg-gray-500'}`}></div>
-                      <span className={`font-semibold ${row.is_brand ? 'text-indigo-400' : 'text-slate-700 dark:text-gray-300'}`}>{row.name}</span>
+                      <div className={`w-2 h-2 rounded-full mr-3 ${row.is_brand ? 'bg-signal' : 'bg-paper-faint'}`}></div>
+                      <span className={`font-semibold ${row.is_brand ? 'text-signal dark:text-signal-bright' : 'text-paper-muted'}`}>{row.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{row.share_of_voice}%</td>
-                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{row.volume.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-emerald-400 font-medium">{row.sentiment.positive.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-rose-400 font-medium">{row.sentiment.negative.toLocaleString()}</td>
+                  <td className="px-6 py-4 font-bold text-paper tabular-nums">{row.share_of_voice}%</td>
+                  <td className="px-6 py-4 text-paper-muted tabular-nums">{row.volume.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sentiment-positive font-medium tabular-nums">{row.sentiment.positive.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sentiment-negative font-medium tabular-nums">{row.sentiment.negative.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

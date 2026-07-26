@@ -21,6 +21,14 @@ import { useDialog } from '@/components/ui/Dialog';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartTooltipStyle,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+} from '@/components/dashboard/chartTheme';
 import { getSafeVisitUrl, getVisitUrlStatus } from '@/lib/visit-url';
 import { MentionFilterBar } from '@/components/mentions/MentionFilterBar';
 import { MentionActiveFilterChips } from '@/components/mentions/MentionActiveFilterChips';
@@ -104,23 +112,24 @@ interface Filters {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const SENTIMENT_OPTIONS = [
-  { value: 'positive', label: 'Tích cực', labelKey: 'mentions.sentiment.positive', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
-  { value: 'neutral', label: 'Trung lập', labelKey: 'mentions.sentiment.neutral', dot: 'bg-gray-400', bg: 'bg-gray-500/10 border-gray-500/20 text-slate-500 dark:text-gray-400' },
-  { value: 'negative', label: 'Tiêu cực', labelKey: 'mentions.sentiment.negative', dot: 'bg-rose-500', bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400' },
+  { value: 'positive', label: 'Tích cực', labelKey: 'mentions.sentiment.positive', dot: 'bg-sentiment-positive', bg: 'bg-sentiment-positive/10 border-sentiment-positive/25 text-sentiment-positive' },
+  { value: 'neutral', label: 'Trung lập', labelKey: 'mentions.sentiment.neutral', dot: 'bg-sentiment-neutral', bg: 'bg-sentiment-neutral/10 border-sentiment-neutral/25 text-sentiment-neutral' },
+  { value: 'negative', label: 'Tiêu cực', labelKey: 'mentions.sentiment.negative', dot: 'bg-sentiment-negative', bg: 'bg-sentiment-negative/10 border-sentiment-negative/25 text-sentiment-negative' },
 ];
 
+/* One accent only (SIGNAL): per-network brand hues collapse to the neutral ink ramp. */
 const SOURCE_TYPE_OPTIONS = [
-  { value: 'web', label: 'Web', labelKey: 'mentions.sourceType.web', icon: Globe, color: 'text-blue-400', disabled: false },
-  { value: 'news', label: 'News', labelKey: 'mentions.sourceType.news', icon: FileText, color: 'text-slate-500 dark:text-gray-400', disabled: false },
-  { value: 'blog', label: 'Blogs/Forums', labelKey: 'mentions.sourceType.blog', icon: FileText, color: 'text-green-400', disabled: false },
-  { value: 'video', label: 'YouTube', labelKey: 'mentions.sourceType.video', icon: Youtube, color: 'text-red-400', disabled: false },
-  { value: 'rss', label: 'RSS', labelKey: 'mentions.sourceType.rss', icon: Rss, color: 'text-orange-400', disabled: false },
-  { value: 'facebook_page', label: 'Facebook', labelKey: 'mentions.sourceType.facebook_page', icon: Facebook, color: 'text-blue-500', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
-  { value: 'instagram', label: 'Instagram', labelKey: 'mentions.sourceType.instagram', icon: Instagram, color: 'text-fuchsia-500', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
-  { value: 'twitter', label: 'X/Twitter', labelKey: 'mentions.sourceType.twitter', icon: Twitter, color: 'text-sky-400', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
-  { value: 'reddit', label: 'Reddit', labelKey: 'mentions.sourceType.reddit', icon: Globe, color: 'text-orange-400', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
-  { value: 'tiktok', label: 'TikTok', labelKey: 'mentions.sourceType.tiktok', icon: Video, color: 'text-pink-400', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
-  { value: 'podcast', label: 'Podcasts', labelKey: 'mentions.sourceType.podcast', icon: Mic, color: 'text-purple-400', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
+  { value: 'web', label: 'Web', labelKey: 'mentions.sourceType.web', icon: Globe, color: 'text-paper-muted', disabled: false },
+  { value: 'news', label: 'News', labelKey: 'mentions.sourceType.news', icon: FileText, color: 'text-paper-muted', disabled: false },
+  { value: 'blog', label: 'Blogs/Forums', labelKey: 'mentions.sourceType.blog', icon: FileText, color: 'text-paper-muted', disabled: false },
+  { value: 'video', label: 'YouTube', labelKey: 'mentions.sourceType.video', icon: Youtube, color: 'text-paper-muted', disabled: false },
+  { value: 'rss', label: 'RSS', labelKey: 'mentions.sourceType.rss', icon: Rss, color: 'text-paper-muted', disabled: false },
+  { value: 'facebook_page', label: 'Facebook', labelKey: 'mentions.sourceType.facebook_page', icon: Facebook, color: 'text-paper-muted', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
+  { value: 'instagram', label: 'Instagram', labelKey: 'mentions.sourceType.instagram', icon: Instagram, color: 'text-paper-muted', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
+  { value: 'twitter', label: 'X/Twitter', labelKey: 'mentions.sourceType.twitter', icon: Twitter, color: 'text-paper-muted', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
+  { value: 'reddit', label: 'Reddit', labelKey: 'mentions.sourceType.reddit', icon: Globe, color: 'text-paper-muted', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
+  { value: 'tiktok', label: 'TikTok', labelKey: 'mentions.sourceType.tiktok', icon: Video, color: 'text-paper-muted', disabled: true, msg: 'Kết nối', msgKey: 'mentions.sourceType.msg.connect' },
+  { value: 'podcast', label: 'Podcasts', labelKey: 'mentions.sourceType.podcast', icon: Mic, color: 'text-paper-muted', disabled: true, msg: 'Sắp hỗ trợ', msgKey: 'mentions.sourceType.msg.comingSoon' },
 ];
 
 const SORT_OPTIONS = [
@@ -138,6 +147,10 @@ const RISK_PRESETS = [
   { value: 60, label: '≥ 60' },
   { value: 80, label: '≥ 80' },
 ];
+
+/* Shared SIGNAL micro-interaction primitive (focus states, reduced-motion honored) */
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPER COMPONENTS
@@ -170,7 +183,7 @@ function SourceIcon({ type, className }: { type: string; className?: string }) {
 
 function SentimentDot({ sentiment }: { sentiment: string | null }) {
   const opt = SENTIMENT_OPTIONS.find((s) => s.value === sentiment);
-  if (!opt) return <span className="w-2 h-2 rounded-full bg-gray-600 inline-block" />;
+  if (!opt) return <span className="w-2 h-2 rounded-full bg-paper-faint inline-block" />;
   return <span className={`w-2 h-2 rounded-full ${opt.dot} inline-block`} />;
 }
 
@@ -203,7 +216,7 @@ function highlightKeywords(text: string, keywords: any[] | null) {
     // Use a fresh regex per test to avoid lastIndex statefulness
     const testRegex = new RegExp(pattern, 'i');
     return testRegex.test(part) ? (
-      <mark key={i} className="bg-indigo-500/20 text-indigo-300 rounded px-0.5">{part}</mark>
+      <mark key={i} className="bg-signal/20 text-signal dark:text-signal-bright rounded px-0.5">{part}</mark>
     ) : (
       <span key={i}>{part}</span>
     );
@@ -217,7 +230,7 @@ function highlightText(text: string, query: string): React.ReactNode {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     regex.test(part)
-      ? <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5 font-medium">{part}</mark>
+      ? <mark key={i} className="bg-warning/25 text-paper rounded px-0.5 font-medium">{part}</mark>
       : part
   );
 }
@@ -229,9 +242,9 @@ function getSafeUrl(url: string | null | undefined): string | null {
 function getSourceIntegrityLabel(level: string | null | undefined, t?: any): { label: string; color: string; title: string } | null {
   switch (level) {
     case 'high': return null; // No badge for high confidence — expected baseline
-    case 'medium': return { label: '\u25cf', color: 'text-yellow-400', title: t ? t('mentions.trust.medium') : 'Nguồn: độ tin cậy trung bình' };
-    case 'low': return { label: '\u25cf', color: 'text-orange-500', title: t ? t('mentions.trust.low') : 'Nguồn: độ tin cậy thấp — link có thể không chính xác' };
-    case 'unavailable': return { label: '\u25cf', color: 'text-gray-500', title: t ? t('mentions.trust.unavailable') : 'Nguồn: không xác minh được' };
+    case 'medium': return { label: '\u25cf', color: 'text-warning/70', title: t ? t('mentions.trust.medium') : 'Nguồn: độ tin cậy trung bình' };
+    case 'low': return { label: '\u25cf', color: 'text-warning', title: t ? t('mentions.trust.low') : 'Nguồn: độ tin cậy thấp — link có thể không chính xác' };
+    case 'unavailable': return { label: '\u25cf', color: 'text-paper-faint', title: t ? t('mentions.trust.unavailable') : 'Nguồn: không xác minh được' };
     default: return null;
   }
 }
@@ -1100,10 +1113,10 @@ function MentionsPageContent() {
 
   const summaryStats = sentimentSummary
     ? [
-        { label: t('reports.totalMentions'), value: sentimentSummary.total || 0, icon: BarChart3, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-        { label: t('mentions.sentiment.positive'), value: sentimentSummary.positive || 0, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-        { label: t('mentions.sentiment.negative'), value: sentimentSummary.negative || 0, icon: TrendingDown, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-        { label: t('mentions.sentiment.neutral'), value: sentimentSummary.neutral || 0, icon: Minus, color: 'text-slate-500 dark:text-gray-400', bg: 'bg-gray-500/10' },
+        { label: t('reports.totalMentions'), value: sentimentSummary.total || 0, icon: BarChart3, color: 'text-signal dark:text-signal-bright', bg: 'bg-signal/10' },
+        { label: t('mentions.sentiment.positive'), value: sentimentSummary.positive || 0, icon: TrendingUp, color: 'text-sentiment-positive', bg: 'bg-sentiment-positive/10' },
+        { label: t('mentions.sentiment.negative'), value: sentimentSummary.negative || 0, icon: TrendingDown, color: 'text-sentiment-negative', bg: 'bg-sentiment-negative/10' },
+        { label: t('mentions.sentiment.neutral'), value: sentimentSummary.neutral || 0, icon: Minus, color: 'text-sentiment-neutral', bg: 'bg-sentiment-neutral/10' },
       ]
     : [];
 
@@ -1149,10 +1162,10 @@ function MentionsPageContent() {
           onClearAll={clearAllFilters}
         />
 
-        <div ref={savedFiltersRef} className="relative flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-[#050A15]">
+        <div ref={savedFiltersRef} className="relative flex flex-wrap items-center justify-between gap-3 rounded-xl border border-edge bg-void-surface p-3">
           <div>
-            <p className="text-sm font-bold text-slate-900 dark:text-white">{t('mentionsPage.savedFilters.title')}</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400">
+            <p className="text-sm font-bold text-paper">{t('mentionsPage.savedFilters.title')}</p>
+            <p className="text-xs text-paper-muted">
               {activeProject ? t('mentionsPage.savedFilters.projectLabel', { name: activeProject.name }) : t('mentionsPage.savedFilters.selectProjectHint')}
             </p>
           </div>
@@ -1161,34 +1174,34 @@ function MentionsPageContent() {
               type="button"
               onClick={() => setSavedFiltersOpen((open) => !open)}
               disabled={!activeProject}
-              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+              className={`inline-flex items-center gap-2 rounded-lg border border-edge bg-void-raised px-3 py-2 text-sm font-bold text-paper-muted transition-colors duration-150 motion-reduce:transition-none hover:text-paper hover:bg-paper/[0.04] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {t('mentionsPage.savedFilters.listButton', { count: savedFiltersList.length })}
-              <ChevronDown className={`h-4 w-4 transition-transform ${savedFiltersOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform duration-150 motion-reduce:transition-none ${savedFiltersOpen ? 'rotate-180' : ''}`} />
             </button>
             <button
               type="button"
               onClick={openSaveFilterModal}
               disabled={!activeProject}
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-signal px-3 py-2 text-sm font-bold text-white transition-colors duration-150 motion-reduce:transition-none hover:bg-signal-deep dark:hover:bg-signal-bright disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
             >
               {t('mentionsPage.savedFilters.saveCurrent')}
             </button>
           </div>
           {savedFiltersOpen && (
-            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-gray-200 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#07101f]">
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-edge bg-void-surface p-3 shadow-tile">
               {savedFiltersList.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-gray-400">
+                <div className="rounded-lg border border-dashed border-edge p-4 text-sm text-paper-muted">
                   {t('mentionsPage.savedFilters.empty')}
                 </div>
               ) : (
                 <div className="space-y-2" role="list" aria-label={t('mentionsPage.savedFilters.listAria')}>
                   {savedFiltersList.map((filter: any) => (
-                    <div key={filter.id} role="listitem" className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                    <div key={filter.id} role="listitem" className="flex flex-col gap-3 rounded-lg border border-edge p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{filter.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-gray-400">
+                        <p className="truncate text-sm font-bold text-paper">{filter.name}</p>
+                        <p className="text-xs text-paper-muted">
                           {filter.filter_json?.search_term ? t('mentionsPage.savedFilters.keywordValue', { keyword: filter.filter_json.search_term }) : t('mentionsPage.savedFilters.noKeyword')}
                           {filter.filter_json?.sentiment ? ` • ${t('mentions.chips.sentiment')} ${filter.filter_json.sentiment}` : ''}
                           {filter.filter_json?.source_type ? ` • ${t('mentions.chips.source')} ${filter.filter_json.source_type}` : ''}
@@ -1198,14 +1211,14 @@ function MentionsPageContent() {
                         <button
                           type="button"
                           onClick={() => handleApplyFilter(filter.id)}
-                          className="rounded-md bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+                          className={`rounded-md bg-signal/10 px-3 py-1.5 text-xs font-bold text-signal dark:text-signal-bright hover:bg-signal/15 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                         >
                           {t('mentionsPage.savedFilters.apply')}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteFilter(filter.id)}
-                          className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                          className={`rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                         >
                           {t('common.delete')}
                         </button>
@@ -1220,22 +1233,22 @@ function MentionsPageContent() {
 
         {/* Scan / Search Status */}
         {(searchTerm || activeScanJobId || scanJobStatus) && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-paper-muted">
             {searchTerm && (
-              <span className="font-medium bg-white dark:bg-[#050A15] border border-gray-200 dark:border-white/10 px-3 py-1.5 rounded-lg shadow-sm">
-                {t('mentionsPage.search.found')} <span className="font-bold text-slate-900 dark:text-white">{totalMentions}</span> {t('mentions.page.resultsFor')} <span className="text-blue-600 font-bold">&apos;{searchTerm}&apos;</span>
+              <span className="font-medium bg-void-surface border border-edge px-3 py-1.5 rounded-lg">
+                {t('mentionsPage.search.found')} <span className="font-bold text-paper tabular-nums">{totalMentions}</span> {t('mentions.page.resultsFor')} <span className="text-signal dark:text-signal-bright font-bold">&apos;{searchTerm}&apos;</span>
               </span>
             )}
 
             {activeScanJobId && (
-              <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 px-3 py-1.5 rounded-lg shadow-sm">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="flex items-center gap-1.5 text-signal dark:text-signal-bright bg-signal/10 border border-signal/25 px-3 py-1.5 rounded-lg">
+                <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" />
                 {t('mentions.page.scanningNew')}
               </span>
             )}
 
             {!activeScanJobId && scanJobStatus && scanJobStatus.status === 'COMPLETED' && (
-              <span className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 px-3 py-1.5 rounded-lg shadow-sm">
+              <span className="flex items-center gap-1.5 text-success bg-success/10 border border-success/25 px-3 py-1.5 rounded-lg">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {t('mentionsPage.scan.completeSummary', {
                   raw: scanJobStatus.meta_data?.actual_raw_results_count || 0,
@@ -1245,7 +1258,7 @@ function MentionsPageContent() {
               </span>
             )}
             {!activeScanJobId && scanJobStatus && scanJobStatus.status === 'PARTIAL_FAILED' && (
-              <span className="flex items-center gap-1.5 text-orange-600 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/50 px-3 py-1.5 rounded-lg shadow-sm">
+              <span className="flex items-center gap-1.5 text-warning bg-warning/10 border border-warning/25 px-3 py-1.5 rounded-lg">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 {t('mentionsPage.scan.partialFailSummary', {
                   raw: scanJobStatus.meta_data?.actual_raw_results_count || 0,
@@ -1257,38 +1270,38 @@ function MentionsPageContent() {
         )}
 
         {/* Chart Section */}
-        <div className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-100 dark:border-white/5 gap-2 pb-2 sm:pb-0">
+        <div className="bg-void-surface rounded-xl border border-edge overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-edge gap-2 pb-2 sm:pb-0">
             <div className="flex items-center">
               <button
                 onClick={() => setActiveChartTab('reach')}
-                className={`px-4 sm:px-6 py-3 border-b-2 text-sm font-bold ${activeChartTab === 'reach' ? 'border-blue-600 text-gray-900 dark:text-white' : 'border-transparent text-gray-600 dark:text-slate-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-700 dark:text-gray-300'}`}
+                className={`px-4 sm:px-6 py-3 border-b-2 text-sm font-bold transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${activeChartTab === 'reach' ? 'border-signal text-paper' : 'border-transparent text-paper-muted hover:text-paper'}`}
               >
                 {t('mentions.page.mentionsAndReach')}
               </button>
               <button
                 onClick={() => setActiveChartTab('sentiment')}
-                className={`px-4 sm:px-6 py-3 border-b-2 text-sm font-bold ${activeChartTab === 'sentiment' ? 'border-blue-600 text-gray-900 dark:text-white' : 'border-transparent text-gray-600 dark:text-slate-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-700 dark:text-gray-300'}`}
+                className={`px-4 sm:px-6 py-3 border-b-2 text-sm font-bold transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${activeChartTab === 'sentiment' ? 'border-signal text-paper' : 'border-transparent text-paper-muted hover:text-paper'}`}
               >
                 {t('mentions.page.sentimentChart')}
               </button>
             </div>
-            <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 hidden xl:block mr-2 px-4 text-right">
+            <div className="text-[11px] font-medium text-paper-faint hidden xl:block mr-2 px-4 text-right">
                {t('mentions.page.chartNote')}
             </div>
             <div className="ml-auto pr-4 flex items-center gap-2">
-               <div className="flex bg-gray-100 dark:bg-white/10 p-0.5 rounded-lg border border-gray-200 dark:border-white/10">
+               <div className="flex bg-void-raised p-0.5 rounded-lg border border-edge">
                  <button
                    onClick={() => setChartTimeRange('days')}
-                   className={`px-3 py-1 text-xs font-medium rounded shadow-sm ${chartTimeRange === 'days' ? 'bg-white dark:bg-[#050A15] text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-slate-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-700 dark:text-gray-300'}`}
+                   className={`px-3 py-1 text-xs font-medium rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${chartTimeRange === 'days' ? 'bg-void-surface text-paper' : 'text-paper-muted hover:text-paper'}`}
                  >{t('mentions.page.days')}</button>
                  <button
                    onClick={() => setChartTimeRange('weeks')}
-                   className={`px-3 py-1 text-xs font-medium rounded shadow-sm ${chartTimeRange === 'weeks' ? 'bg-white dark:bg-[#050A15] text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-slate-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-700 dark:text-gray-300'}`}
+                   className={`px-3 py-1 text-xs font-medium rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${chartTimeRange === 'weeks' ? 'bg-void-surface text-paper' : 'text-paper-muted hover:text-paper'}`}
                  >{t('mentions.page.weeks')}</button>
                  <button
                    onClick={() => setChartTimeRange('months')}
-                   className={`px-3 py-1 text-xs font-medium rounded shadow-sm ${chartTimeRange === 'months' ? 'bg-white dark:bg-[#050A15] text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-slate-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-slate-700 dark:text-gray-300'}`}
+                   className={`px-3 py-1 text-xs font-medium rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${chartTimeRange === 'months' ? 'bg-void-surface text-paper' : 'text-paper-muted hover:text-paper'}`}
                  >{t('mentions.page.months')}</button>
                </div>
             </div>
@@ -1297,52 +1310,45 @@ function MentionsPageContent() {
           <div className="px-5 pt-2 pb-5">
             {chartLoading ? (
               <div className="w-full h-56 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none text-signal dark:text-signal-bright" />
               </div>
             ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%">
-                  <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <CartesianGrid {...chartGrid} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 500 }}
+                    tick={chartAxisTick}
                     axisLine={false}
                     tickLine={false}
                     tickMargin={8}
                   />
                   <YAxis
-                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    tick={chartAxisTick}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
                     width={36}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(99,102,241,0.08)' }}
-                    contentStyle={{
-                      backgroundColor: '#0d1426',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: '10px',
-                      fontSize: '12px',
-                      color: '#F9FAFB',
-                      padding: '8px 14px',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.4)'
-                    }}
-                    labelStyle={{ color: '#6B7280', fontWeight: 600, marginBottom: 4 }}
+                    cursor={{ fill: chartColors.accent, fillOpacity: 0.08 }}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={chartTooltipItemStyle}
+                    labelStyle={chartTooltipLabelStyle}
                   />
                   {activeChartTab === 'reach' ? (
-                    <Bar dataKey="mentions" name={t('mentionsPage.chart.mentions')} fill="#4F46E5" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                    <Bar dataKey="mentions" name={t('mentionsPage.chart.mentions')} fill={chartColors.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
                   ) : (
                     <>
-                      <Bar dataKey="positive" name={t('mentions.sentiment.positive')} stackId="a" fill="#10B981" maxBarSize={36} />
-                      <Bar dataKey="neutral" name={t('mentions.sentiment.neutral')} stackId="a" fill="#6B7280" maxBarSize={36} />
-                      <Bar dataKey="negative" name={t('mentions.sentiment.negative')} stackId="a" fill="#EF4444" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                      <Bar dataKey="positive" name={t('mentions.sentiment.positive')} stackId="a" fill={chartColors.positive} maxBarSize={36} />
+                      <Bar dataKey="neutral" name={t('mentions.sentiment.neutral')} stackId="a" fill={chartColors.neutral} maxBarSize={36} />
+                      <Bar dataKey="negative" name={t('mentions.sentiment.negative')} stackId="a" fill={chartColors.negative} radius={[5, 5, 0, 0]} maxBarSize={36} />
                     </>
                   )}
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="w-full h-56 flex items-center justify-center text-sm text-gray-500">
+              <div className="w-full h-56 flex items-center justify-center text-sm text-paper-faint">
                 {t('mentions.page.noChartData')}
               </div>
             )}
@@ -1350,39 +1356,39 @@ function MentionsPageContent() {
           <div className="px-6 pb-4 flex items-center gap-6">
              {activeChartTab === 'reach' ? (
                <>
-                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-blue-500"></span><span className="text-xs font-bold text-blue-600">{t('mentionsPage.chart.mentions')}</span></div>
-                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-emerald-500"></span><span className="text-xs font-bold text-emerald-600">{t('mentionsPage.chart.reach')}</span></div>
+                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-signal"></span><span className="text-xs font-bold text-signal dark:text-signal-bright">{t('mentionsPage.chart.mentions')}</span></div>
+                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-paper-muted"></span><span className="text-xs font-bold text-paper-muted">{t('mentionsPage.chart.reach')}</span></div>
                </>
              ) : (
                <>
-                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-emerald-500"></span><span className="text-xs font-bold text-emerald-600">{t('mentions.sentiment.positive')}</span></div>
-                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-gray-400"></span><span className="text-xs font-bold text-gray-500">{t('mentions.sentiment.neutral')}</span></div>
-                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-rose-500"></span><span className="text-xs font-bold text-rose-600">{t('mentions.sentiment.negative')}</span></div>
+                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-sentiment-positive"></span><span className="text-xs font-bold text-sentiment-positive">{t('mentions.sentiment.positive')}</span></div>
+                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-sentiment-neutral"></span><span className="text-xs font-bold text-sentiment-neutral">{t('mentions.sentiment.neutral')}</span></div>
+                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-sentiment-negative"></span><span className="text-xs font-bold text-sentiment-negative">{t('mentions.sentiment.negative')}</span></div>
                </>
              )}
           </div>
         </div>
 
         {/* Pagination Bar Top */}
-        <div className="flex items-center justify-between bg-white dark:bg-[#050A15] px-4 py-3 rounded-xl shadow-sm border border-gray-200 dark:border-white/10">
-           <div className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">
+        <div className="flex items-center justify-between bg-void-surface px-4 py-3 rounded-xl border border-edge">
+           <div className="text-sm font-medium text-paper-muted">
              {loading && !mentionsList.length ? t('common.loading') : totalMentions >= 0 ? `${totalMentions.toLocaleString()} ${t('common.results')} ${searchTerm ? `${t('common.for')} '${searchTerm}'` : ''}` : t('common.loading')}
            </div>
 
            {totalPages > 1 && (
-             <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400">
+             <div className="flex items-center gap-1 text-sm text-paper-muted">
                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => (
-                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md ${page === i + 1 ? 'text-blue-600 font-bold bg-blue-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-white/10'}`}>
+                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === i + 1 ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
                    {i + 1}
                  </button>
                ))}
                {totalPages > 5 && <span className="px-1">...</span>}
                {totalPages > 5 && (
-                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md ${page === totalPages ? 'text-blue-600 font-bold bg-blue-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-white/10'}`}>
+                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === totalPages ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
                    {totalPages}
                  </button>
                )}
-               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-white/10 rounded-md disabled:opacity-50 text-blue-600">
+               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                  <ChevronRight className="w-5 h-5" />
                </button>
              </div>
@@ -1399,12 +1405,12 @@ function MentionsPageContent() {
           ) : loading && !mentionsList.length ? (
             <div className="py-4 space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse flex flex-col sm:flex-row gap-4 p-5 bg-white dark:bg-[#050A15] border border-gray-200 dark:border-white/10 rounded-xl">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-white/10 rounded-xl"></div>
+                <div key={i} className="animate-pulse motion-reduce:animate-none flex flex-col sm:flex-row gap-4 p-5 bg-void-surface border border-edge rounded-xl">
+                  <div className="w-12 h-12 bg-void-raised rounded-xl"></div>
                   <div className="flex-1 space-y-3">
-                    <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-full"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-5/6"></div>
+                    <div className="h-4 bg-void-raised rounded w-3/4"></div>
+                    <div className="h-3 bg-void-raised rounded w-full"></div>
+                    <div className="h-3 bg-void-raised rounded w-5/6"></div>
                   </div>
                 </div>
               ))}
@@ -1424,58 +1430,58 @@ function MentionsPageContent() {
           ) : (
             <div className="space-y-4">
               {loading && mentionsList.length > 0 && (
-                <div className="sticky top-0 z-10 flex items-center justify-center py-2 text-blue-600 bg-blue-50/90 dark:bg-blue-900/40 backdrop-blur-sm border border-blue-100 dark:border-blue-800/50 text-sm font-medium gap-2 rounded-lg shadow-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="sticky top-0 z-10 flex items-center justify-center py-2 text-signal dark:text-signal-bright bg-void-surface/90 backdrop-blur-sm border border-signal/25 text-sm font-medium gap-2 rounded-lg">
+                  <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
                   {searchTerm ? `${t('mentions.page.updatingResultsFor')} "${searchTerm}"...` : t('mentions.page.updatingList')}
                 </div>
               )}
               {searchState === 'TYPING' && !loading && mentionsList.length > 0 && (
-                <div className="sticky top-0 z-10 flex items-center justify-center py-2 text-gray-500 bg-gray-50/90 dark:bg-gray-800/40 backdrop-blur-sm border border-gray-100 dark:border-slate-300 dark:border-gray-700 text-sm font-medium gap-2 rounded-lg shadow-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" /> {t('mentions.page.typing')}
+                <div className="sticky top-0 z-10 flex items-center justify-center py-2 text-paper-muted bg-void-surface/90 backdrop-blur-sm border border-edge text-sm font-medium gap-2 rounded-lg">
+                  <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> {t('mentions.page.typing')}
                 </div>
               )}
               {['AUTO_SCAN_STARTING', 'AUTO_SCAN_RUNNING'].includes(searchState) && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-3 mb-4 flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                  <span className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+                <div className="bg-signal/10 border border-signal/25 rounded-lg p-3 mb-4 flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-signal dark:text-signal-bright animate-spin motion-reduce:animate-none" />
+                  <span className="text-sm text-paper font-medium">
                     {t('mentions.page.autoScanningBg')} &apos;{searchTerm}&apos; {t('mentions.page.autoScanningSuffix')}
                   </span>
                 </div>
               )}
               {searchState === 'AUTO_SCAN_COMPLETED' && scanJobStatus && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between mb-3 border-b border-emerald-200/50 dark:border-emerald-800/30 pb-2">
+                <div className="bg-success/10 border border-success/25 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-3 border-b border-success/25 pb-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-sm text-emerald-800 dark:text-emerald-300 font-bold">
+                      <Sparkles className="w-5 h-5 text-success" />
+                      <span className="text-sm text-success font-bold">
                         {t('mentionsPage.scan.doneWithJob', { id: scanJobStatus.job_id })}
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-emerald-800 dark:text-emerald-200/80">
-                    <div><span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('mentions.page.originalQuery')}</span> {scanJobStatus.meta_data?.query || searchTerm}</div>
-                    <div><span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('mentions.page.scanSource')}</span> {scanJobStatus.summary?.adapters_ready?.join(', ') || t('common.all')}</div>
-                    <div><span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('mentions.page.rawResults')}</span> {scanJobStatus.summary?.serpapi_result_count || 0}</div>
-                    <div><span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('mentions.page.newCreated')}</span> <span className="font-bold text-emerald-600 dark:text-emerald-400">{scanJobStatus.summary?.new_mentions_created || 0} mentions</span></div>
-                    <div><span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('mentions.page.skipDuplicate')}</span> {scanJobStatus.summary?.duplicates_skipped || 0}</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-paper-muted">
+                    <div><span className="font-semibold text-paper">{t('mentions.page.originalQuery')}</span> {scanJobStatus.meta_data?.query || searchTerm}</div>
+                    <div><span className="font-semibold text-paper">{t('mentions.page.scanSource')}</span> {scanJobStatus.summary?.adapters_ready?.join(', ') || t('common.all')}</div>
+                    <div><span className="font-semibold text-paper">{t('mentions.page.rawResults')}</span> {scanJobStatus.summary?.serpapi_result_count || 0}</div>
+                    <div><span className="font-semibold text-paper">{t('mentions.page.newCreated')}</span> <span className="font-bold text-success">{scanJobStatus.summary?.new_mentions_created || 0} mentions</span></div>
+                    <div><span className="font-semibold text-paper">{t('mentions.page.skipDuplicate')}</span> {scanJobStatus.summary?.duplicates_skipped || 0}</div>
                   </div>
                 </div>
               )}
               {/* Bulk Action Bar */}
               {selectedIds.size > 0 && (
-                <div className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-500/30 rounded-xl mb-2">
-                  <div className="flex items-center gap-4 text-sm font-bold text-indigo-700 dark:text-indigo-300">
+                <div className="flex items-center justify-between px-4 py-3 bg-signal/10 border border-signal/25 rounded-xl mb-2">
+                  <div className="flex items-center gap-4 text-sm font-bold text-signal dark:text-signal-bright">
                     <input
                       type="checkbox"
                       checked={selectedIds.size === mentionsList.length && mentionsList.length > 0}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-indigo-400 text-indigo-600 cursor-pointer"
+                      className={`w-4 h-4 rounded border-edge-strong accent-signal cursor-pointer ${focusRing}`}
                     />
                     <span>{t('mentionsPage.bulk.selected', { count: selectedIds.size })}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <select
-                      className="px-2 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-300 rounded-lg"
+                      className={`px-2 py-1.5 text-xs font-bold text-paper bg-void-surface border border-edge-strong rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal`}
                       onChange={(e) => {
                          if (e.target.value) {
                            handleBulkSentiment(e.target.value);
@@ -1490,21 +1496,21 @@ function MentionsPageContent() {
                     </select>
                     <button
                       onClick={() => handleBulkReview(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-success bg-success/10 border border-success/25 rounded-lg hover:bg-success/20 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                     >
                       <CheckSquare className="w-3.5 h-3.5" />
                       {t('mentionsPage.bulk.markReviewed')}
                     </button>
                     <button
                       onClick={handleBulkDelete}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-destructive bg-destructive/10 border border-destructive/25 rounded-lg hover:bg-destructive/20 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       {t('common.delete')}
                     </button>
                     <button
                       onClick={() => setSelectedIds(new Set())}
-                      className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                      className={`px-3 py-1.5 text-xs font-bold text-paper-faint hover:text-paper transition-colors duration-150 motion-reduce:transition-none rounded-lg ${focusRing}`}
                     >
                       {t('mentionsPage.bulk.deselect')}
                     </button>
@@ -1530,47 +1536,42 @@ const extractDomain = (url: string | null | undefined) => {
 
 const getSourceIntegrityLabel = (level: string | null | undefined) => {
   switch (level) {
-    case 'high': return { label: t('mentions.trust.high'), color: 'bg-emerald-50 text-emerald-600 border-emerald-200 px-1.5 py-0.5 rounded border font-bold', title: t('mentions.trust.safe') };
-    case 'low': return { label: t('mentions.trust.low'), color: 'bg-amber-50 text-amber-600 border-amber-200 px-1.5 py-0.5 rounded border font-bold', title: t('mentions.trust.low') };
+    case 'high': return { label: t('mentions.trust.high'), color: 'bg-success/10 text-success border-success/25 px-1.5 py-0.5 rounded border font-bold', title: t('mentions.trust.safe') };
+    case 'low': return { label: t('mentions.trust.low'), color: 'bg-warning/10 text-warning border-warning/25 px-1.5 py-0.5 rounded border font-bold', title: t('mentions.trust.low') };
     default: return null;
   }
 };
 return (
-              <div key={mention.id} className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group hover:border-gray-300 transition-colors">
-                
+              <div key={mention.id} className="bg-void-surface rounded-xl border border-edge group hover:border-edge-strong transition-colors duration-150 motion-reduce:transition-none">
+
                 {/* Source & Provenance Header */}
-                <div className="px-5 py-3 bg-slate-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2 rounded-t-xl">
+                <div className="px-5 py-3 bg-void-raised border-b border-edge flex flex-wrap items-center justify-between gap-2 rounded-t-xl">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-200 dark:border-white/10 ${
-                      mention.source_type?.startsWith('facebook') ? 'bg-blue-50 text-blue-600' :
-                      mention.source_type?.startsWith('youtube') || mention.source_type === 'video' ? 'bg-red-50 text-red-600' :
-                      mention.source_type === 'tiktok' ? 'bg-zinc-100 text-zinc-800' :
-                      'bg-white dark:bg-white/5 text-gray-600 dark:text-slate-400'
-                    }`}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-edge bg-void-surface text-signal dark:text-signal-bright">
                       <SourceIcon type={mention.source_type} className="w-4 h-4" />
                     </div>
-                    
+
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide">
+                        <span className="text-sm font-semibold text-paper tracking-wide">
                           {getMentionSourceLabel(mention)}
                         </span>
                         {/* Trust Badges */}
                         {(() => {
                           const isLowConfidence = mention.source_confidence === 'low' || (typeof mention.source_confidence === 'number' && mention.source_confidence < 0.5);
                           if (typeof mention.source_confidence !== 'undefined' && !isLowConfidence) {
-                             return <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-0.5 rounded font-bold" title={t('mentions.trust.safe')}>{t('mentions.trust.high')}</span>;
+                             return <span className="text-[10px] bg-success/10 text-success border border-success/25 px-1.5 py-0.5 rounded font-bold" title={t('mentions.trust.safe')}>{t('mentions.trust.high')}</span>;
                           }
                           if (isLowConfidence) {
-                             return <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded font-bold" title={t('mentions.trust.low')}>{t('mentions.trust.low')}</span>;
+                             return <span className="text-[10px] bg-warning/10 text-warning border border-warning/25 px-1.5 py-0.5 rounded font-bold" title={t('mentions.trust.low')}>{t('mentions.trust.low')}</span>;
                           }
                           return null;
                         })()}
                         {activeScanJobId && mention.job_id === activeScanJobId && (
-                           <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-sm shrink-0 border border-blue-200 dark:border-blue-800">{t('mentions.page.newBadge')}</span>
+                           <span className="bg-signal/10 text-signal dark:text-signal-bright text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-sm shrink-0 border border-signal/25">{t('mentions.page.newBadge')}</span>
                         )}
                       </div>
-                      <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium tracking-wider uppercase">
+                      <span className="text-[11px] text-paper-faint font-medium tracking-wider uppercase">
                         {mention.source_type ? t(`mentions.sourceType.${mention.source_type}`) || mention.source_type : t('mentions.page.unknownSource')} • {mention.published_at ? new Date(mention.published_at).toLocaleString('vi-VN') : new Date(mention.collected_at!).toLocaleString('vi-VN')}
                       </span>
                     </div>
@@ -1580,27 +1581,27 @@ return (
                     {mention.ai_analysis?.ai_provider && (
                        <span className={
                          mention.ai_analysis.ai_provider === 'failed'
-                         ? "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 rounded-md text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm"
-                         : "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-1 rounded-md text-[10px] font-bold border border-indigo-200 dark:border-indigo-500/20 shadow-sm"
+                         ? "bg-destructive/10 text-destructive px-2 py-1 rounded-md text-[10px] font-bold border border-destructive/25"
+                         : "bg-signal/10 text-signal dark:text-signal-bright px-2 py-1 rounded-md text-[10px] font-bold border border-signal/25"
                        }>
                          {mention.ai_analysis.ai_provider === 'failed' ? 'AI FAILED' :
                           ['dummy', 'dummy_ai'].includes(mention.ai_analysis.ai_provider) ? 'RULE-BASED' :
                           mention.ai_analysis.ai_provider.toUpperCase()}
                        </span>
                      )}
-                     <div className={`px-2 py-1 rounded-md border border-gray-200 dark:border-white/10 shadow-sm text-[11px] font-bold flex items-center whitespace-nowrap ${
-                       mention.sentiment === 'positive' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                       mention.sentiment === 'negative' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                       'bg-white dark:bg-white/10 text-gray-600 dark:text-slate-400'
+                     <div className={`px-2 py-1 rounded-md border text-[11px] font-bold flex items-center whitespace-nowrap ${
+                       mention.sentiment === 'positive' ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/25' :
+                       mention.sentiment === 'negative' ? 'bg-sentiment-negative/10 text-sentiment-negative border-sentiment-negative/25' :
+                       'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25'
                      }`}>
                        <select
                          value={mention.sentiment === 'positive' ? 'positive' : mention.sentiment === 'negative' ? 'negative' : 'neutral'}
                          onChange={(e) => handleAction(mention.id, 'sentiment', () => mentionsApi.updateSentiment(mention.id, e.target.value), t('mentionsPage.list.sentimentUpdated'))}
-                         className="bg-transparent border-none outline-none font-bold cursor-pointer appearance-none pr-3"
+                         className={`bg-transparent border-none outline-none font-bold cursor-pointer appearance-none pr-3 ${focusRing}`}
                        >
-                         <option value="positive" className="text-emerald-600 font-bold">{t('mentions.sentiment.positive')}</option>
-                         <option value="neutral" className="text-gray-600 font-bold">{t('mentions.sentiment.neutral')}</option>
-                         <option value="negative" className="text-rose-600 font-bold">{t('mentions.sentiment.negative')}</option>
+                         <option value="positive" className="text-sentiment-positive font-bold">{t('mentions.sentiment.positive')}</option>
+                         <option value="neutral" className="text-sentiment-neutral font-bold">{t('mentions.sentiment.neutral')}</option>
+                         <option value="negative" className="text-sentiment-negative font-bold">{t('mentions.sentiment.negative')}</option>
                        </select>
                        <ChevronDown className="w-3 h-3 pointer-events-none -ml-2" />
                      </div>
@@ -1624,7 +1625,7 @@ return (
                     if (mediaUrl) {
                       if (mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
                         return (
-                          <div className="shrink-0 w-full md:w-48 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
+                          <div className="shrink-0 w-full md:w-48 h-32 rounded-lg overflow-hidden border border-edge bg-void-raised">
                             <video controls className="w-full h-full object-cover" poster={imageUrl}>
                               <source src={mediaUrl} type="video/mp4" />
                             </video>
@@ -1633,7 +1634,7 @@ return (
                       }
                       if (mediaUrl.match(/\.(mp3|wav|m4a)$/i)) {
                          return (
-                           <div className="shrink-0 w-full md:w-48 p-3 rounded-lg border border-gray-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 flex items-center">
+                           <div className="shrink-0 w-full md:w-48 p-3 rounded-lg border border-edge bg-void-raised flex items-center">
                              <audio controls className="w-full">
                                <source src={mediaUrl} type="audio/mpeg" />
                              </audio>
@@ -1644,7 +1645,7 @@ return (
 
                     if (imageUrl) {
                       return (
-                        <div className="shrink-0 w-full md:w-48 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
+                        <div className="shrink-0 w-full md:w-48 h-32 rounded-lg overflow-hidden border border-edge bg-void-raised">
                           <img src={imageUrl} alt={t('mentionsPage.list.imagePreviewAlt')} className="w-full h-full object-cover" loading="lazy" />
                         </div>
                       );
@@ -1653,11 +1654,11 @@ return (
                   })()}
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-2 leading-tight" title={mention.title || mention.author || t('mentionsPage.list.unknownAuthor')}>
-                       {mention.title ? highlightText(mention.title, searchTerm) : <span className="text-slate-400 italic">{t('mentions.page.noTitle')}</span>}
+                    <h3 className="text-base font-bold text-paper line-clamp-2 leading-tight" title={mention.title || mention.author || t('mentionsPage.list.unknownAuthor')}>
+                       {mention.title ? highlightText(mention.title, searchTerm) : <span className="text-paper-faint italic">{t('mentions.page.noTitle')}</span>}
                     </h3>
 
-                    <p className="text-sm text-slate-600 dark:text-zinc-300 mt-2 line-clamp-3 leading-relaxed">
+                    <p className="text-sm text-paper-muted mt-2 line-clamp-3 leading-relaxed">
                       {(() => {
                          const contentStr = mention.snippet || mention.content || '';
                          if (!contentStr) return <span className="italic">{t('mentions.page.noDescription')}</span>;
@@ -1680,21 +1681,21 @@ return (
                        {searchTerm && (
                           <div className="flex items-center gap-2 flex-wrap">
                             {mention.matched_in && mention.matched_in.length > 0 ? (
-                              <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold flex gap-1 items-center bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded shadow-sm border border-indigo-100 dark:border-indigo-800/30">
+                              <div className="text-[10px] text-signal dark:text-signal-bright font-bold flex gap-1 items-center bg-signal/10 px-2 py-0.5 rounded border border-signal/25">
                                 <Search className="w-3 h-3" />
                                 {mention.matched_in.join(', ')}
                               </div>
                             ) : (
-                              <div className="text-[10px] text-slate-500 dark:text-gray-400 font-bold flex gap-1 items-center bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded shadow-sm border border-gray-200 dark:border-white/10">
+                              <div className="text-[10px] text-paper-faint font-bold flex gap-1 items-center bg-void-raised px-2 py-0.5 rounded border border-edge">
                                 <Search className="w-3 h-3" />
                                 {t('mentionsPage.list.semanticMatch')}
                               </div>
                             )}
                             {mention.match_strength && (
-                              <div className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-sm border uppercase ${
-                                mention.match_strength === 'exact' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                mention.match_strength === 'strong' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400' :
-                                'bg-white text-gray-600 border-gray-200 dark:bg-white/5 dark:text-slate-400'
+                              <div className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                                mention.match_strength === 'exact' ? 'bg-success/10 text-success border-success/25' :
+                                mention.match_strength === 'strong' ? 'bg-signal/10 text-signal dark:text-signal-bright border-signal/25' :
+                                'bg-void-raised text-paper-muted border-edge'
                               }`}>
                                 {mention.match_strength} match
                               </div>
@@ -1704,20 +1705,20 @@ return (
                        
                        {/* Keywords */}
                        {keywordTexts(mention.matched_keywords).length > 0 && (
-                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-300 text-[10px] tracking-wide font-bold rounded shadow-sm">
+                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-void-raised border border-edge text-paper-muted text-[10px] tracking-wide font-bold rounded">
                            <Link2 className="w-3 h-3" />
                            {keywordTexts(mention.matched_keywords).join(', ')}
                          </div>
                        )}
-                       
+
                        {/* Influence & Risk */}
                        {mention.influence_score !== undefined && (
-                         <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 border-l border-gray-300 pl-3">
+                         <span className="text-[11px] font-medium text-paper-muted border-l border-edge-strong pl-3 tabular-nums">
                            {t('mentions.card.influence')}: <strong>{mention.influence_score}/10</strong>
                          </span>
                        )}
                        {mention.risk_score !== undefined && (
-                         <span className={`text-[11px] font-medium border-l border-gray-300 pl-3 ${mention.risk_score >= 80 ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                         <span className={`text-[11px] font-medium border-l border-edge-strong pl-3 tabular-nums ${mention.risk_score >= 80 ? 'text-destructive font-bold' : 'text-paper-muted'}`}>
                            {t('mentionsPage.list.risk')}: <strong>{mention.risk_score}</strong>
                          </span>
                        )}
@@ -1726,7 +1727,7 @@ return (
                 </div>
 
                  {/* Actions Footer */}
-                <div className="bg-slate-50 dark:bg-[#0a0f1c]/50 px-5 py-3 border-t border-gray-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3 rounded-b-xl">
+                <div className="bg-void-raised/50 px-5 py-3 border-t border-edge flex flex-wrap items-center justify-between gap-3 rounded-b-xl">
                    <div className="flex flex-wrap items-center gap-3">
                      {(() => {
                         const integrityLevel = mention.source_integrity_level;
@@ -1742,15 +1743,15 @@ return (
                             ? (integrityLevel === 'low' ? t('mentionsPage.list.lowConfidence') : t('mentionsPage.list.unverifiedSource'))
                             : t('mentionsPage.list.noOriginalLink');
                           return (
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-500 cursor-not-allowed group/tooltip relative" title={tooltipText}>
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-warning cursor-not-allowed group/tooltip relative" title={tooltipText}>
                              <Link2Off className="w-3.5 h-3.5" /> {t('mentions.missingUrl')}
-                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tooltip:block px-2 py-1 bg-gray-800 text-slate-900 dark:text-white text-[10px] rounded whitespace-nowrap z-10">{tooltipText}</div>
+                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tooltip:block px-2 py-1 bg-void-raised border border-edge text-paper text-[10px] rounded whitespace-nowrap z-10 shadow-tile">{tooltipText}</div>
                            </div>
                           );
                         }
                         return (
                           <>
-                            <button onClick={() => handleVisit(mention)} className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-500/30 transition-colors shadow-sm">
+                            <button onClick={() => handleVisit(mention)} className={`flex items-center gap-1.5 text-[11px] font-bold text-signal dark:text-signal-bright bg-signal/10 hover:bg-signal/15 px-2.5 py-1.5 rounded-lg border border-signal/25 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                               <ExternalLink className="w-3.5 h-3.5" /> {t('mentionsPage.list.openOriginal')}
                             </button>
                             {integrityBadge && (
@@ -1766,16 +1767,16 @@ return (
                       })()}
 
                      {mention.is_visited && (
-                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
+                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-success bg-success/10 px-2 py-1.5 rounded-lg border border-success/25">
                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('mentionsPage.list.seen')}
-                         {(mention.visit_count ?? 0) > 0 && <span className="text-emerald-500 ml-0.5">({mention.visit_count})</span>}
+                         {(mention.visit_count ?? 0) > 0 && <span className="text-success ml-0.5 tabular-nums">({mention.visit_count})</span>}
                        </div>
                      )}
 
                      {(!mention.sentiment || !mention.risk_score) && (
                        <button
                          onClick={() => handleAction(mention.id, 'analyze', () => mentionsApi.analyze(mention.id), t('mentionsPage.list.analyzeDone'))}
-                         className="flex items-center gap-1.5 text-[11px] font-bold text-purple-700 bg-purple-50 border-purple-200 px-2.5 py-1.5 rounded-lg hover:bg-purple-100 transition-colors shadow-sm dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+                         className={`flex items-center gap-1.5 text-[11px] font-bold text-paper-muted bg-void-surface border border-edge px-2.5 py-1.5 rounded-lg hover:text-paper hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                          title={t('mentions.card.analyzeAi')}
                        >
                          <BrainCircuit className="w-3.5 h-3.5" /> {t('mentions.card.analyzeAi')}
@@ -1784,13 +1785,13 @@ return (
                      {(mention.risk_score !== undefined && mention.risk_score >= 50) && (
                        <button
                          onClick={() => handleAction(mention.id, 'alert', () => mentionsApi.createAlert(mention.id), t('mentionsPage.list.alertCreated'))}
-                         className="flex items-center gap-1.5 text-[11px] font-bold text-rose-700 bg-rose-50 border-rose-200 px-2.5 py-1.5 rounded-lg hover:bg-rose-100 transition-colors shadow-sm dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400"
+                         className={`flex items-center gap-1.5 text-[11px] font-bold text-destructive bg-destructive/10 border border-destructive/25 px-2.5 py-1.5 rounded-lg hover:bg-destructive/20 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                          title={t('mentionsPage.list.createAlert')}
                        >
                          <AlertTriangle className="w-3.5 h-3.5" /> {t('mentionsPage.list.alert')}
                        </button>
                      )}
-                     <div className="h-4 border-l border-slate-300 dark:border-slate-700 mx-1"></div>
+                     <div className="h-4 border-l border-edge-strong mx-1"></div>
                      <MentionActionMenu
                         mention={mention}
                         onReview={() => handleAction(mention.id, 'review', () => mentionsApi.markReviewed(mention.id), t('mentionsPage.list.markedReviewed'))}
@@ -1818,7 +1819,7 @@ return (
                       type="checkbox"
                       checked={selectedIds.has(mention.id)}
                       onChange={() => toggleSelect(mention.id)}
-                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className={`w-4 h-4 rounded border-edge-strong accent-signal cursor-pointer ${focusRing}`}
                     />
                 </div>
                </div>
@@ -1831,16 +1832,16 @@ return (
 
         {/* Pagination Bar Bottom */}
         {totalPages > 1 && (
-           <div className="flex items-center justify-end bg-white dark:bg-[#050A15] px-4 py-3 rounded-xl shadow-sm border border-gray-200 dark:border-white/10 mt-2 mb-8">
-             <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400">
+           <div className="flex items-center justify-end bg-void-surface px-4 py-3 rounded-xl border border-edge mt-2 mb-8">
+             <div className="flex items-center gap-1 text-sm text-paper-muted">
                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => (
-                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md ${page === i + 1 ? 'text-blue-600 font-bold bg-blue-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-white/10'}`}>
+                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === i + 1 ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
                    {i + 1}
                  </button>
                ))}
                {totalPages > 5 && <span className="px-1">...</span>}
                {totalPages > 5 && (
-                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md ${page === totalPages ? 'text-blue-600 font-bold bg-blue-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-white/10'}`}>
+                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === totalPages ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
                    {totalPages}
                  </button>
                )}
@@ -1853,10 +1854,10 @@ return (
       <div className="hidden lg:block w-[300px] xl:w-[320px] shrink-0 space-y-4 pb-8">
 
         {/* Date Range — Segmented Pill Selector */}
-        <div className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-4">
+        <div className="bg-void-surface rounded-xl border border-edge p-4">
            <div className="flex items-center gap-2 mb-3">
-             <Calendar className="w-4 h-4 text-slate-500 dark:text-gray-400" />
-             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t('mentions.page.timeRange')}</h3>
+             <Calendar className="w-4 h-4 text-paper-faint" />
+             <h3 className="text-sm font-bold text-paper">{t('mentions.page.timeRange')}</h3>
            </div>
            <div className="flex flex-wrap gap-1.5">
              {[
@@ -1869,10 +1870,10 @@ return (
                <button
                  key={opt.value}
                  onClick={() => { setDateRange(opt.value); setPage(1); }}
-                 className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all duration-150 border whitespace-nowrap ${
+                 className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors duration-150 motion-reduce:transition-none border whitespace-nowrap ${focusRing} ${
                    dateRange === opt.value
-                     ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300 shadow-sm'
-                     : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-transparent dark:border-white/10 dark:text-slate-500 dark:text-gray-400 dark:hover:bg-white/5'
+                     ? 'bg-signal/10 border-signal/25 text-signal dark:text-signal-bright'
+                     : 'bg-void-surface border-edge text-paper-muted hover:text-paper hover:bg-void-raised'
                  }`}
                >
                  {opt.label}
@@ -1882,15 +1883,15 @@ return (
         </div>
 
         {/* Sources — Active Grid + Collapsed Unavailable */}
-        <div className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-4">
+        <div className="bg-void-surface rounded-xl border border-edge p-4">
            <div className="flex items-center justify-between mb-4">
-             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+             <h3 className="text-sm font-bold text-paper flex items-center gap-1.5">
                {t('mentions.sidebar.sources')}
              </h3>
              {filters.source_type && (
                <button
                  onClick={() => { setFilters({ ...filters, source_type: null }); setPage(1); }}
-                 className="text-[11px] font-bold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                 className={`text-[11px] font-bold text-paper-faint hover:text-paper bg-void-raised hover:bg-paper/[0.06] px-2 py-1 rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                >
                  {t('mentions.clearSourceFilter')}
                </button>
@@ -1915,34 +1916,34 @@ return (
                      setFilters({ ...filters, source_type: next.length ? next.join(',') : null });
                      setPage(1);
                    }}
-                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 border ${
+                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 motion-reduce:transition-none border ${focusRing} ${
                      isSelected
-                       ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700/50 text-blue-700 dark:text-blue-300 shadow-sm'
-                       : count > 0 ? 'bg-white dark:bg-transparent border-gray-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-50 dark:hover:bg-white/5' : 'bg-gray-50 dark:bg-[#0a0f1c] border-transparent text-slate-500 dark:text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-white/5'
+                       ? 'bg-signal/10 border-signal/25 text-signal dark:text-signal-bright'
+                       : count > 0 ? 'bg-void-surface border-edge text-paper-muted hover:border-edge-strong hover:text-paper hover:bg-void-raised' : 'bg-void-raised border-transparent text-paper-faint hover:bg-paper/[0.04]'
                    }`}
                  >
                    <div className="flex items-center gap-2">
-                     <src.icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : count > 0 ? src.color : 'text-slate-500 dark:text-gray-400 dark:text-gray-600'}`} />
+                     <src.icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-signal dark:text-signal-bright' : count > 0 ? src.color : 'text-paper-faint'}`} />
                      <span className="truncate">{src.label}</span>
                    </div>
-                   <span className={`text-xs font-bold ${isSelected ? 'text-blue-600 dark:text-blue-400' : count > 0 ? 'text-slate-500 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400 dark:text-gray-600'}`}>{count.toLocaleString('vi-VN')}</span>
+                   <span className={`text-xs font-bold tabular-nums ${isSelected ? 'text-signal dark:text-signal-bright' : count > 0 ? 'text-paper-muted' : 'text-paper-faint'}`}>{count.toLocaleString('vi-VN')}</span>
                  </button>
                );
              })}
            </div>
            {/* Unavailable / Connector Sources */}
-           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 flex flex-col gap-1.5">
-             <div className="text-[11px] text-slate-500 dark:text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider mb-1 px-1">{t('mentions.page.connectorSources')}</div>
+           <div className="mt-4 pt-3 border-t border-edge flex flex-col gap-1.5">
+             <div className="text-[11px] text-paper-faint font-semibold uppercase tracking-eyebrow mb-1 px-1">{t('mentions.page.connectorSources')}</div>
              {translatedSourceTypeOptions.filter(s => s.disabled).map((src) => (
                  <div
                    key={src.value}
-                   className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium border border-transparent bg-gray-50 dark:bg-[#0a0f1c] text-slate-500 dark:text-gray-400 dark:text-gray-500"
+                   className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium border border-transparent bg-void-raised text-paper-faint"
                  >
                    <div className="flex items-center gap-2">
                      <src.icon className="w-4 h-4 shrink-0 opacity-50" />
                      <span className="truncate">{src.label}</span>
                    </div>
-                   <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400 bg-gray-200 dark:bg-white/10 dark:text-slate-500 dark:text-gray-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                   <span className="text-[10px] font-bold text-paper-faint bg-paper/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
                      {src.msg}
                    </span>
                  </div>
@@ -1952,10 +1953,10 @@ return (
         <AntiNoiseNotice />
 
         {/* Sentiment Filter */}
-        <div className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-4">
+        <div className="bg-void-surface rounded-xl border border-edge p-4">
            <div className="flex items-center justify-between mb-4">
-             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-               {t('mentions.page.sentimentTitle')} <Info className="w-3.5 h-3.5 text-slate-500 dark:text-gray-400" />
+             <h3 className="text-sm font-bold text-paper flex items-center gap-1.5">
+               {t('mentions.page.sentimentTitle')} <Info className="w-3.5 h-3.5 text-paper-faint" />
              </h3>
            </div>
            <div className="flex flex-col gap-3">
@@ -1969,9 +1970,9 @@ return (
                     setFilters({...filters, sentiment: next.length ? next.join(',') : null});
                     setPage(1);
                   }}
-                  className="rounded border-gray-300 text-rose-500 focus:ring-rose-500"
+                  className={`rounded border-edge-strong accent-sentiment-negative ${focusRing}`}
                />
-               <span className="text-xs font-medium text-rose-600">{t('mentions.sentiment.negative')}</span>
+               <span className="text-xs font-medium text-sentiment-negative">{t('mentions.sentiment.negative')}</span>
              </label>
              <label className="flex items-center gap-2 cursor-pointer">
                <input
@@ -1983,9 +1984,9 @@ return (
                     setFilters({...filters, sentiment: next.length ? next.join(',') : null});
                     setPage(1);
                   }}
-                  className="rounded border-gray-300 text-gray-600 dark:text-slate-500 dark:text-gray-400 focus:ring-gray-500"
+                  className={`rounded border-edge-strong accent-sentiment-neutral ${focusRing}`}
                />
-               <span className="text-xs font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">{t('mentions.sentiment.neutral')}</span>
+               <span className="text-xs font-medium text-sentiment-neutral">{t('mentions.sentiment.neutral')}</span>
              </label>
              <label className="flex items-center gap-2 cursor-pointer">
                <input
@@ -1997,18 +1998,18 @@ return (
                     setFilters({...filters, sentiment: next.length ? next.join(',') : null});
                     setPage(1);
                   }}
-                  className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                  className={`rounded border-edge-strong accent-sentiment-positive ${focusRing}`}
                />
-               <span className="text-xs font-medium text-emerald-600">{t('mentions.sentiment.positive')}</span>
+               <span className="text-xs font-medium text-sentiment-positive">{t('mentions.sentiment.positive')}</span>
              </label>
            </div>
         </div>
 
         {/* Influence Score */}
-        <div className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-4">
+        <div className="bg-void-surface rounded-xl border border-edge p-4">
            <div className="flex items-center justify-between mb-4">
-             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-               {t('mentionsPage.filters.influenceScore')} <Info className="w-3.5 h-3.5 text-slate-500 dark:text-gray-400" />
+             <h3 className="text-sm font-bold text-paper flex items-center gap-1.5">
+               {t('mentionsPage.filters.influenceScore')} <Info className="w-3.5 h-3.5 text-paper-faint" />
              </h3>
            </div>
            <div className="px-2">
@@ -2021,9 +2022,9 @@ return (
                  setFilters({ ...filters, min_influence_score: parseInt(e.target.value) });
                  setPage(1);
                }}
-               className="w-full h-1 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
+               className={`w-full h-1 bg-void-raised rounded-lg appearance-none cursor-pointer accent-signal ${focusRing}`}
              />
-             <div className="flex justify-between text-[10px] text-gray-600 dark:text-slate-500 dark:text-gray-400 mt-2 font-medium">
+             <div className="flex justify-between text-[10px] text-paper-faint mt-2 font-medium tabular-nums">
                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
              </div>
            </div>
@@ -2033,17 +2034,17 @@ return (
 
       {/* Save Filter Modal */}
       {saveFilterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" aria-labelledby="save-filter-title" className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#050A15]">
-            <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-white/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-paper/25 dark:bg-void/70 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="save-filter-title" className="w-full max-w-md overflow-hidden rounded-2xl border border-edge bg-void-surface shadow-tile">
+            <div className="flex items-center justify-between border-b border-edge p-5">
               <div>
-                <h2 id="save-filter-title" className="text-lg font-bold text-slate-900 dark:text-white">{t('mentionsPage.savedFilters.modalTitle')}</h2>
-                <p className="text-sm text-slate-500 dark:text-gray-400">{t('mentionsPage.savedFilters.modalSubtitle')}</p>
+                <h2 id="save-filter-title" className="text-lg font-bold text-paper">{t('mentionsPage.savedFilters.modalTitle')}</h2>
+                <p className="text-sm text-paper-muted">{t('mentionsPage.savedFilters.modalSubtitle')}</p
               </div>
               <button
                 type="button"
                 onClick={() => setSaveFilterModalOpen(false)}
-                className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-gray-100 hover:text-slate-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                className={`rounded-lg p-2 text-paper-faint transition-colors duration-150 motion-reduce:transition-none hover:bg-paper/[0.04] hover:text-paper ${focusRing}`}
                 aria-label={t('mentionsPage.actions.close')}
               >
                 <X className="h-5 w-5" />
@@ -2051,19 +2052,19 @@ return (
             </div>
             <div className="space-y-4 p-5">
               <div>
-                <label htmlFor="save-filter-name" className="mb-2 block text-sm font-bold text-slate-700 dark:text-gray-200">{t('mentionsPage.savedFilters.nameLabel')}</label>
+                <label htmlFor="save-filter-name" className="mb-2 block text-sm font-bold text-paper-muted">{t('mentionsPage.savedFilters.nameLabel')}</label>
                 <input
                   id="save-filter-name"
                   type="text"
                   value={saveFilterName}
                   onChange={(e) => setSaveFilterName(e.target.value)}
                   placeholder={t('mentionsPage.savedFilters.namePlaceholder')}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-[#07101f] dark:text-white"
+                  className="w-full rounded-lg border border-edge-strong bg-void-surface px-3 py-2 text-sm text-paper placeholder:text-paper-faint outline-none transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                   autoFocus
                 />
               </div>
-              <div className="rounded-lg bg-gray-50 p-3 text-xs text-slate-600 dark:bg-white/5 dark:text-gray-300">
-                <p className="font-bold text-slate-800 dark:text-gray-100">{t('mentionsPage.savedFilters.currentFilter')}</p>
+              <div className="rounded-lg bg-void-raised p-3 text-xs text-paper-muted">
+                <p className="font-bold text-paper">{t('mentionsPage.savedFilters.currentFilter')}</p>
                 <p>{t('mentionsPage.savedFilters.keywordLabel')} {searchTerm || t('mentionsPage.savedFilters.none')}</p>
                 <p>{t('mentions.chips.sentiment')} {filters.sentiment || t('common.all')}</p>
                 <p>{t('mentions.chips.source')} {filters.source_type || t('common.all')}</p>
@@ -2073,7 +2074,7 @@ return (
                 <button
                   type="button"
                   onClick={() => setSaveFilterModalOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                  className={`rounded-lg px-4 py-2 text-sm font-bold text-paper-muted transition-colors duration-150 motion-reduce:transition-none hover:bg-paper/[0.04] hover:text-paper ${focusRing}`}
                 >
                   {t('common.cancel')}
                 </button>
@@ -2081,7 +2082,7 @@ return (
                   type="button"
                   onClick={handleSaveFilter}
                   disabled={!activeProject || !saveFilterName.trim()}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bg-signal px-4 py-2 text-sm font-bold text-white transition-colors duration-150 motion-reduce:transition-none hover:bg-signal-deep dark:hover:bg-signal-bright disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                 >
                   {t('mentionsPage.savedFilters.modalTitle')}
                 </button>
@@ -2093,15 +2094,15 @@ return (
 
       {/* Scan Confirm Modal */}
       {scanConfirm.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#050A15] border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper/25 dark:bg-void/70 backdrop-blur-sm">
+          <div className="bg-void-surface border border-edge rounded-2xl w-full max-w-md overflow-hidden shadow-tile">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('mentionsPage.scan.confirmTitle')}</h2>
-              <p className="text-gray-600 dark:text-slate-500 dark:text-gray-400 mb-6 leading-relaxed">
+              <h2 className="text-xl font-bold text-paper mb-2">{t('mentionsPage.scan.confirmTitle')}</h2>
+              <p className="text-paper-muted mb-6 leading-relaxed">
                 {t('mentionsPage.scan.confirmMessage')
                   .split(/(\{keyword\}|\{project\})/)
                   .map((part, idx) => {
-                    if (part === '{keyword}') return <span key={idx} className="font-bold text-blue-600">{scanConfirm.keyword}</span>;
+                    if (part === '{keyword}') return <span key={idx} className="font-bold text-signal dark:text-signal-bright">{scanConfirm.keyword}</span>;
                     if (part === '{project}') return <span key={idx} className="font-bold">{activeProject?.name}</span>;
                     return <React.Fragment key={idx}>{part}</React.Fragment>;
                   })}
@@ -2109,13 +2110,13 @@ return (
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setScanConfirm({ isOpen: false, keyword: '' })}
-                  className="px-5 py-2 rounded-xl text-sm font-bold text-gray-600 dark:text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className={`px-5 py-2 rounded-xl text-sm font-bold text-paper-muted hover:text-paper hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   onClick={() => executeScan(scanConfirm.keyword)}
-                  className="px-5 py-2 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  className="px-5 py-2 rounded-xl text-sm font-bold bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                 >
                   {t('mentionsPage.scan.confirmContinue')}
                 </button>
@@ -2131,7 +2132,7 @@ return (
 export default function MentionsPage() {
   const { t } = useLanguage();
   return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-500">{t('common.loadingData')}</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-paper-faint">{t('common.loadingData')}</div>}>
       <MentionsPageContent />
     </Suspense>
   );

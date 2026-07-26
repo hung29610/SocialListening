@@ -4,6 +4,13 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartTooltipStyle,
+  chartTooltipItemStyle,
+} from './chartTheme';
 
 type VolumePoint = {
   time: string;
@@ -21,7 +28,7 @@ export default function RealtimeVolumeChart({
 
   if (isLoading) {
     return (
-      <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
         {t('common.loading')}
       </div>
     );
@@ -34,7 +41,7 @@ export default function RealtimeVolumeChart({
 
   if (!chartData.length) {
     return (
-      <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
         {t('crisis.charts.noVolumeData')}
       </div>
     );
@@ -43,24 +50,21 @@ export default function RealtimeVolumeChart({
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-        <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10 }} interval="preserveStartEnd" />
-        <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} allowDecimals={false} />
+        <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} stroke={chartGrid.stroke} />
+        <XAxis dataKey="label" tick={{ ...chartAxisTick, fontSize: 10 }} interval="preserveStartEnd" />
+        <YAxis tick={{ ...chartAxisTick, fontSize: 10 }} allowDecimals={false} />
         <Tooltip
-          contentStyle={{
-            background: 'rgba(15,23,42,0.95)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 12,
-          }}
+          contentStyle={chartTooltipStyle}
+          itemStyle={chartTooltipItemStyle}
         />
         <Line
           type="monotone"
           dataKey="mentions"
           name="Mentions"
-          stroke="#7C3AED"
+          stroke={chartColors.accent}
           strokeWidth={2}
           dot={false}
-          activeDot={{ r: 4, fill: '#10B981' }}
+          activeDot={{ r: 4, fill: chartColors.accentBright }}
         />
       </LineChart>
     </ResponsiveContainer>

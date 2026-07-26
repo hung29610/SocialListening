@@ -47,18 +47,18 @@ export default function ComparisonPage() {
     const max = Math.max(valA, valB, 1);
     return (
       <div className="mb-4">
-        <p className="text-xs font-bold text-gray-600 dark:text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">{label}</p>
+        <p className="text-eyebrow font-semibold uppercase text-paper-faint mb-2">{label}</p>
         <div className="flex items-center gap-3">
-          <span className="text-xs w-20 text-right font-bold text-indigo-600 dark:text-indigo-400">{valA.toLocaleString()}</span>
+          <span className="text-xs w-20 text-right font-bold tabular-nums text-signal dark:text-signal-bright">{valA.toLocaleString()}</span>
           <div className="flex-1 flex items-center gap-1">
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-3 flex justify-end overflow-hidden">
-              <div className="bg-indigo-500 rounded-full h-full transition-all" style={{ width: `${(valA / max) * 100}%` }} />
+            <div className="flex-1 bg-void-raised rounded-full h-3 flex justify-end overflow-hidden">
+              <div className="bg-signal rounded-full h-full transition-all duration-200 motion-reduce:transition-none" style={{ width: `${(valA / max) * 100}%` }} />
             </div>
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
-              <div className="bg-emerald-500 rounded-full h-full transition-all" style={{ width: `${(valB / max) * 100}%` }} />
+            <div className="flex-1 bg-void-raised rounded-full h-3 overflow-hidden">
+              <div className="bg-paper-muted rounded-full h-full transition-all duration-200 motion-reduce:transition-none" style={{ width: `${(valB / max) * 100}%` }} />
             </div>
           </div>
-          <span className="text-xs w-20 font-bold text-emerald-600 dark:text-emerald-400">{valB.toLocaleString()}</span>
+          <span className="text-xs w-20 font-bold tabular-nums text-paper-muted">{valB.toLocaleString()}</span>
         </div>
       </div>
     );
@@ -68,30 +68,30 @@ export default function ComparisonPage() {
     <div className="space-y-6 max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-            <Scale className="w-6 h-6 text-emerald-500" />
+          <h1 className="text-2xl font-bold text-paper tracking-wide flex items-center gap-2">
+            <Scale className="w-6 h-6 text-signal dark:text-signal-bright" />
             {t('comparison.page.title')}
           </h1>
-          <p className="text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400 mt-1">{t('comparison.page.subtitle')}</p>
+          <p className="text-sm text-paper-muted mt-1">{t('comparison.page.subtitle')}</p>
         </div>
       </div>
 
       {/* Project selector */}
-      <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">{t('comparison.page.selectTitle')}</h2>
+      <div className="bg-void-surface rounded-2xl border border-edge p-6">
+        <h2 className="text-base font-bold text-paper mb-4">{t('comparison.page.selectTitle')}</h2>
         {projects.length < 2 ? (
-          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-warning/10 border border-warning/25 text-warning px-4 py-3 rounded-lg text-sm">
             {t('comparison.page.needMoreProjects')} {projects.length} {t('comparison.page.needMoreProjectsSuffix')}
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">{t('comparison.page.labelProjectA')}</label>
+            <label className="text-sm font-medium text-paper-muted">{t('comparison.page.labelProjectA')}</label>
             <div className="relative">
               <select
                 value={projectA || ''}
                 onChange={e => setProjectA(Number(e.target.value) || null)}
-                className="w-full appearance-none bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full appearance-none bg-void-surface border border-edge-strong rounded-lg pl-4 pr-10 py-2.5 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               >
                 <option value="">{t('comparison.page.selectA')}</option>
                 {projects.map(p => (
@@ -99,19 +99,19 @@ export default function ComparisonPage() {
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <svg className="w-4 h-4 text-slate-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-paper-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
           </div>
           <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">{t('comparison.page.labelProjectB')}</label>
+            <label className="text-sm font-medium text-paper-muted">{t('comparison.page.labelProjectB')}</label>
             <div className="relative">
               <select
                 value={projectB || ''}
                 onChange={e => setProjectB(Number(e.target.value) || null)}
-                className="w-full appearance-none bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full appearance-none bg-void-surface border border-edge-strong rounded-lg pl-4 pr-10 py-2.5 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               >
                 <option value="">{t('comparison.page.selectB')}</option>
                 {projects.map(p => (
@@ -119,7 +119,7 @@ export default function ComparisonPage() {
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <svg className="w-4 h-4 text-slate-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-paper-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -128,9 +128,9 @@ export default function ComparisonPage() {
           <button
             onClick={handleCompare}
             disabled={loading || projects.length < 2}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-lg font-bold transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
           >
-            {loading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Scale className="w-4 h-4" />}
+            {loading ? <RefreshCcw className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <Scale className="w-4 h-4" />}
             {t('comparison.page.compareButton')}
           </button>
         </div>
@@ -143,12 +143,12 @@ export default function ComparisonPage() {
           {/* Legend */}
           <div className="flex items-center gap-6 text-sm font-bold">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-indigo-500" />
-              <span className="text-indigo-600 dark:text-indigo-400">{nameA}</span>
+              <div className="w-3 h-3 rounded-full bg-signal" />
+              <span className="text-signal dark:text-signal-bright">{nameA}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="text-emerald-600 dark:text-emerald-400">{nameB}</span>
+              <div className="w-3 h-3 rounded-full bg-paper-muted" />
+              <span className="text-paper-muted">{nameB}</span>
             </div>
           </div>
 
@@ -159,16 +159,16 @@ export default function ComparisonPage() {
               { label: t('comparison.page.posMentions'), a: dataA.positive || 0, b: dataB.positive || 0 },
               { label: t('comparison.page.negMentions'), a: dataA.negative || 0, b: dataB.negative || 0 },
             ].map(({ label, a, b }) => (
-              <div key={label} className="bg-white dark:bg-[#050A15] rounded-xl shadow-sm border border-gray-100 dark:border-white/10 p-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</p>
+              <div key={label} className="bg-void-surface rounded-xl border border-edge p-4">
+                <p className="text-eyebrow font-semibold uppercase text-paper-faint mb-3">{label}</p>
                 <div className="flex justify-between items-end">
                   <div>
-                    <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{a.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">{nameA}</p>
+                    <p className="text-2xl font-black tabular-nums text-signal dark:text-signal-bright">{a.toLocaleString()}</p>
+                    <p className="text-xs text-paper-faint">{nameA}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{b.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">{nameB}</p>
+                    <p className="text-2xl font-black tabular-nums text-paper-muted">{b.toLocaleString()}</p>
+                    <p className="text-xs text-paper-faint">{nameB}</p>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -179,13 +179,13 @@ export default function ComparisonPage() {
           </div>
 
           {/* Day-by-day Trend */}
-          <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-500" />
+          <div className="bg-void-surface rounded-2xl border border-edge p-6">
+            <h2 className="text-base font-bold text-paper mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-signal dark:text-signal-bright" />
               {t('comparison.page.trendTitle')}
             </h2>
             {(dataA.by_day || []).length === 0 ? (
-              <p className="text-slate-500 dark:text-gray-400 text-sm">{t('comparison.page.trendNoData')}</p>
+              <p className="text-paper-muted text-sm">{t('comparison.page.trendNoData')}</p>
             ) : (
               <div className="space-y-3">
                 {(dataA.by_day || []).map((d: any, i: number) => {
@@ -199,29 +199,29 @@ export default function ComparisonPage() {
           {/* Source Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              { name: nameA, data: dataA.by_source_type || {}, color: 'bg-indigo-500' },
-              { name: nameB, data: dataB.by_source_type || {}, color: 'bg-emerald-500' },
+              { name: nameA, data: dataA.by_source_type || {}, color: 'bg-signal' },
+              { name: nameB, data: dataB.by_source_type || {}, color: 'bg-paper-muted' },
             ].map(({ name, data, color }) => {
               const entries = Object.entries(data).sort(([, a], [, b]) => (b as number) - (a as number));
               const total = Object.values(data).reduce((s: number, v: any) => s + v, 0) as number;
               return (
-                <div key={name} className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
-                  <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <div key={name} className="bg-void-surface rounded-2xl border border-edge p-6">
+                  <h3 className="font-bold text-paper mb-4 flex items-center gap-2">
                     <PieChart className="w-4 h-4" /> {name} {t('comparison.page.sourceSuffix')}
                   </h3>
                   {entries.length === 0 ? (
-                    <p className="text-slate-500 dark:text-gray-400 text-sm">{t('comparison.page.sourceNoData')}</p>
+                    <p className="text-paper-muted text-sm">{t('comparison.page.sourceNoData')}</p>
                   ) : (
                     <div className="space-y-2">
                       {entries.map(([src, cnt]) => {
                         const pct = total > 0 ? Math.round(((cnt as number) / total) * 100) : 0;
                         return (
                           <div key={src} className="flex items-center gap-2 text-sm">
-                            <span className="w-16 text-gray-600 dark:text-slate-500 dark:text-gray-400 capitalize">{src}</span>
-                            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                            <span className="w-16 text-paper-muted capitalize">{src}</span>
+                            <div className="flex-1 bg-void-raised rounded-full h-2">
                               <div className={`${color} h-full rounded-full`} style={{ width: `${pct}%` }} />
                             </div>
-                            <span className="w-10 text-right font-bold text-slate-900 dark:text-white">{pct}%</span>
+                            <span className="w-10 text-right font-bold text-paper tabular-nums">{pct}%</span>
                           </div>
                         );
                       })}
@@ -233,9 +233,9 @@ export default function ComparisonPage() {
           </div>
         </>
       ) : !loading && (
-        <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-12 text-center">
-          <Scale className="w-12 h-12 text-slate-500 dark:text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-slate-500 dark:text-gray-400 text-sm">
+        <div className="bg-void-surface rounded-2xl border border-edge p-12 text-center">
+          <Scale className="w-12 h-12 text-paper-faint mx-auto mb-4" />
+          <p className="text-paper-muted text-sm">
             {t('comparison.page.guide')}
           </p>
         </div>

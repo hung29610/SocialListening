@@ -6,6 +6,15 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Display } from '@/components/ui/Display';
+import {
+  AuthShell,
+  authErrorClass,
+  authInputClass,
+  authLabelClass,
+  authLinkClass,
+  authSubmitClass,
+} from '@/components/auth/AuthShell';
 
 /** Matches the backend floor in POST /api/auth/register. */
 const MIN_PASSWORD_LENGTH = 8;
@@ -86,123 +95,122 @@ export default function RegisterPage() {
   const errorMessage = errorKey ? t(errorKey) : errorDetail;
 
   return (
-    <div className="premium-auth-shell flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6">
-      <div className="premium-auth-card w-full max-w-md min-w-0 space-y-6 rounded-[1.75rem] p-5 sm:p-8">
-        <div className="flex justify-end">
-          <LanguageSwitcher />
-        </div>
-        <div className="text-center">
-          <div className="premium-auth-mark mx-auto grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-teal-50">N</div>
-          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">{t('auth.workspaceTag')}</p>
-          <h2 className="mt-2 text-center text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">
-            {t('auth.registerTitle')}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            {t('auth.haveAccount')}{' '}
-            <Link href="/login" className="font-semibold text-primary transition-colors hover:text-primary-hover">
-              {t('auth.loginNow')}
-            </Link>
-          </p>
-        </div>
+    <AuthShell
+      brandEyebrow="Nope360 · Social listening"
+      brandHeadline="Tách tín hiệu khỏi nhiễu, từ hôm nay."
+      brandBody="Tạo tài khoản để thiết lập dự án, quét mentions và nhận cảnh báo sớm khi có rủi ro."
+    >
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
+      <div>
+        <p className="font-display text-eyebrow font-semibold uppercase text-signal dark:text-signal-bright">
+          {t('auth.workspaceTag')}
+        </p>
+        <Display as="h1" size="md" className="mt-3 break-words text-paper">
+          {t('auth.registerTitle')}
+        </Display>
+        <p className="mt-2 text-sm text-paper-muted">
+          {t('auth.haveAccount')}{' '}
+          <Link href="/login" className={authLinkClass}>
+            {t('auth.loginNow')}
+          </Link>
+        </p>
+      </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {errorMessage && (
-            <div
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400"
-            >
-              {errorMessage}
-            </div>
-          )}
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        {errorMessage && (
+          <div id="register-error" role="alert" className={authErrorClass}>
+            {errorMessage}
+          </div>
+        )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="full_name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.fullNameLabel')}
-              </label>
-              <input
-                id="full_name"
-                name="full_name"
-                type="text"
-                autoComplete="name"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder={t('auth.fullNamePlaceholder')}
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.emailLabel')}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="username"
-                inputMode="email"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder={t('auth.emailPlaceholder')}
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.passwordLabel')}
-              </label>
-              <input
-                id="password"
-                name="new-password"
-                type="password"
-                autoComplete="new-password"
-                minLength={MIN_PASSWORD_LENGTH}
-                required
-                aria-describedby="password-hint"
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder={t('auth.passwordPlaceholder')}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-              <p id="password-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t('auth.passwordHint')}
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('auth.confirmPasswordLabel')}
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirm-new-password"
-                type="password"
-                autoComplete="new-password"
-                minLength={MIN_PASSWORD_LENGTH}
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder={t('auth.passwordPlaceholder')}
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              />
-            </div>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="full_name" className={authLabelClass}>
+              {t('auth.fullNameLabel')}
+            </label>
+            <input
+              id="full_name"
+              name="full_name"
+              type="text"
+              autoComplete="name"
+              required
+              aria-describedby={errorMessage ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder={t('auth.fullNamePlaceholder')}
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+            />
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="premium-auth-submit flex w-full justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? t('auth.registering') : t('auth.registerButton')}
-            </button>
+            <label htmlFor="email" className={authLabelClass}>
+              {t('auth.emailLabel')}
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              inputMode="email"
+              required
+              aria-describedby={errorMessage ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder={t('auth.emailPlaceholder')}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+
+          <div>
+            <label htmlFor="password" className={authLabelClass}>
+              {t('auth.passwordLabel')}
+            </label>
+            <input
+              id="password"
+              name="new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={MIN_PASSWORD_LENGTH}
+              required
+              aria-describedby={errorMessage ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder={t('auth.passwordPlaceholder')}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+            <p id="password-hint" className="mt-1 text-xs text-paper-muted">
+              {t('auth.passwordHint')}
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className={authLabelClass}>
+              {t('auth.confirmPasswordLabel')}
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirm-new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={MIN_PASSWORD_LENGTH}
+              required
+              aria-describedby={errorMessage ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder={t('auth.passwordPlaceholder')}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" disabled={loading} className={authSubmitClass}>
+            {loading ? t('auth.registering') : t('auth.registerButton')}
+          </button>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

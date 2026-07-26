@@ -14,6 +14,12 @@ import FeedDiscoveryPanel from '@/components/sources/FeedDiscoveryPanel';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+/* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const focusRingOffset =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
+
 type SourceTab = 'active' | 'discovered' | 'connectors';
 
 interface Source {
@@ -189,7 +195,7 @@ export default function SourcesPage() {
       const isHtmlPage = rssUrl.match(/\.(htm|html|php|asp|aspx)($|\?)/i);
       const hasRssKeywords = rssUrl.match(/(\.xml|\/feed|\/rss|rss\.|\.rss|atom|syndication)/i);
       const isRootDomain = rssUrl.match(/^https?:\/\/[^\/]+\/?$/);
-      
+
       if (isHtmlPage || (!hasRssKeywords && isRootDomain)) {
         toast.error(t('sourcesPage.validation.notRssFeed'));
         return;
@@ -242,10 +248,10 @@ export default function SourcesPage() {
       }
 
       await sourcesApi.create(payload);
-      
+
       setShowAddModal(false);
-      setNewSource({ 
-        name: '', 
+      setNewSource({
+        name: '',
         url: '',
         rss_url: '',
         source_type: 'website',
@@ -296,15 +302,15 @@ export default function SourcesPage() {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           s.url.toLowerCase().includes(searchTerm.toLowerCase());
     const isTest = s.url.includes('example.com') || /daily source|weekly source|monthly source|yearly source/i.test(s.name);
-    
+
     if (!showTestSources && isTest) return false;
     return matchesSearch;
   });
 
   const getSourceIcon = (type: string) => {
-    if (type.includes('facebook')) return <Facebook className="w-5 h-5 text-blue-600" />;
-    if (type.includes('youtube')) return <Youtube className="w-5 h-5 text-red-600" />;
-    return <Globe className="w-5 h-5 text-gray-600" />;
+    if (type.includes('facebook')) return <Facebook className="w-5 h-5 text-paper-muted" />;
+    if (type.includes('youtube')) return <Youtube className="w-5 h-5 text-paper-muted" />;
+    return <Globe className="w-5 h-5 text-paper-muted" />;
   };
 
   const getSourceTypeText = (type: string) => {
@@ -359,7 +365,7 @@ export default function SourcesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
+        <div className="text-lg text-paper-muted font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
@@ -373,19 +379,19 @@ export default function SourcesPage() {
   return (
     <div className="space-y-6">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('sourcesPage.title')}</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-paper tracking-wide">{t('sourcesPage.title')}</h1>
+          <p className="text-sm text-paper-muted mt-1">
             {t('sourcesPage.subtitle')}
           </p>
         </div>
         {activeTab === 'active' && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm shadow-indigo-500/20 font-medium"
+            className={`flex items-center px-4 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium ${focusRingOffset}`}
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('sourcesPage.actions.addSource')}
@@ -394,34 +400,34 @@ export default function SourcesPage() {
       </div>
 
       {/* Meta Banner */}
-      <div className="bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg backdrop-blur-sm">
+      <div className="bg-signal/10 border border-signal/25 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-lg">
-            <Globe className="w-5 h-5 text-blue-400" />
+          <div className="p-2 bg-signal/15 rounded-lg">
+            <Globe className="w-5 h-5 text-signal dark:text-signal-bright" />
           </div>
           <div>
-            <h3 className="text-slate-900 dark:text-white font-medium">{t('sourcesPage.metaBanner.title')}</h3>
-            <p className="text-sm text-blue-200 mt-0.5">{t('sourcesPage.metaBanner.desc')}</p>
+            <h3 className="text-paper font-medium">{t('sourcesPage.metaBanner.title')}</h3>
+            <p className="text-sm text-paper-muted mt-0.5">{t('sourcesPage.metaBanner.desc')}</p>
           </div>
         </div>
-        <a 
+        <a
           href="/dashboard/integrations/meta"
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-blue-600/20"
+          className={`px-5 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white font-medium rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none whitespace-nowrap ${focusRingOffset}`}
         >
           {t('sourcesPage.metaBanner.cta')}
         </a>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-1 shadow-xl mb-4">
+      <div className="flex items-center gap-1 bg-void-surface border border-edge rounded-xl p-1 mb-4">
         {tabItems.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 flex-1 justify-center ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 motion-reduce:transition-none flex-1 justify-center ${focusRing} ${
               activeTab === tab.key
-                ? 'bg-white/10 text-white shadow-[0_2px_10px_rgba(255,255,255,0.1)] border border-white/10'
-                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5 border border-transparent'
+                ? 'bg-signal/[0.08] text-signal dark:text-signal-bright border border-signal/20'
+                : 'text-paper-muted hover:text-paper hover:bg-paper/[0.04] border border-transparent'
             }`}
           >
             {tab.icon}
@@ -440,19 +446,19 @@ export default function SourcesPage() {
       </div>
 
       {/* Top Domains Section */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6 mb-6">
+      <div className="bg-void-surface rounded-2xl border border-edge p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-lg font-bold text-paper tracking-wide flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-signal dark:text-signal-bright" />
             {t('sourcesPage.topDomains.title')}
           </h2>
-          <span className="text-xs font-bold tracking-wider uppercase bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-lg shadow-sm">
+          <span className="text-eyebrow font-semibold uppercase bg-signal/10 border border-signal/25 text-signal dark:text-signal-bright px-3 py-1.5 rounded-lg">
             {t('sourcesPage.topDomains.badge')}
           </span>
         </div>
         {topDomainsLoading ? (
           <div className="flex items-center justify-center h-32">
-            <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-signal dark:text-signal-bright animate-spin motion-reduce:animate-none" />
           </div>
         ) : topDomains && topDomains.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -460,23 +466,23 @@ export default function SourcesPage() {
               <Link
                 key={idx}
                 href={`/dashboard/mentions?search=${encodeURIComponent(domain.domain || '')}`}
-                className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 hover:border-indigo-500/50 border border-transparent transition-all group"
+                className={`flex items-center gap-3 p-3 bg-void-raised rounded-xl hover:border-signal/40 border border-transparent transition-colors duration-150 motion-reduce:transition-none group ${focusRing}`}
               >
-                <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 font-bold text-sm flex-shrink-0">
+                <div className="w-8 h-8 bg-signal/10 rounded-lg flex items-center justify-center text-signal dark:text-signal-bright font-bold text-sm tabular-nums flex-shrink-0">
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate group-hover:text-indigo-300 transition-colors">
+                  <p className="text-sm font-medium text-paper truncate group-hover:text-signal dark:group-hover:text-signal-bright transition-colors duration-150 motion-reduce:transition-none">
                     {domain.domain || domain.name || t('mentions.page.unknownSource')}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">{domain.mention_count || 0} mentions</p>
+                  <p className="text-xs text-paper-faint tabular-nums">{domain.mention_count || 0} mentions</p>
                 </div>
-                <TrendingUp className="w-4 h-4 text-emerald-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <TrendingUp className="w-4 h-4 text-sentiment-positive flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 motion-reduce:transition-none" />
               </Link>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-32 text-zinc-400">
+          <div className="flex flex-col items-center justify-center h-32 text-paper-faint">
             <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
             <p className="text-sm">{t('sourcesPage.topDomains.empty')}</p>
           </div>
@@ -486,24 +492,24 @@ export default function SourcesPage() {
       {/* Search */}
       <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-paper-faint w-5 h-5" />
           <input
             type="text"
             placeholder={t('sourcesPage.search.placeholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 shadow-xl transition-shadow"
+            className="w-full pl-11 pr-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
           />
         </div>
-        <div className="flex items-center gap-3 bg-white/5 backdrop-blur-xl px-4 py-3 border border-white/10 rounded-xl w-full sm:w-auto shadow-xl">
+        <div className="flex items-center gap-3 bg-void-surface px-4 py-3 border border-edge rounded-xl w-full sm:w-auto">
           <input
             type="checkbox"
             id="showTestSources"
             checked={showTestSources}
             onChange={(e) => setShowTestSources(e.target.checked)}
-            className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
+            className={`w-4 h-4 text-signal bg-void-surface border-edge-strong rounded ${focusRing}`}
           />
-          <label htmlFor="showTestSources" className="text-sm font-medium text-slate-700 dark:text-gray-300 cursor-pointer select-none">
+          <label htmlFor="showTestSources" className="text-sm font-medium text-paper-muted cursor-pointer select-none">
             {t('sourcesPage.filters.showTestSources')}
           </label>
         </div>
@@ -512,9 +518,9 @@ export default function SourcesPage() {
       {/* Sources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredSources.length === 0 ? (
-          <div className="col-span-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-10 text-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">
-            <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 shadow-sm">
-              <Globe className="w-8 h-8 text-gray-500" />
+          <div className="col-span-full bg-void-surface border border-edge rounded-2xl p-10 text-center text-paper-muted font-medium tracking-wide">
+            <div className="w-16 h-16 rounded-xl bg-void-raised flex items-center justify-center mx-auto mb-4 border border-edge">
+              <Globe className="w-8 h-8 text-paper-faint" />
             </div>
             {searchTerm ? t('sourcesPage.empty.noMatch') : t('sourcesPage.empty.noSources')}
           </div>
@@ -525,26 +531,26 @@ export default function SourcesPage() {
             const isUnsupported = !isSupported && source.source_type;
 
             return (
-              <div key={source.id} className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6 transition-all duration-300 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] group flex flex-col h-full hover:-translate-y-1">
+              <div key={source.id} className="bg-void-surface rounded-2xl border border-edge p-6 transition-all duration-200 motion-reduce:transition-none hover:border-signal/40 group flex flex-col h-full hover:-translate-y-1 motion-reduce:hover:translate-y-0">
                 <div className="flex items-start justify-between mb-5">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2.5 bg-[#050A15] rounded-xl border border-white/10 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                    <div className="p-2.5 bg-void-raised rounded-xl border border-edge group-hover:scale-110 transition-transform duration-200 motion-reduce:transition-none">
                       {getSourceIcon(source.source_type)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-semibold text-slate-900 dark:text-white tracking-wide truncate max-w-[150px]" title={source.name}>{source.name}</h3>
+                        <h3 className="font-semibold text-paper tracking-wide truncate max-w-[150px]" title={source.name}>{source.name}</h3>
                         {(() => {
                           if (isUnsupported) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge">
                                 {t('sourcesPage.badge.unsupported')}
                               </span>
                             );
                           }
                           if (isTest) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge">
                                 {t('sourcesPage.badge.testSource')}
                               </span>
                             );
@@ -571,31 +577,31 @@ export default function SourcesPage() {
                           
                           if (isBlockedTarget) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-destructive/10 text-destructive border border-destructive/25">
                                 {t('sourcesPage.badge.blockedUrl')}
                               </span>
                             );
                           } else if (isInvalidRss) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-destructive/10 text-destructive border border-destructive/25">
                                 {t('sourcesPage.badge.invalidRss')}
                               </span>
                             );
                           } else if (error && !isAiConfigError) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-destructive/10 text-destructive border border-destructive/25">
                                 {t('sourcesPage.badge.crawlError')}
                               </span>
                             );
                           } else if (source.last_crawled_at) {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-success/10 text-success border border-success/25">
                                 {t('sourcesPage.badge.crawlSuccess')}
                               </span>
                             );
                           } else {
                             return (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge">
                                 {t('sourcesPage.badge.notCrawled')}
                               </span>
                             );
@@ -603,31 +609,31 @@ export default function SourcesPage() {
                         })()}
                       </div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-[11px] font-medium tracking-wider uppercase text-gray-500">{getSourceTypeText(source.source_type)}</p>
+                        <p className="text-[11px] font-medium tracking-wider uppercase text-paper-faint">{getSourceTypeText(source.source_type)}</p>
                         {source.category && (
-                          <span className="text-[10px] font-medium tracking-wider uppercase text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                          <span className="text-[10px] font-medium tracking-wider uppercase text-signal dark:text-signal-bright bg-signal/10 px-1.5 py-0.5 rounded border border-signal/20">
                             {source.category}
                           </span>
                         )}
                         {(() => {
                           if (isUnsupported || isTest) return null;
-                          
+
                           const error = (source as any).last_error;
-                          const isAiConfigError = error && (error.includes('ai_provider_not_configured') || 
-                                                  error.includes('openai_dependency_missing') || 
+                          const isAiConfigError = error && (error.includes('ai_provider_not_configured') ||
+                                                  error.includes('openai_dependency_missing') ||
                                                   error.includes('AI chưa cấu hình') ||
                                                   error.includes('thiếu package openai') ||
                                                   error.includes('openai package not installed'));
-                          
+
                           if (isAiConfigError) {
                              return (
-                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-warning/10 text-warning border border-warning/25">
                                  {t('sourcesPage.badge.aiNotConfigured')}
                                </span>
                              );
                           } else if (source.last_crawled_at && (!error || error === '')) {
                              return (
-                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-info/10 text-info border border-info/25">
                                  {t('sourcesPage.badge.aiAnalyzed')}
                                </span>
                              );
@@ -639,10 +645,10 @@ export default function SourcesPage() {
                   </div>
                 <button
                   onClick={() => handleToggleActive(source)}
-                  className={`px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-colors border ${
+                  className={`px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-md transition-colors duration-150 motion-reduce:transition-none border ${focusRing} ${
                     source.is_active
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                      : 'bg-gray-800 text-gray-500 border-slate-300 dark:border-gray-700 hover:bg-gray-700'
+                      ? 'bg-success/10 text-success border-success/25 hover:bg-success/20'
+                      : 'bg-void-raised text-paper-faint border-edge hover:text-paper-muted'
                   }`}
                 >
                   {source.is_active ? 'ON' : 'OFF'}
@@ -650,27 +656,27 @@ export default function SourcesPage() {
               </div>
 
               <div className="space-y-3 mb-6 flex-1">
-                <p className="text-sm text-slate-500 dark:text-gray-400 truncate bg-[#050A15] p-3 rounded-xl border border-white/10 shadow-inner" title={source.url}>
-                  <span className="font-medium text-gray-500 mr-2 block text-xs uppercase tracking-wider mb-1">URL</span> {source.url}
+                <p className="text-sm text-paper-muted truncate bg-void-raised p-3 rounded-xl border border-edge" title={source.url}>
+                  <span className="font-medium text-paper-faint mr-2 block text-xs uppercase tracking-wider mb-1">URL</span> {source.url}
                 </p>
-                
+
                 {/* Schedule Info */}
-                <div className="flex items-center space-x-3 text-sm text-slate-500 dark:text-gray-400 px-1">
-                  <Clock className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                <div className="flex items-center space-x-3 text-sm text-paper-muted px-1">
+                  <Clock className="w-4 h-4 text-signal dark:text-signal-bright flex-shrink-0" />
                   <div className="flex-1 truncate" title={getScheduleDescription(source)}>
                     {getScheduleDescription(source)}
                   </div>
                 </div>
-                
+
                 {source.next_crawl_at && (
-                  <p className="text-xs text-gray-500 px-1 truncate">
-                    <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">{t('sourcesPage.card.nextCrawl')}</span>
+                  <p className="text-xs text-paper-faint px-1 truncate tabular-nums">
+                    <span className="font-medium mr-1 text-paper-muted">{t('sourcesPage.card.nextCrawl')}</span>
                     {new Date(source.next_crawl_at).toLocaleString('vi-VN')}
                   </p>
                 )}
-                
-                <p className="text-xs text-gray-500 px-1 truncate">
-                  <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">{t('sourcesPage.card.lastCrawl')}</span>
+
+                <p className="text-xs text-paper-faint px-1 truncate tabular-nums">
+                  <span className="font-medium mr-1 text-paper-muted">{t('sourcesPage.card.lastCrawl')}</span>
                   {source.last_crawled_at
                     ? new Date(source.last_crawled_at).toLocaleString('vi-VN')
                     : t('sourcesPage.badge.notCrawled')
@@ -679,38 +685,38 @@ export default function SourcesPage() {
                 {(() => {
                   const error = (source as any).last_error;
                   if (!error) return null;
-                  
+
                   // Check if invalid RSS feed
-                  const isInvalidRss = error.includes('invalid_rss_feed') || 
-                                       error.includes('Feed parse error') || 
+                  const isInvalidRss = error.includes('invalid_rss_feed') ||
+                                       error.includes('Feed parse error') ||
                                        error.includes('not well-formed') ||
                                        error.includes('invalid token') ||
                                        (source.source_type === 'rss' && error.includes('not well-formed'));
-                                       
+
                   if (isInvalidRss) {
                     return (
-                      <div className="text-xs mt-3 p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-lg">
-                        <span className="text-rose-400 opacity-90 block mb-1">
+                      <div className="text-xs mt-3 p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg">
+                        <span className="text-destructive opacity-90 block mb-1">
                           {t('sourcesPage.card.rssNotFeedTitle')}
                         </span>
-                        <span className="text-gray-500 text-[11px] block leading-relaxed">
+                        <span className="text-paper-faint text-[11px] block leading-relaxed">
                           {t('sourcesPage.card.rssNotFeedHint')}
                         </span>
                       </div>
                     );
                   }
-                  
+
                   // Check if OpenAI dependency / config issue
-                  const isAiConfigError = error.includes('ai_provider_not_configured') || 
-                                          error.includes('openai_dependency_missing') || 
+                  const isAiConfigError = error.includes('ai_provider_not_configured') ||
+                                          error.includes('openai_dependency_missing') ||
                                           error.includes('AI chưa cấu hình') ||
                                           error.includes('thiếu package openai') ||
                                           error.includes('openai package not installed');
-                                          
+
                   if (isAiConfigError) {
                     return (
-                      <div className="text-xs mt-3 p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                        <span className="text-amber-400 opacity-90">
+                      <div className="text-xs mt-3 p-2.5 bg-warning/5 border border-warning/20 rounded-lg">
+                        <span className="text-warning opacity-90">
                           {t('sourcesPage.card.aiConfigNote')}
                         </span>
                       </div>
@@ -725,29 +731,29 @@ export default function SourcesPage() {
                       cleanMsg = Array.isArray(parts) ? parts.slice(1).join(': ') : error;
                     }
                   }
-                  
+
                   if (isTest) {
                     return (
-                      <div className="text-xs text-slate-500 dark:text-gray-400 mt-3 p-2.5 bg-gray-500/5 border border-gray-500/20 rounded-lg" title={error}>
-                        <span className="font-semibold text-gray-500 block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.testSourceNote')}</span>
+                      <div className="text-xs text-paper-muted mt-3 p-2.5 bg-void-raised border border-edge rounded-lg" title={error}>
+                        <span className="font-semibold text-paper-faint block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.testSourceNote')}</span>
                         <span className="opacity-90">{cleanMsg.substring(0, 100)}{cleanMsg.length > 100 ? '...' : ''}</span>
                       </div>
                     );
                   }
-                  
+
                   return (
-                    <div className="text-xs text-rose-400 mt-3 p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-lg" title={error}>
-                      <span className="font-semibold text-rose-500 block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.lastCrawlError')}</span>
+                    <div className="text-xs text-destructive mt-3 p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg" title={error}>
+                      <span className="font-semibold text-destructive block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.lastCrawlError')}</span>
                       <span className="opacity-90">{cleanMsg.substring(0, 100)}{cleanMsg.length > 100 ? '...' : ''}</span>
                     </div>
                   );
                 })()}
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-gray-800/50 mt-auto">
+              <div className="flex justify-end pt-4 border-t border-edge mt-auto">
                 <button
                   onClick={() => setDeleteConfirm({ isOpen: true, sourceId: source.id, sourceName: source.name })}
-                  className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20"
+                  className={`p-1.5 text-paper-faint hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-destructive/20 ${focusRing}`}
                   title={t('sourcesPage.actions.deleteSource')}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -779,21 +785,21 @@ export default function SourcesPage() {
         <div className="space-y-4">
           {/* Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('sourcesPage.discovered.statusLabel')}</span>
+            <span className="text-eyebrow font-semibold text-paper-faint uppercase">{t('sourcesPage.discovered.statusLabel')}</span>
             {[
-              { key: 'candidate', label: t('sourcesPage.discovered.status.candidate'), color: 'amber' },
-              { key: 'approved', label: t('sourcesPage.discovered.status.approved'), color: 'emerald' },
-              { key: 'rejected', label: t('sourcesPage.discovered.filter.rejected'), color: 'rose' },
-              { key: 'blocked', label: t('sourcesPage.discovered.filter.blocked'), color: 'red' },
-              { key: '', label: t('common.all'), color: 'gray' },
+              { key: 'candidate', label: t('sourcesPage.discovered.status.candidate'), chip: 'bg-warning/15 text-warning border-warning/25' },
+              { key: 'approved', label: t('sourcesPage.discovered.status.approved'), chip: 'bg-success/15 text-success border-success/25' },
+              { key: 'rejected', label: t('sourcesPage.discovered.filter.rejected'), chip: 'bg-destructive/15 text-destructive border-destructive/25' },
+              { key: 'blocked', label: t('sourcesPage.discovered.filter.blocked'), chip: 'bg-destructive/15 text-destructive border-destructive/25' },
+              { key: '', label: t('common.all'), chip: 'bg-void-raised text-paper border-edge-strong' },
             ].map((f) => (
               <button
                 key={f.key}
                 onClick={() => setDsFilter(f.key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all border ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 motion-reduce:transition-none border ${focusRing} ${
                   dsFilter === f.key
-                    ? `bg-${f.color}-500/15 text-${f.color}-400 border-${f.color}-500/25`
-                    : 'bg-white/5 text-gray-500 hover:text-slate-700 dark:text-gray-300 border-white/10 hover:border-white/20'
+                    ? f.chip
+                    : 'bg-void-surface text-paper-faint hover:text-paper border-edge hover:border-edge-strong'
                 }`}
               >
                 {f.label}
@@ -803,87 +809,87 @@ export default function SourcesPage() {
 
           {dsLoading ? (
             <div className="flex items-center justify-center h-40">
-              <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+              <Loader2 className="w-6 h-6 text-signal dark:text-signal-bright animate-spin motion-reduce:animate-none" />
             </div>
           ) : discoveredSources.length === 0 ? (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 text-center">
-              <Radar className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">{t('sourcesPage.discovered.empty.title')}</p>
-              <p className="text-xs text-gray-500 mt-1">{t('sourcesPage.discovered.empty.hint')}</p>
+            <div className="bg-void-surface border border-edge rounded-2xl p-10 text-center">
+              <Radar className="w-10 h-10 text-paper-faint mx-auto mb-3" />
+              <p className="text-sm text-paper-muted font-medium">{t('sourcesPage.discovered.empty.title')}</p>
+              <p className="text-xs text-paper-faint mt-1">{t('sourcesPage.discovered.empty.hint')}</p>
             </div>
           ) : (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-void-surface border border-edge rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-black/30 text-left text-[10px] text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.source')}</th>
-                      <th className="px-4 py-3 font-medium hidden md:table-cell">{t('sourcesPage.discovered.table.type')}</th>
-                      <th className="px-4 py-3 font-medium hidden lg:table-cell">RSS</th>
-                      <th className="px-4 py-3 font-medium hidden lg:table-cell">{t('sourcesPage.discovered.table.mentions')}</th>
-                      <th className="px-4 py-3 font-medium hidden xl:table-cell">{t('sourcesPage.discovered.table.matchedKeywords')}</th>
-                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.score')}</th>
-                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.status')}</th>
-                      <th className="px-4 py-3 font-medium text-right">{t('sourcesPage.discovered.table.actions')}</th>
+                    <tr className="bg-void-raised text-left text-[11px] tracking-eyebrow font-semibold text-paper-faint uppercase border-b border-edge">
+                      <th scope="col" className="px-4 py-3">{t('sourcesPage.discovered.table.source')}</th>
+                      <th scope="col" className="px-4 py-3 hidden md:table-cell">{t('sourcesPage.discovered.table.type')}</th>
+                      <th scope="col" className="px-4 py-3 hidden lg:table-cell">RSS</th>
+                      <th scope="col" className="px-4 py-3 hidden lg:table-cell">{t('sourcesPage.discovered.table.mentions')}</th>
+                      <th scope="col" className="px-4 py-3 hidden xl:table-cell">{t('sourcesPage.discovered.table.matchedKeywords')}</th>
+                      <th scope="col" className="px-4 py-3">{t('sourcesPage.discovered.table.score')}</th>
+                      <th scope="col" className="px-4 py-3">{t('sourcesPage.discovered.table.status')}</th>
+                      <th scope="col" className="px-4 py-3 text-right">{t('sourcesPage.discovered.table.actions')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-edge">
                     {discoveredSources.map((ds: any) => (
-                      <tr key={ds.id} className="hover:bg-white/5 transition-colors">
+                      <tr key={ds.id} className="hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
                         <td className="px-4 py-3">
-                          <div className="font-medium text-slate-900 dark:text-white text-sm truncate max-w-[200px]" title={ds.source_name}>{ds.source_name || ds.domain}</div>
-                          <div className="text-[11px] text-gray-500 truncate max-w-[200px]">{ds.domain}</div>
+                          <div className="font-medium text-paper text-sm truncate max-w-[200px]" title={ds.source_name}>{ds.source_name || ds.domain}</div>
+                          <div className="text-[11px] text-paper-faint truncate max-w-[200px]">{ds.domain}</div>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="text-xs text-slate-500 dark:text-gray-400 capitalize">{ds.source_type || '—'}</span>
+                          <span className="text-xs text-paper-muted capitalize">{ds.source_type || '—'}</span>
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell">
                           {ds.rss_valid ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded border border-success/25">
                               <Rss className="w-3 h-3" /> {t('sourcesPage.discovered.hasRss')}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-500">{t('sourcesPage.discovered.noRss')}</span>
+                            <span className="text-[10px] text-paper-faint">{t('sourcesPage.discovered.noRss')}</span>
                           )}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell">
-                          <span className="text-xs text-slate-700 dark:text-gray-300 font-medium">{ds.sample_mentions_count || 0}</span>
+                          <span className="text-xs text-paper-muted font-medium tabular-nums">{ds.sample_mentions_count || 0}</span>
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                           <div className="flex flex-wrap gap-1 max-w-[160px]">
                             {(Array.isArray(ds.matched_keywords_json) ? ds.matched_keywords_json : []).slice(0, 3).map((kw: string, i: number) => (
-                              <span key={i} className="text-[10px] px-1.5 py-0.5 bg-indigo-500/10 text-indigo-400 rounded border border-indigo-500/20 truncate max-w-[80px]">{kw}</span>
+                              <span key={i} className="text-[10px] px-1.5 py-0.5 bg-signal/10 text-signal dark:text-signal-bright rounded border border-signal/20 truncate max-w-[80px]">{kw}</span>
                             ))}
                             {(ds.matched_keywords_json || []).length > 3 && (
-                              <span className="text-[10px] text-gray-500">+{(ds.matched_keywords_json || []).length - 3}</span>
+                              <span className="text-[10px] text-paper-faint tabular-nums">+{(ds.matched_keywords_json || []).length - 3}</span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
-                            <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-void-raised rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${
-                                  (ds.relevance_score || 0) >= 50 ? 'bg-emerald-500' : (ds.relevance_score || 0) >= 25 ? 'bg-amber-500' : 'bg-gray-600'
+                                className={`h-full rounded-full transition-all duration-200 motion-reduce:transition-none ${
+                                  (ds.relevance_score || 0) >= 50 ? 'bg-success' : (ds.relevance_score || 0) >= 25 ? 'bg-warning' : 'bg-paper-faint'
                                 }`}
                                 style={{ width: `${Math.min(ds.relevance_score || 0, 100)}%` }}
                               />
                             </div>
-                            <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium w-7">{Math.round(ds.relevance_score || 0)}</span>
+                            <span className="text-[10px] text-paper-muted font-medium w-7 tabular-nums">{Math.round(ds.relevance_score || 0)}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           {ds.status === 'candidate' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">{t('sourcesPage.discovered.status.candidate')}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-warning/10 text-warning border border-warning/25">{t('sourcesPage.discovered.status.candidate')}</span>
                           )}
                           {ds.status === 'approved' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t('sourcesPage.discovered.status.approved')}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-success/10 text-success border border-success/25">{t('sourcesPage.discovered.status.approved')}</span>
                           )}
                           {ds.status === 'rejected' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">{t('sourcesPage.discovered.status.rejected')}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/25">{t('sourcesPage.discovered.status.rejected')}</span>
                           )}
                           {ds.status === 'blocked' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20">{t('sourcesPage.discovered.status.blocked')}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/25">{t('sourcesPage.discovered.status.blocked')}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -893,46 +899,46 @@ export default function SourcesPage() {
                                 <button
                                   onClick={() => handleDsAction(ds.id, 'approve-rss')}
                                   disabled={dsActionLoading === ds.id}
-                                  className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20" title={t('sourcesPage.discovered.actions.approveRss')}
+                                  className={`p-1.5 text-success hover:bg-success/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-success/25 ${focusRing}`} title={t('sourcesPage.discovered.actions.approveRss')}
                                 >
-                                  {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rss className="w-3.5 h-3.5" />}
+                                  {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" /> : <Rss className="w-3.5 h-3.5" />}
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDsAction(ds.id, 'approve-website')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20" title={t('sourcesPage.discovered.actions.approveWebsite')}
+                                className={`p-1.5 text-signal dark:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-signal/25 ${focusRing}`} title={t('sourcesPage.discovered.actions.approveWebsite')}
                               >
-                                {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" /> : <CheckCircle className="w-3.5 h-3.5" />}
                               </button>
                               <button
                                 onClick={() => handleDsAction(ds.id, 'reject')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20" title={t('sourcesPage.discovered.actions.reject')}
+                                className={`p-1.5 text-paper-faint hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-destructive/20 ${focusRing}`} title={t('sourcesPage.discovered.actions.reject')}
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDsAction(ds.id, 'block')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20" title={t('sourcesPage.discovered.actions.block')}
+                                className={`p-1.5 text-paper-faint hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-destructive/20 ${focusRing}`} title={t('sourcesPage.discovered.actions.block')}
                               >
                                 <Ban className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleRefreshRss(ds.id)}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors border border-transparent hover:border-cyan-500/20" title={t('sourcesPage.discovered.actions.recheckRss')}
+                                className={`p-1.5 text-paper-faint hover:text-info hover:bg-info/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-info/25 ${focusRing}`} title={t('sourcesPage.discovered.actions.recheckRss')}
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
                           {ds.status === 'approved' && ds.approved_source_id && (
-                            <span className="text-[10px] text-emerald-400">{t('sourcesPage.discovered.sourceRef', { id: ds.approved_source_id })}</span>
+                            <span className="text-[10px] text-success tabular-nums">{t('sourcesPage.discovered.sourceRef', { id: ds.approved_source_id })}</span>
                           )}
                           {ds.status === 'blocked' && (
-                            <span className="text-[10px] text-gray-500 truncate max-w-[100px]" title={ds.blocked_reason}>{ds.blocked_reason || t('sourcesPage.discovered.filter.blocked')}</span>
+                            <span className="text-[10px] text-paper-faint truncate max-w-[100px]" title={ds.blocked_reason}>{ds.blocked_reason || t('sourcesPage.discovered.filter.blocked')}</span>
                           )}
                         </td>
                       </tr>
@@ -952,53 +958,53 @@ export default function SourcesPage() {
         <div className="space-y-4">
           {connectorsLoading ? (
             <div className="flex items-center justify-center h-40">
-              <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+              <Loader2 className="w-6 h-6 text-signal dark:text-signal-bright animate-spin motion-reduce:animate-none" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {connectors.map((c: any) => (
-                <div key={c.key} className={`bg-white/5 backdrop-blur-xl rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-0.5 flex flex-col h-full ${
-                  c.status === 'active' || c.status === 'limited' ? 'border-emerald-500/20 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]'
-                    : c.status === 'config_required' ? 'border-amber-500/20 hover:border-amber-500/40'
-                    : 'border-white/10 hover:border-white/20'
+                <div key={c.key} className={`bg-void-surface rounded-2xl border p-5 transition-all duration-200 motion-reduce:transition-none hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 flex flex-col h-full ${
+                  c.status === 'active' || c.status === 'limited' ? 'border-success/25 hover:border-success/40'
+                    : c.status === 'config_required' ? 'border-warning/25 hover:border-warning/40'
+                    : 'border-edge hover:border-edge-strong'
                 }`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl border shadow-inner ${
-                        c.status === 'active' || c.status === 'limited' ? 'bg-emerald-500/10 border-emerald-500/20' 
-                          : c.status === 'config_required' ? 'bg-amber-500/10 border-amber-500/20'
-                          : 'bg-white/5 border-white/10'
+                      <div className={`p-2.5 rounded-xl border ${
+                        c.status === 'active' || c.status === 'limited' ? 'bg-success/10 border-success/25'
+                          : c.status === 'config_required' ? 'bg-warning/10 border-warning/25'
+                          : 'bg-void-raised border-edge'
                       }`}>
-                        {c.status === 'active' || c.status === 'limited' ? <Wifi className="w-5 h-5 text-emerald-400" />
-                          : c.status === 'config_required' ? <Sparkles className="w-5 h-5 text-amber-400" />
-                          : <WifiOff className="w-5 h-5 text-gray-500" />}
+                        {c.status === 'active' || c.status === 'limited' ? <Wifi className="w-5 h-5 text-success" />
+                          : c.status === 'config_required' ? <Sparkles className="w-5 h-5 text-warning" />
+                          : <WifiOff className="w-5 h-5 text-paper-faint" />}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{c.name}</h3>
+                        <h3 className="font-semibold text-paper text-sm">{c.name}</h3>
                       </div>
                     </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-right max-w-[120px] ${
-                      c.status === 'active' || c.status === 'limited' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : c.status === 'config_required' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20'
+                      c.status === 'active' || c.status === 'limited' ? 'bg-success/10 text-success border border-success/25'
+                        : c.status === 'config_required' ? 'bg-warning/10 text-warning border border-warning/25'
+                        : 'bg-void-raised text-paper-faint border border-edge'
                     }`}>{c.status_label}</span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed flex-1 mb-4">{c.description}</p>
-                  
+                  <p className="text-xs text-paper-muted leading-relaxed flex-1 mb-4">{c.description}</p>
+
                   {c.limitations && (
-                    <div className="mb-4 text-[11px] p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-300">
+                    <div className="mb-4 text-[11px] p-2 bg-signal/10 border border-signal/20 rounded-lg text-signal dark:text-signal-bright">
                       💡 {c.limitations}
                     </div>
                   )}
 
                   <div className="mt-auto">
                     {c.status === 'oauth_required' && (
-                      <a href="/dashboard/integrations/meta" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center">
+                      <a href="/dashboard/integrations/meta" className={`w-full bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white font-medium py-2 rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none flex items-center justify-center ${focusRingOffset}`}>
                           <Plug className="w-4 h-4 mr-2" /> {t('sourcesPage.connectors.configureMeta')}
                       </a>
                     )}
                     {c.status === 'limited' && (
-                      <a href="/dashboard/integrations/meta" className="w-full bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 font-medium py-2 rounded-lg text-sm transition-colors block text-center">
+                      <a href="/dashboard/integrations/meta" className={`w-full bg-signal/10 border border-signal/25 hover:bg-signal/20 text-signal dark:text-signal-bright font-medium py-2 rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none block text-center ${focusRing}`}>
                           {t('integrations.manageAccounts')}
                       </a>
                     )}
@@ -1012,23 +1018,23 @@ export default function SourcesPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#050A15]/90 border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
-            <div className="p-6 border-b border-white/10 bg-white/5 sticky top-0 z-10 backdrop-blur-xl">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('sourcesPage.form.title')}</h2>
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-signal/60" />
+            <div className="p-6 border-b border-edge bg-void-surface/[0.85] sticky top-0 z-10 backdrop-blur-xl">
+              <h2 className="text-xl font-bold text-paper">{t('sourcesPage.form.title')}</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   {t('sourcesPage.form.nameLabel')} *
                 </label>
                 <input
                   type="text"
                   value={newSource.name}
                   onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                  className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                   placeholder={t('sourcesPage.form.namePlaceholder')}
                   autoFocus
                 />
@@ -1036,42 +1042,42 @@ export default function SourcesPage() {
 
               {newSource.source_type !== 'rss' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('sourcesPage.form.urlLabel')} *
                   </label>
                   <input
                     type="url"
                     value={newSource.url}
                     onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     placeholder="https://example.com"
                   />
                 </div>
               )}
-              
+
               {newSource.source_type === 'rss' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('sourcesPage.form.rssSiteLabel')}
                   </label>
                   <input
                     type="url"
                     value={newSource.url}
                     onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     placeholder="https://example.com"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   {t('sourcesPage.form.sourceTypeLabel')}
                 </label>
                 <select
                   value={newSource.source_type}
                   onChange={(e) => setNewSource({ ...newSource, source_type: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                 >
                   <option value="website">{t('sourcesPage.sourceType.website')}</option>
                   <option value="facebook_page">{t('sourcesPage.sourceType.facebookPage')}</option>
@@ -1089,40 +1095,40 @@ export default function SourcesPage() {
               {/* Dynamic form based on source type */}
               {/* Website, News, Forum, Manual URL - just need URL */}
               {['website', 'news', 'forum', 'manual_url'].includes(newSource.source_type) && (
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-                  <p className="text-sm text-indigo-300">
-                    <strong className="text-indigo-400">{t('sourcesPage.form.webNoteLabel')}</strong> {t('sourcesPage.form.webNote')}
+                <div className="bg-signal/10 border border-signal/20 rounded-xl p-4">
+                  <p className="text-sm text-paper-muted">
+                    <strong className="text-signal dark:text-signal-bright">{t('sourcesPage.form.webNoteLabel')}</strong> {t('sourcesPage.form.webNote')}
                   </p>
                 </div>
               )}
 
               {/* Facebook - need login credentials */}
               {newSource.source_type.startsWith('facebook_') && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 space-y-4">
-                  <p className="text-sm text-amber-300 font-medium">
-                    <strong className="text-amber-400">{t('sourcesPage.form.facebookHeading')}</strong> {t('sourcesPage.form.facebookNote')}
+                <div className="bg-warning/10 border border-warning/25 rounded-xl p-4 space-y-4">
+                  <p className="text-sm text-warning font-medium">
+                    <strong className="text-warning">{t('sourcesPage.form.facebookHeading')}</strong> {t('sourcesPage.form.facebookNote')}
                   </p>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('sourcesPage.form.facebookEmailLabel')}
                     </label>
                     <input
                       type="text"
                       placeholder={t('auth.emailPlaceholder')}
-                      className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('auth.passwordLabel')}
                     </label>
                     <input
                       type="password"
                       placeholder="••••••••"
-                      className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     />
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                  <p className="text-xs text-paper-muted">
                     ⚠️ {t('sourcesPage.form.credentialsNote')}
                   </p>
                 </div>
@@ -1130,31 +1136,31 @@ export default function SourcesPage() {
 
               {/* YouTube - need API key or login */}
               {newSource.source_type.startsWith('youtube_') && (
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 space-y-4">
-                  <p className="text-sm text-rose-300 font-medium">
-                    <strong className="text-rose-400">{t('sourcesPage.form.youtubeHeading')}</strong> {t('sourcesPage.form.youtubeNote')}
+                <div className="bg-void-raised border border-edge rounded-xl p-4 space-y-4">
+                  <p className="text-sm text-paper-muted font-medium">
+                    <strong className="text-paper">{t('sourcesPage.form.youtubeHeading')}</strong> {t('sourcesPage.form.youtubeNote')}
                   </p>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('sourcesPage.form.accessMethodLabel')}
                     </label>
-                    <select className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-900 dark:text-white">
+                    <select className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal">
                       <option value="public">{t('sourcesPage.form.accessPublic')}</option>
                       <option value="api_key">{t('sourcesPage.form.accessApiKey')}</option>
                       <option value="login">{t('sourcesPage.form.accessGoogleLogin')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('sourcesPage.form.youtubeApiKeyOptional')}
                     </label>
                     <input
                       type="text"
                       placeholder="AIzaSy..."
-                      className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     />
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                  <p className="text-xs text-paper-muted">
                     💡 {t('sourcesPage.form.youtubeApiKeyNote')}
                   </p>
                 </div>
@@ -1162,12 +1168,12 @@ export default function SourcesPage() {
 
               {/* RSS - need feed settings */}
               {newSource.source_type === 'rss' && (
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 space-y-4">
-                  <p className="text-sm text-orange-300 font-medium">
-                    <strong className="text-orange-400">{t('sourcesPage.form.rssHeading')}</strong> {t('sourcesPage.form.rssNote')}
+                <div className="bg-void-raised border border-edge rounded-xl p-4 space-y-4">
+                  <p className="text-sm text-paper-muted font-medium">
+                    <strong className="text-paper">{t('sourcesPage.form.rssHeading')}</strong> {t('sourcesPage.form.rssNote')}
                   </p>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('sourcesPage.form.rssUrlLabel')} *
                     </label>
                     <input
@@ -1175,14 +1181,14 @@ export default function SourcesPage() {
                       value={newSource.rss_url || ''}
                       onChange={(e) => setNewSource({ ...newSource, rss_url: e.target.value })}
                       placeholder="https://example.com/feed.xml"
-                      className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 dark:text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     />
-                    <p className="text-xs text-orange-300/80 mt-1.5">
+                    <p className="text-xs text-paper-faint mt-1.5">
                       {t('sourcesPage.form.rssUrlHint')}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
                       {t('sourcesPage.form.rssMaxItemsLabel')}
                     </label>
                     <input
@@ -1190,16 +1196,16 @@ export default function SourcesPage() {
                       defaultValue={50}
                       min={1}
                       max={500}
-                      className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 dark:text-white"
+                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     />
                   </div>
                   <div className="flex items-center">
                     <input
                       type="checkbox"
                       id="rss-full-content"
-                      className="w-4 h-4 text-orange-600 bg-gray-800 border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-gray-900"
+                      className={`w-4 h-4 text-signal bg-void-surface border-edge-strong rounded ${focusRing}`}
                     />
-                    <label htmlFor="rss-full-content" className="ml-3 text-sm text-slate-700 dark:text-gray-300 cursor-pointer">
+                    <label htmlFor="rss-full-content" className="ml-3 text-sm text-paper-muted cursor-pointer">
                       {t('sourcesPage.form.rssFullContent')}
                     </label>
                   </div>
@@ -1207,20 +1213,20 @@ export default function SourcesPage() {
               )}
 
               {/* Crawl Schedule */}
-              <div className="border-t border-slate-200 dark:border-gray-800 pt-5 mt-2">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">{t('sourcesPage.form.scheduleTitle')}</h3>
+              <div className="border-t border-edge pt-5 mt-2">
+                <h3 className="text-base font-semibold text-paper mb-4">{t('sourcesPage.form.scheduleTitle')}</h3>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('sourcesPage.form.frequencyLabel')}
                   </label>
                   <select
                     value={newSource.crawl_frequency}
-                    onChange={(e) => setNewSource({ 
-                      ...newSource, 
+                    onChange={(e) => setNewSource({
+                      ...newSource,
                       crawl_frequency: e.target.value as 'manual' | 'daily' | 'weekly' | 'monthly' | 'yearly'
                     })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                   >
                     <option value="manual">{t('sourcesPage.form.frequencyManual')}</option>
                     <option value="daily">{t('sourcesPage.frequency.daily')}</option>
@@ -1230,7 +1236,7 @@ export default function SourcesPage() {
                   </select>
                 </div>
 
-                {/* Schedule Selector Component wrapper in dark mode via CSS global .dark but let's assume it works. The component might need inline fix if it relies on text-gray-700 */}
+                {/* Schedule Selector Component wrapper in dark mode via CSS global .dark but let's assume it works. The component might need inline fix if it still relies on legacy stock text colors */}
                 <div className="mt-4 schedule-dark-wrapper">
                   <ScheduleSelector
                     frequency={newSource.crawl_frequency}
@@ -1241,16 +1247,16 @@ export default function SourcesPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/10 bg-white/5 rounded-b-2xl flex justify-end space-x-3 sticky bottom-0 backdrop-blur-xl">
+            <div className="p-6 border-t border-edge bg-void-surface/[0.85] rounded-b-2xl flex justify-end space-x-3 sticky bottom-0 backdrop-blur-xl">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:text-slate-900 dark:text-white transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddSource}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all"
+                className={`px-5 py-2.5 text-sm font-medium text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
               >
                 {t('sourcesPage.actions.addSource')}
               </button>

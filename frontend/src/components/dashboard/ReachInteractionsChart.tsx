@@ -4,6 +4,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartTooltipStyle,
+  chartTooltipItemStyle,
+  chartLegendStyle,
+} from './chartTheme';
 
 type Point = {
   time: string;
@@ -22,7 +30,7 @@ export default function ReachInteractionsChart({
 
   if (isLoading) {
     return (
-      <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
         {t('common.loading')}
       </div>
     );
@@ -35,7 +43,7 @@ export default function ReachInteractionsChart({
 
   if (!chartData.length) {
     return (
-      <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
         {t('crisis.charts.noReachData')}
       </div>
     );
@@ -44,19 +52,16 @@ export default function ReachInteractionsChart({
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-        <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-        <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} />
+        <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} stroke={chartGrid.stroke} />
+        <XAxis dataKey="label" tick={{ ...chartAxisTick, fontSize: 10 }} />
+        <YAxis tick={{ ...chartAxisTick, fontSize: 10 }} />
         <Tooltip
-          contentStyle={{
-            background: 'rgba(15,23,42,0.95)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 12,
-          }}
+          contentStyle={chartTooltipStyle}
+          itemStyle={chartTooltipItemStyle}
         />
-        <Legend />
-        <Bar dataKey="reach" name={t('dashboard.metrics.reach')} fill="#1E3A8A" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="interactions" name={t('dashboard.metrics.interactions')} fill="#10B981" radius={[4, 4, 0, 0]} />
+        <Legend wrapperStyle={chartLegendStyle} />
+        <Bar dataKey="reach" name={t('dashboard.metrics.reach')} fill={chartColors.accent} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="interactions" name={t('dashboard.metrics.interactions')} fill={chartColors.inkMuted} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

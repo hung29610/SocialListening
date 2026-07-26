@@ -1,4 +1,4 @@
-﻿import { X, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -10,14 +10,15 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
 
   const { sections, theme, accentColor, fontColor, fontFamily, aspectRatio } = config;
   const isDark = theme === 'dark';
-  
-  const bgClass = isDark ? 'bg-slate-900' : 'bg-white';
-  const borderClass = isDark ? 'border-slate-800' : 'border-gray-200';
-  const cardClass = isDark ? 'bg-slate-800' : 'bg-gray-50';
-  
-  // Custom font colors
-  const mainTextColor = isDark ? '#f8fafc' : fontColor;
-  const mutedTextColor = isDark ? '#94a3b8' : '#64748b';
+
+  // Export-document fidelity palette — this block previews the PDF the
+  // backend will generate, so it follows the document's OWN light/dark
+  // export setting (config.theme), not the app theme. These values are
+  // baked into the exported asset and cannot resolve through SIGNAL
+  // tokens; raw hex is intentional here (see W-D migration report).
+  const doc = isDark
+    ? { bg: '#0f172a', border: '#1e293b', card: '#1e293b', muted: '#94a3b8', text: '#f8fafc' }
+    : { bg: '#ffffff', border: '#e5e7eb', card: '#f9fafb', muted: '#64748b', text: fontColor };
 
   const enabledSections = sections.filter((s: any) => s.enabled).map((s: any) => s.id);
 
@@ -88,7 +89,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -100,9 +101,9 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                 {trendData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData}>
-                      <XAxis dataKey="date" tick={{fontSize: 10, fill: mainTextColor}} stroke={borderClass} />
-                      <YAxis tick={{fontSize: 10, fill: mainTextColor}} stroke={borderClass} />
-                      <Tooltip />
+                      <XAxis dataKey="date" tick={{ ...chartAxisTick, fontSize: 10 }} stroke={chartGrid.stroke} />
+                      <YAxis tick={{ ...chartAxisTick, fontSize: 10 }} stroke={chartGrid.stroke} />
+                      <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
                       <Bar dataKey="mentions" fill={accentColor} radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -144,7 +145,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                 {data?.sources_list?.length > 0 ? (
                   <ul className="space-y-2 text-sm">
                     {data.sources_list.slice(0,5).map((s: any, i: number) => (
-                      <li key={i} className="flex justify-between border-b pb-1 border-gray-200/20"><span>{s.name}</span><span className="font-semibold">{s.count}</span></li>
+                      <li key={i} className="flex justify-between border-b pb-1" style={{ borderColor: doc.border }}><span>{s.name}</span><span className="font-semibold tabular-nums">{s.count}</span></li>
                     ))}
                   </ul>
                 ) : (
@@ -208,7 +209,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -222,28 +223,24 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between p-4 border-b">
-                  <Dialog.Title className="text-lg font-bold text-slate-900">{t('reportsPage.preview.modalTitle')}</Dialog.Title>
-                  <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
+ <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-void-surface shadow-2xl transition-all flex flex-col max-h-[90vh]"> <div className="flex items-center justify-between p-4 border-b"> <Dialog.Title className="text-lg font-bold text-paper">{t('reportsPage.preview.modalTitle')}</Dialog.Title> <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
                 </div>
-                
-                <div className="p-8 bg-gray-200 dark:bg-gray-900 overflow-y-auto flex-1 flex justify-center">
+
+                <div className="p-8 bg-void-raised overflow-y-auto flex-1 flex justify-center">
                   {loading ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-                      <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                      {t('reportsPage.preview.loading')}
+ <div className="flex flex-col items-center justify-center h-64 text-gray-500"> <Loader2 className="w-8 h-8 animate-spin mb-4" /> {t('reportsPage.preview.loading')}
                     </div>
                   ) : (
-                    <div 
-                      className={`shadow-2xl overflow-hidden ${bgClass}`}
-                      style={{ 
+                    <div
+                      className="shadow-tile overflow-hidden"
+                      style={{
                         width: aspectRatio === 'horizontal' ? '100%' : '21cm',
                         minHeight: aspectRatio === 'horizontal' ? '21cm' : '29.7cm',
                         maxWidth: '100%',
-                        color: mainTextColor,
-                        fontFamily: fontFamily === 'Helvetica' ? 'Helvetica, sans-serif' : 
-                                   fontFamily === 'Courier' ? 'Courier, monospace' : 
+                        backgroundColor: doc.bg,
+                        color: doc.text,
+                        fontFamily: fontFamily === 'Helvetica' ? 'Helvetica, sans-serif' :
+                                   fontFamily === 'Courier' ? 'Courier, monospace' :
                                    '"Times New Roman", serif'
                       }}
                     >
@@ -268,4 +265,3 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
     </Transition>
   );
 }
-

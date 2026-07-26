@@ -110,7 +110,7 @@ export default function NotificationSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-signal"></div>
       </div>
     );
   }
@@ -119,16 +119,16 @@ export default function NotificationSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.systemNotifications')}</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.subtitle')}</p>
+        <h2 className="text-xl font-bold text-paper tracking-wide">{t('settings.tabs.systemNotifications')}</h2>
+        <p className="text-sm text-paper-muted mt-1">{t('settingsPage.notifications.subtitle')}</p>
       </div>
 
       {/* System Alerts */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-gray-800">
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6 space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-edge">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.notifications.systemAlerts.title')}</h3>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.systemAlerts.desc')}</p>
+            <h3 className="text-lg font-bold text-paper tracking-wide">{t('settingsPage.notifications.systemAlerts.title')}</h3>
+            <p className="text-sm text-paper-muted mt-1">{t('settingsPage.notifications.systemAlerts.desc')}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
@@ -137,13 +137,13 @@ export default function NotificationSettings() {
               onChange={(e) => setSettings({ ...settings, systemAlertsEnabled: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-200 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <div className="w-11 h-6 bg-edge-strong peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-signal/70 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-void-surface after:border-edge after:border after:rounded-full after:h-5 after:w-5 after:transition-all motion-reduce:after:transition-none peer-checked:bg-signal"></div>
           </label>
         </div>
 
         {/* Alert Channels */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">{t('settingsPage.notifications.channelsLabel')}</label>
+          <label className="block text-sm font-medium text-paper-muted mb-4">{t('settingsPage.notifications.channelsLabel')}</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {['email', 'telegram', 'slack', 'discord'].map((channel) => (
               <label key={channel} className="flex items-center cursor-pointer group">
@@ -151,9 +151,9 @@ export default function NotificationSettings() {
                   type="checkbox"
                   checked={settings.alertChannels.includes(channel)}
                   onChange={() => toggleChannel(channel)}
-                  className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900 transition-colors"
+                  className="w-4 h-4 rounded accent-signal bg-void-surface border-edge-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 transition-colors duration-150 motion-reduce:transition-none"
                 />
-                <span className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 capitalize group-hover:text-slate-900 dark:text-white transition-colors">{channel}</span>
+                <span className="ml-3 text-sm font-medium text-paper-muted capitalize group-hover:text-paper transition-colors duration-150 motion-reduce:transition-none">{channel}</span>
               </label>
             ))}
           </div>
@@ -161,16 +161,16 @@ export default function NotificationSettings() {
       </div>
 
       {/* Webhook URLs */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center">
-          <Bell className="w-5 h-5 mr-2 text-indigo-400" />
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6 space-y-6">
+        <h3 className="text-lg font-bold text-paper tracking-wide flex items-center">
+          <Bell className="w-5 h-5 mr-2 text-signal dark:text-signal-bright" />
           {t('settingsPage.notifications.webhookUrlsTitle')}
         </h3>
 
         <div className="space-y-6">
           {/* Generic Webhook */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.notifications.genericWebhook')}
             </label>
             <div className="flex space-x-3">
@@ -178,13 +178,13 @@ export default function NotificationSettings() {
                 type="url"
                 value={settings.webhookUrl}
                 onChange={(e) => setSettings({ ...settings, webhookUrl: e.target.value })}
-                className="flex-1 px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="flex-1 px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="https://your-webhook-url.com"
               />
               <button
                 onClick={() => handleTest('webhook')}
                 disabled={!settings.webhookUrl || testing === 'webhook'}
-                className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                className="px-4 py-2.5 border border-signal/25 bg-signal/10 text-signal dark:text-signal-bright rounded-xl hover:bg-signal/20 transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 title={t('settingsPage.notifications.testWebhook')}
               >
                 <Send className="w-4 h-4" />
@@ -194,7 +194,7 @@ export default function NotificationSettings() {
 
           {/* Telegram */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.notifications.telegramWebhook')}
             </label>
             <div className="flex space-x-3">
@@ -202,13 +202,13 @@ export default function NotificationSettings() {
                 type="url"
                 value={settings.telegramWebhook}
                 onChange={(e) => setSettings({ ...settings, telegramWebhook: e.target.value })}
-                className="flex-1 px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="flex-1 px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="https://api.telegram.org/bot..."
               />
               <button
                 onClick={() => handleTest('telegram')}
                 disabled={!settings.telegramWebhook || testing === 'telegram'}
-                className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                className="px-4 py-2.5 border border-signal/25 bg-signal/10 text-signal dark:text-signal-bright rounded-xl hover:bg-signal/20 transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 title={t('settingsPage.notifications.testTelegram')}
               >
                 <Send className="w-4 h-4" />
@@ -218,7 +218,7 @@ export default function NotificationSettings() {
 
           {/* Slack */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.notifications.slackWebhook')}
             </label>
             <div className="flex space-x-3">
@@ -226,13 +226,13 @@ export default function NotificationSettings() {
                 type="url"
                 value={settings.slackWebhook}
                 onChange={(e) => setSettings({ ...settings, slackWebhook: e.target.value })}
-                className="flex-1 px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="flex-1 px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="https://hooks.slack.com/services/..."
               />
               <button
                 onClick={() => handleTest('slack')}
                 disabled={!settings.slackWebhook || testing === 'slack'}
-                className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                className="px-4 py-2.5 border border-signal/25 bg-signal/10 text-signal dark:text-signal-bright rounded-xl hover:bg-signal/20 transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 title={t('settingsPage.notifications.testSlack')}
               >
                 <Send className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function NotificationSettings() {
 
           {/* Discord */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               {t('settingsPage.notifications.discordWebhook')}
             </label>
             <div className="flex space-x-3">
@@ -250,13 +250,13 @@ export default function NotificationSettings() {
                 type="url"
                 value={settings.discordWebhook}
                 onChange={(e) => setSettings({ ...settings, discordWebhook: e.target.value })}
-                className="flex-1 px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="flex-1 px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="https://discord.com/api/webhooks/..."
               />
               <button
                 onClick={() => handleTest('discord')}
                 disabled={!settings.discordWebhook || testing === 'discord'}
-                className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                className="px-4 py-2.5 border border-signal/25 bg-signal/10 text-signal dark:text-signal-bright rounded-xl hover:bg-signal/20 transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                 title={t('settingsPage.notifications.testDiscord')}
               >
                 <Send className="w-4 h-4" />
@@ -267,14 +267,14 @@ export default function NotificationSettings() {
       </div>
 
       {/* Report Scheduling */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-2">{t('settingsPage.notifications.scheduled.title')}</h3>
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6 space-y-4">
+        <h3 className="text-lg font-bold text-paper tracking-wide mb-2">{t('settingsPage.notifications.scheduled.title')}</h3>
 
         {/* Daily Report */}
-        <div className="flex items-center justify-between py-4 border-b border-slate-200 dark:border-gray-800">
+        <div className="flex items-center justify-between py-4 border-b border-edge">
           <div className="flex-1 pr-4">
-            <p className="text-sm font-medium text-gray-200">{t('settingsPage.notifications.scheduled.daily')}</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.scheduled.dailyDesc')}</p>
+            <p className="text-sm font-medium text-paper">{t('settingsPage.notifications.scheduled.daily')}</p>
+            <p className="text-xs text-paper-muted mt-1">{t('settingsPage.notifications.scheduled.dailyDesc')}</p>
           </div>
           <div className="flex items-center space-x-4">
             <input
@@ -282,7 +282,7 @@ export default function NotificationSettings() {
               value={settings.dailyReportTime}
               onChange={(e) => setSettings({ ...settings, dailyReportTime: e.target.value })}
               disabled={!settings.dailyReportEnabled}
-              className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-void-surface border border-edge-strong rounded-xl text-paper tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -291,7 +291,7 @@ export default function NotificationSettings() {
                 onChange={(e) => setSettings({ ...settings, dailyReportEnabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-200 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-edge-strong peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-signal/70 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-void-surface after:border-edge after:border after:rounded-full after:h-5 after:w-5 after:transition-all motion-reduce:after:transition-none peer-checked:bg-signal"></div>
             </label>
           </div>
         </div>
@@ -299,15 +299,15 @@ export default function NotificationSettings() {
         {/* Weekly Report */}
         <div className="flex items-center justify-between py-4">
           <div className="flex-1 pr-4">
-            <p className="text-sm font-medium text-gray-200">{t('settingsPage.notifications.scheduled.weekly')}</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.scheduled.weeklyDesc')}</p>
+            <p className="text-sm font-medium text-paper">{t('settingsPage.notifications.scheduled.weekly')}</p>
+            <p className="text-xs text-paper-muted mt-1">{t('settingsPage.notifications.scheduled.weeklyDesc')}</p>
           </div>
           <div className="flex items-center space-x-4">
             <select
               value={settings.weeklyReportDay}
               onChange={(e) => setSettings({ ...settings, weeklyReportDay: parseInt(e.target.value) })}
               disabled={!settings.weeklyReportEnabled}
-              className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-void-surface border border-edge-strong rounded-xl text-paper tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="0">{t('settingsPage.notifications.weekdays.mon')}</option>
               <option value="1">{t('settingsPage.notifications.weekdays.tue')}</option>
@@ -322,7 +322,7 @@ export default function NotificationSettings() {
               value={settings.weeklyReportTime}
               onChange={(e) => setSettings({ ...settings, weeklyReportTime: e.target.value })}
               disabled={!settings.weeklyReportEnabled}
-              className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-void-surface border border-edge-strong rounded-xl text-paper tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -331,7 +331,7 @@ export default function NotificationSettings() {
                 onChange={(e) => setSettings({ ...settings, weeklyReportEnabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-200 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-edge-strong peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-signal/70 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-void-surface after:border-edge after:border after:rounded-full after:h-5 after:w-5 after:transition-all motion-reduce:after:transition-none peer-checked:bg-signal"></div>
             </label>
           </div>
         </div>
@@ -342,7 +342,7 @@ export default function NotificationSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 font-medium"
+          className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none disabled:bg-void-raised disabled:text-paper-faint disabled:cursor-not-allowed font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
         >
           <Save className="w-4 h-4 mr-2" />
           {saving ? t('common.saving') : t('settings.saveConfig')}
@@ -350,9 +350,9 @@ export default function NotificationSettings() {
       </div>
 
       {/* Info */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-        <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">{t('settingsPage.notifications.noteLabel')}</strong>{' '}
+      <div className="bg-signal/10 border border-signal/25 rounded-xl p-4">
+        <p className="text-sm text-paper-muted">
+          <strong className="text-signal dark:text-signal-bright">{t('settingsPage.notifications.noteLabel')}</strong>{' '}
           {t('settingsPage.notifications.note')}
         </p>
       </div>

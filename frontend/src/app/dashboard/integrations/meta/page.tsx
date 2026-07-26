@@ -24,6 +24,11 @@ interface MetaStatus {
   accounts: MetaAccount[];
 }
 
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const focusRingOffset =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
+
 export default function MetaIntegrationPage() {
   const { confirm } = useDialog();
   const { t } = useLanguage();
@@ -113,7 +118,7 @@ export default function MetaIntegrationPage() {
         // Update local state smoothly
         setMetaStatus(prev => prev ? {
           ...prev,
-          accounts: prev.accounts.map(acc => 
+          accounts: prev.accounts.map(acc =>
             acc.external_id === accountId ? { ...acc, selected: !currentSelected } : acc
           )
         } : null);
@@ -148,23 +153,23 @@ export default function MetaIntegrationPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <Link href="/dashboard/sources" className="inline-flex items-center text-sm font-medium text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white mb-6 transition-colors">
+      <Link href="/dashboard/sources" className={`inline-flex items-center text-sm font-medium text-paper-muted hover:text-paper mb-6 transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}>
         <ArrowLeft className="w-4 h-4 mr-2" /> {t('landing.metaIntegration.backToSources')}
       </Link>
 
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="p-8 border-b border-white/10 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 relative">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-fuchsia-500 opacity-50" />
+      <div className="bg-void-surface border border-edge rounded-3xl overflow-hidden shadow-tile">
+        <div className="p-8 border-b border-edge bg-void-raised relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-signal/50" />
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-blue-500/20 rounded-2xl shadow-inner border border-blue-500/30">
-              <Facebook className="w-8 h-8 text-blue-400" />
+            <div className="p-3 bg-signal/10 rounded-2xl border border-signal/25">
+              <Facebook className="w-8 h-8 text-signal dark:text-signal-bright" />
             </div>
-            <div className="p-3 bg-fuchsia-500/20 rounded-2xl shadow-inner border border-fuchsia-500/30">
-              <Instagram className="w-8 h-8 text-fuchsia-400" />
+            <div className="p-3 bg-signal/10 rounded-2xl border border-signal/25">
+              <Instagram className="w-8 h-8 text-signal dark:text-signal-bright" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">{t('landing.metaIntegration.title')}</h1>
-          <p className="text-slate-700 dark:text-gray-300 max-w-2xl leading-relaxed">
+          <h1 className="text-3xl font-bold text-paper mb-2 tracking-tight">{t('landing.metaIntegration.title')}</h1>
+          <p className="text-paper-muted max-w-2xl leading-relaxed">
             {t('landing.metaIntegration.introBefore')}{' '}
             <strong>{t('landing.metaIntegration.introStrong')}</strong>{' '}
             {t('landing.metaIntegration.introAfter')}
@@ -173,64 +178,64 @@ export default function MetaIntegrationPage() {
 
         <div className="p-8 space-y-8">
           {error && (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3">
-              <XCircle className="w-5 h-5 text-rose-400 mt-0.5" />
-              <div className="text-rose-300 text-sm">{error}</div>
+            <div className="p-4 bg-destructive/10 border border-destructive/25 rounded-xl flex items-start gap-3">
+              <XCircle className="w-5 h-5 text-destructive mt-0.5" />
+              <div className="text-destructive text-sm">{error}</div>
             </div>
           )}
-          
+
           {successMsg && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5" />
-              <div className="text-emerald-300 text-sm">{successMsg}</div>
+            <div className="p-4 bg-success/10 border border-success/25 rounded-xl flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
+              <div className="text-success text-sm">{successMsg}</div>
             </div>
           )}
 
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+              <Loader2 className="w-8 h-8 text-signal dark:text-signal-bright animate-spin" />
             </div>
           ) : metaStatus ? (
             <>
               {/* Status Section */}
-              <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
+              <div className="bg-void-raised border border-edge rounded-2xl p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">{t('landing.metaIntegration.connectionStatus')}</h2>
+                    <h2 className="text-lg font-semibold text-paper mb-1">{t('landing.metaIntegration.connectionStatus')}</h2>
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                        metaStatus.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : metaStatus.status === 'limited' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20'
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-eyebrow ${
+                        metaStatus.status === 'active' ? 'bg-success/10 text-success border border-success/25'
+                        : metaStatus.status === 'limited' ? 'bg-warning/10 text-warning border border-warning/25'
+                        : 'bg-paper-faint/10 text-paper-muted border border-paper-faint/20'
                       }`}>
                         {metaStatus.label}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 w-full sm:w-auto">
                     {(metaStatus.status === 'active' || metaStatus.status === 'limited') ? (
                       <>
-                        <button 
+                        <button
                           onClick={handleTestConnection}
                           disabled={actionLoading}
-                          className="flex-1 sm:flex-none px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                          className={`flex-1 sm:flex-none px-4 py-2 bg-signal/10 hover:bg-signal/20 text-signal dark:text-signal-bright border border-signal/25 rounded-xl text-sm font-medium transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 ${focusRing}`}
                         >
                           {t('landing.metaIntegration.testConnection')}
                         </button>
-                        <button 
+                        <button
                           onClick={handleDisconnect}
                           disabled={actionLoading}
-                          className="flex-1 sm:flex-none px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          className={`flex-1 sm:flex-none px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/25 rounded-xl text-sm font-medium transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
                         >
                           <LogOut className="w-4 h-4" /> {t('landing.metaIntegration.disconnect')}
                         </button>
                       </>
                     ) : (
-                      <button 
+                      <button
                         onClick={handleConnect}
                         disabled={actionLoading || metaStatus.status === 'config_required'}
-                        className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`w-full sm:w-auto px-6 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-xl text-sm font-medium transition-colors duration-150 motion-reduce:transition-none flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${focusRingOffset}`}
                       >
                         {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                         {t('landing.metaIntegration.connectCta')}
@@ -238,32 +243,32 @@ export default function MetaIntegrationPage() {
                     )}
                   </div>
                 </div>
-                
-                <p className="text-sm text-slate-500 dark:text-gray-400 mt-2 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <Shield className="w-4 h-4 inline-block mr-1 text-gray-500" /> 
+
+                <p className="text-sm text-paper-muted mt-2 bg-paper/[0.04] p-3 rounded-xl border border-edge">
+                  <Shield className="w-4 h-4 inline-block mr-1 text-paper-faint" />
                   {metaStatus.message}
                 </p>
               </div>
 
               {/* Permissions Section */}
               {(metaStatus.status === 'active' || metaStatus.status === 'limited') && (
-                <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('landing.metaIntegration.grantedScopes')}</h2>
-                  
+                <div className="bg-void-raised border border-edge rounded-2xl p-6">
+                  <h2 className="text-lg font-semibold text-paper mb-4">{t('landing.metaIntegration.grantedScopes')}</h2>
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {metaStatus.granted_scopes.map((scope, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg flex items-center gap-1.5">
+                      <span key={idx} className="px-3 py-1 bg-success/10 border border-success/25 text-success text-xs rounded-lg flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" /> {scope}
                       </span>
                     ))}
                     {metaStatus.missing_scopes.map((scope, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-lg flex items-center gap-1.5">
+                      <span key={idx} className="px-3 py-1 bg-destructive/10 border border-destructive/25 text-destructive text-xs rounded-lg flex items-center gap-1.5">
                         <XCircle className="w-3.5 h-3.5" /> {scope} {t('landing.metaIntegration.missingScopeSuffix')}
                       </span>
                     ))}
                   </div>
                   {metaStatus.missing_scopes.length > 0 && (
-                    <p className="text-xs text-amber-400/80 mt-2">
+                    <p className="text-xs text-warning mt-2">
                       ⚠️ {t('landing.metaIntegration.missingScopesWarning')}
                     </p>
                   )}
@@ -272,46 +277,46 @@ export default function MetaIntegrationPage() {
 
               {/* Accounts Section */}
               {(metaStatus.status === 'active' || metaStatus.status === 'limited') && (
-                <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
+                <div className="bg-void-raised border border-edge rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('landing.metaIntegration.accountsAndPages')}</h2>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">{t('landing.metaIntegration.selectSourcesHint')}</span>
+                    <h2 className="text-lg font-semibold text-paper">{t('landing.metaIntegration.accountsAndPages')}</h2>
+                    <span className="text-xs text-paper-muted">{t('landing.metaIntegration.selectSourcesHint')}</span>
                   </div>
-                  
+
                   {metaStatus.accounts.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 text-sm bg-white/5 rounded-xl border border-white/5">
+                    <div className="text-center py-8 text-paper-faint text-sm bg-paper/[0.04] rounded-xl border border-edge">
                       {t('landing.metaIntegration.noAccounts')}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {metaStatus.accounts.map(acc => (
-                        <div 
-                          key={acc.id} 
+                        <div
+                          key={acc.id}
                           onClick={() => handleToggleAccount(acc.external_id, acc.selected)}
-                          className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
-                            acc.selected ? 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-white/5 border-white/10 hover:border-white/20'
+                          className={`p-4 rounded-xl border transition-colors duration-150 motion-reduce:transition-none cursor-pointer flex items-center gap-4 ${
+                            acc.selected ? 'bg-signal/10 border-signal/25' : 'bg-void-surface border-edge hover:border-edge-strong'
                           }`}
                         >
                           <div className="flex-shrink-0">
                             {acc.provider === 'facebook' ? (
-                              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                                <Facebook className="w-5 h-5 text-blue-400" />
+                              <div className="w-10 h-10 rounded-full bg-signal/10 flex items-center justify-center border border-signal/25">
+                                <Facebook className="w-5 h-5 text-signal dark:text-signal-bright" />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 flex items-center justify-center border border-fuchsia-500/30">
-                                <Instagram className="w-5 h-5 text-fuchsia-400" />
+                              <div className="w-10 h-10 rounded-full bg-signal/10 flex items-center justify-center border border-signal/25">
+                                <Instagram className="w-5 h-5 text-signal dark:text-signal-bright" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-medium text-slate-900 dark:text-white truncate">{acc.name}</h3>
-                            <p className="text-xs text-gray-500 uppercase tracking-wider">{acc.account_type}</p>
+                            <h3 className="text-sm font-medium text-paper truncate">{acc.name}</h3>
+                            <p className="text-xs text-paper-faint uppercase tracking-eyebrow">{acc.account_type}</p>
                           </div>
                           <div>
                             {acc.selected ? (
-                              <CheckSquare className="w-5 h-5 text-indigo-400" />
+                              <CheckSquare className="w-5 h-5 text-signal dark:text-signal-bright" />
                             ) : (
-                              <Square className="w-5 h-5 text-gray-500" />
+                              <Square className="w-5 h-5 text-paper-faint" />
                             )}
                           </div>
                         </div>

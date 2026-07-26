@@ -10,6 +10,15 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from 'recharts';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartTooltipStyle,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartLegendStyle,
+} from '@/components/dashboard/chartTheme';
 import { InfographicExportNotice } from '@/components/reports/InfographicExportNotice';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
 import { ReportErrorState } from '@/components/reports/ReportErrorState';
@@ -31,7 +40,7 @@ export default function InfographicPage() {
       setFetchError(null);
       const params: any = { date_from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() };
       if (activeProject) params.project_id = activeProject.id;
-      
+
       const res = await reports.summaryData(params);
       setData(res);
     } catch (error: any) {
@@ -45,12 +54,14 @@ export default function InfographicPage() {
 
   // Image export is not implemented. The InfographicExportNotice component
   // replaces the previous button that called toast.error() internally.
+  // The infographic renders live on SIGNAL tokens (they resolve at render
+  // time, so any future canvas snapshot bakes in the active theme).
 
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500 dark:text-gray-400 font-medium flex items-center">
-          <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-pink-400" />
+        <div className="text-paper-muted font-medium flex items-center">
+          <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-signal dark:text-signal-bright" />
           {t('reports.loadingInfographic')}
         </div>
       </div>
@@ -66,9 +77,9 @@ export default function InfographicPage() {
   }
 
   const sentimentData = [
-    { name: t('reports.positive'), value: data?.metrics?.sentiment?.positive || 0, color: '#10b981' },
-    { name: t('reports.negative'), value: data?.metrics?.sentiment?.negative || 0, color: '#f43f5e' },
-    { name: t('reports.neutral'), value: data?.metrics?.sentiment?.neutral || 0, color: '#64748b' },
+    { name: t('reports.positive'), value: data?.metrics?.sentiment?.positive || 0, color: chartColors.positive },
+    { name: t('reports.negative'), value: data?.metrics?.sentiment?.negative || 0, color: chartColors.negative },
+    { name: t('reports.neutral'), value: data?.metrics?.sentiment?.neutral || 0, color: chartColors.neutral },
   ].filter(item => item.value > 0);
 
   const formatDate = (dateStr: string) => {
@@ -79,10 +90,10 @@ export default function InfographicPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-20">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-void-surface p-4 rounded-xl border border-edge">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-pink-500" />
+          <h1 className="text-xl font-bold text-paper flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-signal dark:text-signal-bright" />
             {t('reports.infographicTitle')}
           </h1>
         </div>
@@ -100,43 +111,43 @@ export default function InfographicPage() {
       />
 
       <div className="pb-8">
-        <div id="infographic-content" className="w-full max-w-5xl mx-auto bg-[#0a0f1c] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative text-white">
-          
+        <div id="infographic-content" className="w-full max-w-5xl mx-auto bg-void-surface rounded-3xl overflow-hidden border border-edge shadow-tile relative text-paper">
+
           {/* Header Banner */}
-          <div className="bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-700 px-4 py-8 sm:p-10 relative overflow-hidden">
-            <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/20 blur-3xl rounded-full"></div>
-            <h2 className="text-3xl sm:text-5xl font-black mb-4 relative z-10 tracking-tight">{t('reports.infographicBanner')}</h2>
+          <div className="bg-void-raised border-b border-edge px-4 py-8 sm:p-10 relative overflow-hidden">
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-signal/10 blur-3xl rounded-full"></div>
+            <h2 className="text-3xl sm:text-5xl font-display font-black mb-4 relative z-10 tracking-tight text-paper">{t('reports.infographicBanner')}</h2>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10">
-              <span className="bg-black/30 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium border border-white/20">
+              <span className="bg-void-surface px-4 py-1.5 rounded-full text-sm font-medium border border-edge text-paper-muted">
                 {t('reports.infographicProject')}: {data?.project_name || activeProject?.name || t('reports.allProjects')}
               </span>
-              <span className="bg-black/30 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium border border-white/20">
+              <span className="bg-void-surface px-4 py-1.5 rounded-full text-sm font-medium border border-edge text-paper-muted">
                 {t('reports.infographicLast30Days')}
               </span>
             </div>
           </div>
 
           <div className="p-4 sm:p-10 space-y-6 sm:space-y-10">
-            
+
             {/* Top Metrics Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl p-6 text-center">
-                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">{t('reports.totalMentions')}</div>
-                <div className="text-3xl sm:text-4xl font-black text-pink-400 break-words">{data?.metrics?.total_mentions?.toLocaleString() || 0}</div>
+              <div className="bg-void-raised border border-edge rounded-2xl p-6 text-center">
+                <div className="text-eyebrow font-semibold uppercase text-paper-faint mb-2">{t('reports.totalMentions')}</div>
+                <div className="text-3xl sm:text-4xl font-black tabular-nums text-signal dark:text-signal-bright break-words">{data?.metrics?.total_mentions?.toLocaleString() || 0}</div>
               </div>
-              <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl p-6 text-center">
-                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">{t('reports.totalAlerts')}</div>
-                <div className="text-3xl sm:text-4xl font-black text-amber-400 break-words">{data?.metrics?.total_alerts?.toLocaleString() || 0}</div>
+              <div className="bg-void-raised border border-edge rounded-2xl p-6 text-center">
+                <div className="text-eyebrow font-semibold uppercase text-paper-faint mb-2">{t('reports.totalAlerts')}</div>
+                <div className="text-3xl sm:text-4xl font-black tabular-nums text-warning break-words">{data?.metrics?.total_alerts?.toLocaleString() || 0}</div>
               </div>
-              <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl p-6 text-center">
-                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">{t('reports.incidents')}</div>
-                <div className="text-3xl sm:text-4xl font-black text-rose-500 break-words">{data?.metrics?.total_incidents?.toLocaleString() || 0}</div>
+              <div className="bg-void-raised border border-edge rounded-2xl p-6 text-center">
+                <div className="text-eyebrow font-semibold uppercase text-paper-faint mb-2">{t('reports.incidents')}</div>
+                <div className="text-3xl sm:text-4xl font-black tabular-nums text-destructive break-words">{data?.metrics?.total_incidents?.toLocaleString() || 0}</div>
               </div>
-              <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl p-6 text-center">
-                <div className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">{t('reports.positiveRatio')}</div>
-                <div className="text-3xl sm:text-4xl font-black text-emerald-400 break-words">
-                  {data?.metrics?.total_mentions > 0 
-                    ? Math.round((data?.metrics?.sentiment?.positive || 0) / data?.metrics?.total_mentions * 100) 
+              <div className="bg-void-raised border border-edge rounded-2xl p-6 text-center">
+                <div className="text-eyebrow font-semibold uppercase text-paper-faint mb-2">{t('reports.positiveRatio')}</div>
+                <div className="text-3xl sm:text-4xl font-black tabular-nums text-sentiment-positive break-words">
+                  {data?.metrics?.total_mentions > 0
+                    ? Math.round((data?.metrics?.sentiment?.positive || 0) / data?.metrics?.total_mentions * 100)
                     : 0}%
                 </div>
               </div>
@@ -144,37 +155,38 @@ export default function InfographicPage() {
 
             {/* Volume Chart */}
             {data?.trend && data.trend.length > 0 && (
-              <div className="bg-[#1e293b]/30 border border-white/10 rounded-3xl p-4 sm:p-8">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-white mb-6">{t('reports.volumeOfMentions')}</h3>
+              <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8">
+                <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6">{t('reports.volumeOfMentions')}</h3>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.trend}>
                       <defs>
                         <linearGradient id="colorMentions" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                          <stop offset="5%" stopColor={chartColors.accent} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={chartColors.accent} stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="#94a3b8" 
+                      <CartesianGrid {...chartGrid} vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke={chartGrid.stroke}
                         tickFormatter={formatDate}
-                        tick={{fontSize: 12}}
+                        tick={chartAxisTick}
                         tickMargin={10}
                       />
-                      <YAxis stroke="#94a3b8" tick={{fontSize: 12}} />
-                      <RechartsTooltip 
-                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
-                        itemStyle={{ color: '#ec4899' }}
+                      <YAxis stroke={chartGrid.stroke} tick={chartAxisTick} />
+                      <RechartsTooltip
+                        contentStyle={chartTooltipStyle}
+                        itemStyle={chartTooltipItemStyle}
+                        labelStyle={chartTooltipLabelStyle}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="mentions" 
-                        stroke="#ec4899" 
+                      <Area
+                        type="monotone"
+                        dataKey="mentions"
+                        stroke={chartColors.accent}
                         strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorMentions)" 
+                        fillOpacity={1}
+                        fill="url(#colorMentions)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -184,8 +196,8 @@ export default function InfographicPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
               {/* Sentiment Pie */}
-              <div className="bg-[#1e293b]/30 border border-white/10 rounded-3xl p-4 sm:p-8 flex flex-col">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-white mb-6 text-center">{t('reports.sentimentBreakdown')}</h3>
+              <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
+                <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.sentimentBreakdown')}</h3>
                 <div className="flex-1 min-h-[300px]">
                   {sentimentData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -203,42 +215,45 @@ export default function InfographicPage() {
                             <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
                           ))}
                         </Pie>
-                        <RechartsTooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
-                          itemStyle={{ color: '#fff' }}
+                        <RechartsTooltip
+                          contentStyle={chartTooltipStyle}
+                          itemStyle={chartTooltipItemStyle}
+                          labelStyle={chartTooltipLabelStyle}
                         />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={chartLegendStyle} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-slate-500 italic">{t('reports.noSentimentData')}</div>
+                    <div className="flex items-center justify-center h-full text-paper-faint italic">{t('reports.noSentimentData')}</div>
                   )}
                 </div>
               </div>
 
               {/* Sources Bar Chart */}
-              <div className="bg-[#1e293b]/30 border border-white/10 rounded-3xl p-4 sm:p-8 flex flex-col">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-white mb-6 text-center">{t('reports.topSources')}</h3>
+              <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
+                <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.topSources')}</h3>
                 <div className="flex-1 min-h-[300px]">
                   {data?.top_sources && data.top_sources.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={Array.isArray(data?.top_sources) ? data.top_sources.slice(0, 5) : []} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={true} vertical={false} />
-                        <XAxis type="number" stroke="#94a3b8" />
-                        <YAxis dataKey="name" type="category" stroke="#94a3b8" width={80} tick={{fontSize: 12}} />
-                        <RechartsTooltip 
-                          cursor={{fill: '#1e293b'}}
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                        <CartesianGrid {...chartGrid} horizontal={true} vertical={false} />
+                        <XAxis type="number" stroke={chartGrid.stroke} tick={chartAxisTick} />
+                        <YAxis dataKey="name" type="category" stroke={chartGrid.stroke} width={80} tick={chartAxisTick} />
+                        <RechartsTooltip
+                          cursor={{ fill: chartGrid.stroke }}
+                          contentStyle={chartTooltipStyle}
+                          itemStyle={chartTooltipItemStyle}
+                          labelStyle={chartTooltipLabelStyle}
                         />
-                        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                        <Bar dataKey="count" fill={chartColors.accent} radius={[0, 4, 4, 0]}>
                           {Array.isArray(data?.top_sources) && data.top_sources.slice(0, 5).map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={index === 0 ? '#8b5cf6' : '#6366f1'} />
+                            <Cell key={`cell-${index}`} fill={index === 0 ? chartColors.accent : chartColors.inkMuted} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-slate-500 italic">{t('reports.noSourceChartData')}</div>
+                    <div className="flex items-center justify-center h-full text-paper-faint italic">{t('reports.noSourceChartData')}</div>
                   )}
                 </div>
               </div>
@@ -246,9 +261,9 @@ export default function InfographicPage() {
 
           </div>
 
-          <div className="py-6 mt-10 border-t border-white/10 text-center bg-black/20">
-            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">{t('reports.poweredBy')}</div>
-            <div className="font-black tracking-widest text-sm text-pink-500">NOPE360 INTELLIGENCE</div>
+          <div className="py-6 mt-10 border-t border-edge text-center bg-void-raised">
+            <div className="text-[10px] font-bold text-paper-faint uppercase tracking-eyebrow mb-1">{t('reports.poweredBy')}</div>
+            <div className="font-black tracking-widest text-sm text-signal dark:text-signal-bright">NOPE360 INTELLIGENCE</div>
           </div>
 
         </div>

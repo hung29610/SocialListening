@@ -1,37 +1,33 @@
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+/**
+ * Dashboard status badges on the SIGNAL tokens (Epic SIGNAL, ADR 0002).
+ *
+ * Sentiment pills live in `@/components/ui/SentimentBadge` — the legacy
+ * SentimentBadge that used to live here was migrated there (W-D ticket,
+ * see src/styles/README.md migration note).
+ *
+ * Severity/risk ladders use semantic status tokens (destructive/warning)
+ * plus the neutral paper scale — never the signal accent (one-accent rule).
+ */
+
+const badgeBase =
+  'px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide';
+
 export function SeverityBadge({ severity }: { severity: string }) {
   const { t } = useLanguage();
   const colors: Record<string, string> = {
-    critical: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    high: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-    low: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    critical: 'bg-destructive/10 text-destructive border-destructive/25',
+    high: 'bg-warning/10 text-warning border-warning/25',
+    medium: 'bg-warning/[0.06] text-warning border-warning/20',
+    low: 'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25',
   };
-  
-  const bgClass = colors[severity?.toLowerCase()] || 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700';
-  
-  return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${bgClass}`}>
-      {severity ? severity.toUpperCase() : t('crisis.badges.severityUnknown')}
-    </span>
-  );
-}
+  const bgClass = colors[severity?.toLowerCase()] || 'bg-void-raised text-paper-muted border-edge';
 
-export function SentimentBadge({ sentiment }: { sentiment: string }) {
-  const { t } = useLanguage();
-  const colors: Record<string, string> = {
-    positive: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    neutral: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700',
-    negative: 'bg-red-500/20 text-red-400 border-red-500/30',
-  };
-  
-  const bgClass = colors[sentiment?.toLowerCase()] || 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700';
-  
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${bgClass}`}>
-      {sentiment ? sentiment.replace('_', ' ').toUpperCase() : t('crisis.badges.sentimentUnanalyzed')}
+    <span className={`${badgeBase} ${bgClass}`}>
+      {severity ? severity.toUpperCase() : t('crisis.badges.severityUnknown')}
     </span>
   );
 }
@@ -39,14 +35,14 @@ export function SentimentBadge({ sentiment }: { sentiment: string }) {
 export function RiskBadge({ score }: { score: number | null | undefined }) {
   const { t } = useLanguage();
   if (score === null || score === undefined) return null;
-  
-  let color = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
-  if (score >= 80) color = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-  else if (score >= 60) color = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-  else if (score >= 40) color = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-  
+
+  let color = 'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25';
+  if (score >= 80) color = 'bg-destructive/10 text-destructive border-destructive/25';
+  else if (score >= 60) color = 'bg-warning/10 text-warning border-warning/25';
+  else if (score >= 40) color = 'bg-warning/[0.06] text-warning border-warning/20';
+
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${color}`}>
+    <span className={`${badgeBase} ${color} tabular-nums`}>
       {t('crisis.riskWithScore', { score })}
     </span>
   );
@@ -56,7 +52,7 @@ export function CrisisLevelBadge({ level }: { level: number | null | undefined }
   const { t } = useLanguage();
   if (!level) return null;
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 tracking-wide shadow-sm`}>
+    <span className={`${badgeBase} bg-destructive/10 text-destructive border-destructive/25 tabular-nums`}>
       {t('crisis.badges.crisisLevel', { level })}
     </span>
   );
@@ -64,9 +60,9 @@ export function CrisisLevelBadge({ level }: { level: number | null | undefined }
 
 export function SidebarBadge({ count }: { count: number }) {
   if (!count || count <= 0) return null;
-  
+
   return (
-    <span className="inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-rose-500 shadow-sm shadow-rose-500/20 rounded-full ml-auto tracking-wide">
+    <span className="inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none tabular-nums text-destructive-foreground bg-destructive rounded-full ml-auto tracking-wide">
       {count > 99 ? '99+' : count}
     </span>
   );

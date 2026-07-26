@@ -7,6 +7,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+/* SIGNAL shared micro-interaction primitive (150–250ms, reduced-motion honored) */
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+
 interface ServiceCategory {
   id: number;
   name: string;
@@ -149,50 +153,55 @@ export default function ServicesPage() {
     }
   };
 
+  // Status ladder on SIGNAL semantic tokens: success = done/approved,
+  // destructive = rejected, warning = waiting states, info = submitted,
+  // signal = actively in progress, neutral paper scale = draft/cancelled.
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'draft': 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700',
-      'submitted': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      'pending_approval': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      'approved': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'in_progress': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-      'waiting_external_response': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-      'completed': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'rejected': 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-      'cancelled': 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'
+      'draft': 'bg-void-raised text-paper-muted border-edge',
+      'submitted': 'bg-info/10 text-info border-info/25',
+      'pending_approval': 'bg-warning/10 text-warning border-warning/25',
+      'approved': 'bg-success/10 text-success border-success/25',
+      'in_progress': 'bg-signal/10 text-signal dark:text-signal-bright border-signal/25',
+      'waiting_external_response': 'bg-warning/[0.06] text-warning border-warning/20',
+      'completed': 'bg-success/10 text-success border-success/25',
+      'rejected': 'bg-destructive/10 text-destructive border-destructive/25',
+      'cancelled': 'bg-void-raised text-paper-muted border-edge'
     };
-    return `${colors[status] || 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'} border`;
+    return `${colors[status] || 'bg-void-raised text-paper-muted border-edge'} border`;
   };
 
   const getApprovalStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'not_required': 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700',
-      'pending': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      'approved': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'rejected': 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-      'revision_required': 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+      'not_required': 'bg-void-raised text-paper-muted border-edge',
+      'pending': 'bg-warning/10 text-warning border-warning/25',
+      'approved': 'bg-success/10 text-success border-success/25',
+      'rejected': 'bg-destructive/10 text-destructive border-destructive/25',
+      'revision_required': 'bg-warning/[0.06] text-warning border-warning/20'
     };
-    return `${colors[status] || 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'} border`;
+    return `${colors[status] || 'bg-void-raised text-paper-muted border-edge'} border`;
   };
 
+  // Severity ladder (contract rule 6): urgent/critical → destructive,
+  // high → warning, medium → weaker warning tint, low → sentiment-neutral.
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      'low': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'medium': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      'high': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-      'urgent': 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+      'low': 'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25',
+      'medium': 'bg-warning/[0.06] text-warning border-warning/20',
+      'high': 'bg-warning/10 text-warning border-warning/25',
+      'urgent': 'bg-destructive/10 text-destructive border-destructive/25'
     };
-    return `${colors[priority] || 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'} border`;
+    return `${colors[priority] || 'bg-void-raised text-paper-muted border-edge'} border`;
   };
 
   const getRiskLevelColor = (level: string) => {
     const colors: Record<string, string> = {
-      'low': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'medium': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      'high': 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-      'critical': 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+      'low': 'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25',
+      'medium': 'bg-warning/[0.06] text-warning border-warning/20',
+      'high': 'bg-warning/10 text-warning border-warning/25',
+      'critical': 'bg-destructive/10 text-destructive border-destructive/25'
     };
-    return `${colors[level] || 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'} border`;
+    return `${colors[level] || 'bg-void-raised text-paper-muted border-edge'} border`;
   };
 
   const formatPrice = (price: number) => {
@@ -211,7 +220,7 @@ export default function ServicesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">{t('common.loading')}</div>
+        <div className="text-lg text-paper-muted">{t('common.loading')}</div>
       </div>
     );
   }
@@ -222,24 +231,24 @@ export default function ServicesPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('servicesPage.title')}</h1>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold text-paper tracking-wide">{t('servicesPage.title')}</h1>
+        <p className="text-sm text-paper-muted mt-1">
           {t('servicesPage.subtitle')}
         </p>
       </div>
 
       {/* Compliance Notice */}
-      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+      <div className="bg-warning/10 border border-warning/25 rounded-xl p-4">
         <div className="flex items-start space-x-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-amber-900 dark:text-amber-200">
-            <strong className="text-amber-900 dark:text-amber-400">{t('servicesPage.compliance.label')}</strong> {t('servicesPage.compliance.body')}
+          <AlertTriangle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
+          <div className="text-sm text-paper-muted">
+            <strong className="text-warning">{t('servicesPage.compliance.label')}</strong> {t('servicesPage.compliance.body')}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-gray-800">
+      <div className="border-b border-edge">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {[
             { key: 'overview', label: t('servicesPage.tabs.overview'), icon: DollarSign },
@@ -249,10 +258,10 @@ export default function ServicesPage() {
             <button
               key={key}
               onClick={() => setActiveTab(key as any)}
-              className={`flex items-center space-x-2 py-3 px-2 border-b-2 font-medium text-sm transition-all whitespace-nowrap ${
+              className={`flex items-center space-x-2 py-3 px-2 border-b-2 font-medium text-sm transition-colors duration-150 motion-reduce:transition-none whitespace-nowrap ${focusRing} ${
                 activeTab === key
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400'
-                  : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
+                  ? 'border-signal text-signal dark:text-signal-bright'
+                  : 'border-transparent text-paper-muted hover:text-paper hover:border-edge-strong'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -267,74 +276,74 @@ export default function ServicesPage() {
         <div className="space-y-6">
           {/* Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.activeServices')}</p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.total_active_services}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.activeServices')}</p>
+                  <p className="text-3xl font-black text-paper tabular-nums mt-2">{dashboardSummary.total_active_services}</p
                 </div>
-                <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-3 rounded-xl">
-                  <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <div className="bg-signal/10 border border-signal/20 p-3 rounded-xl">
+                  <FileText className="w-6 h-6 text-signal dark:text-signal-bright" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.openRequests')}</p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.open_service_requests}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.openRequests')}</p>
+                  <p className="text-3xl font-black text-paper tabular-nums mt-2">{dashboardSummary.open_service_requests}</p
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3 rounded-xl">
-                  <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <div className="bg-warning/10 border border-warning/25 p-3 rounded-xl">
+                  <Clock className="w-6 h-6 text-warning" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.pendingApprovals')}</p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.pending_approvals}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.pendingApprovals')}</p>
+                  <p className="text-3xl font-black text-paper tabular-nums mt-2">{dashboardSummary.pending_approvals}</p
                 </div>
-                <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 p-3 rounded-xl">
-                  <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                <div className="bg-warning/10 border border-warning/25 p-3 rounded-xl">
+                  <AlertTriangle className="w-6 h-6 text-warning" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.completed')}</p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.completed_requests}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.completed')}</p>
+                  <p className="text-3xl font-black text-paper tabular-nums mt-2">{dashboardSummary.completed_requests}</p
                 </div>
-                <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3 rounded-xl">
-                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                <div className="bg-success/10 border border-success/25 p-3 rounded-xl">
+                  <CheckCircle className="w-6 h-6 text-success" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.highRisk')}</p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.high_risk_requests}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.highRisk')}</p>
+                  <p className="text-3xl font-black text-paper tabular-nums mt-2">{dashboardSummary.high_risk_requests}</p
                 </div>
-                <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 p-3 rounded-xl">
-                  <XCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                <div className="bg-destructive/10 border border-destructive/25 p-3 rounded-xl">
+                  <XCircle className="w-6 h-6 text-destructive" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+            <div className="bg-void-surface border border-edge rounded-xl shadow-sm hover:shadow-md p-6 hover:border-edge-strong transition-all duration-150 motion-reduce:transition-none">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.monthlyCost')}</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{formatPrice(dashboardSummary.monthly_estimated_cost)}</p>
+                  <p className="text-sm font-semibold text-paper-muted">{t('servicesPage.summary.monthlyCost')}</p>
+                  <p className="text-2xl font-black text-paper tabular-nums mt-2">{formatPrice(dashboardSummary.monthly_estimated_cost)}</p
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 p-3 rounded-xl">
-                  <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="bg-void-raised border border-edge p-3 rounded-xl">
+                  <DollarSign className="w-6 h-6 text-paper-muted" />
                 </div>
               </div>
             </div>
@@ -347,99 +356,99 @@ export default function ServicesPage() {
         <div className="space-y-6">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-paper-faint w-5 h-5" />
             <input
               type="text"
               placeholder={t('servicesPage.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl text-slate-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal shadow-sm"
             />
           </div>
 
           {/* Services Table */}
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-void-surface border border-edge rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-800">
-                <thead className="bg-white dark:bg-[#1E293B]/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              <table className="min-w-full divide-y divide-edge">
+                <thead className="bg-void-raised">
+                  <tr className="border-b border-edge">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.service')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.fields.category')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.fields.platform')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.fields.basePrice')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       SLA
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.risk')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.approval')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.actions')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-edge">
                   {filteredServices.map((service) => (
-                    <tr key={service.id} className="hover:bg-white dark:bg-[#1E293B]/30 transition-colors">
+                    <tr key={service.id} className="border-b border-edge hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">{service.name}</div>
-                          <div className="text-sm text-slate-500 dark:text-gray-400 truncate max-w-xs mt-0.5">{service.description}</div>
+                          <div className="text-sm font-bold text-paper">{service.name}</div>
+                          <div className="text-sm text-paper-muted truncate max-w-xs mt-0.5">{service.description}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{service.category.name}</span>
+                        <span className="text-sm font-medium text-paper-muted">{service.category.name}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300 capitalize">{service.platform.replace('_', ' ')}</span>
+                        <span className="text-sm font-medium text-paper-muted capitalize">{service.platform.replace('_', ' ')}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap tabular-nums">
+                        <span className="text-sm font-medium text-paper">
                           {service.base_price ? formatPrice(service.base_price) : t('servicesPage.negotiablePrice')}
                         </span>
                         {service.unit && (
-                          <span className="text-xs text-gray-500 ml-1">/{service.unit}</span>
+                          <span className="text-xs text-paper-faint ml-1">/{service.unit}</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">
+                      <td className="px-6 py-4 whitespace-nowrap tabular-nums">
+                        <span className="text-sm font-medium text-paper-muted">
                           {service.sla_hours ? `${service.sla_hours}h` : service.estimated_duration}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded ${getRiskLevelColor(service.risk_level)}`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-eyebrow font-bold rounded ${getRiskLevelColor(service.risk_level)}`}>
                           {service.risk_level}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {service.requires_approval ? (
-                          <CheckCircle className="w-5 h-5 text-amber-500" />
+                          <CheckCircle className="w-5 h-5 text-warning" />
                         ) : (
-                          <CheckCircle className="w-5 h-5 text-emerald-500" />
+                          <CheckCircle className="w-5 h-5 text-success" />
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button
                           onClick={() => handleServiceClick(service)}
-                          className="p-2 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
+                          className={`p-2 text-paper-faint hover:text-signal dark:hover:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-signal/20 ${focusRing}`}
                           title={t('servicesPage.actions.viewDetail')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleCreateRequest(service)}
-                          className="p-2 text-slate-500 dark:text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20"
+                          className={`p-2 text-paper-faint hover:text-signal dark:hover:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-signal/20 ${focusRing}`}
                           title={t('servicesPage.actions.createRequest')}
                         >
                           <Plus className="w-4 h-4" />
@@ -458,75 +467,75 @@ export default function ServicesPage() {
       {activeTab === 'requests' && (
         <div className="space-y-6">
           {/* Service Requests Table */}
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-void-surface border border-edge rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-800">
-                <thead className="bg-white dark:bg-[#1E293B]/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+              <table className="min-w-full divide-y divide-edge">
+                <thead className="bg-void-raised">
+                  <tr className="border-b border-edge">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       ID
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.service')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.status')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.priority')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.approval')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.price')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.createdAt')}
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">
                       {t('servicesPage.table.actions')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-edge">
                   {serviceRequests.map((request) => (
-                    <tr key={request.id} className="hover:bg-white dark:bg-[#1E293B]/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-400">
+                    <tr key={request.id} className="border-b border-edge hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-signal dark:text-signal-bright tabular-nums">
                         #{request.id}
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">{request.service.name}</div>
-                          <div className="text-sm text-slate-500 dark:text-gray-400 mt-0.5">{request.service.category.name}</div>
+                          <div className="text-sm font-bold text-paper">{request.service.name}</div>
+                          <div className="text-sm text-paper-muted mt-0.5">{request.service.category.name}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded ${getStatusColor(request.status)}`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-eyebrow font-bold rounded ${getStatusColor(request.status)}`}>
                           {request.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded ${getPriorityColor(request.priority)}`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-eyebrow font-bold rounded ${getPriorityColor(request.priority)}`}>
                           {request.priority}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded ${getApprovalStatusColor(request.approval_status)}`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-eyebrow font-bold rounded ${getApprovalStatusColor(request.approval_status)}`}>
                           {request.approval_status.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-paper tabular-nums">
                         {request.final_price ? formatPrice(request.final_price) :
                          request.quoted_price ? formatPrice(request.quoted_price) : t('servicesPage.notQuoted')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-paper-faint tabular-nums">
                         {new Date(request.created_at).toLocaleString('vi-VN')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => handleRequestClick(request)}
-                          className="p-2 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
+                          className={`p-2 text-paper-faint hover:text-signal dark:hover:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-signal/20 ${focusRing}`}
                           title={t('servicesPage.actions.viewDetail')}
                         >
                           <Eye className="w-4 h-4" />
@@ -544,15 +553,15 @@ export default function ServicesPage() {
       {/* Service Detail Modal */}
       {showServiceDetail && selectedService && (
         <div className="fixed inset-0 z-[60] overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setShowServiceDetail(false)} />
+          <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm transition-opacity duration-150 motion-reduce:transition-none" onClick={() => setShowServiceDetail(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 shrink-0">
+            <div className="relative bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-4xl transform transition-all overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-6 border-b border-edge bg-void-raised shrink-0">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white pr-4">{selectedService.name}</h2>
+                  <h2 className="text-xl font-bold text-paper pr-4">{selectedService.name}</h2>
                   <button
                     onClick={() => setShowServiceDetail(false)}
-                    className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors shrink-0"
+                    className={`text-paper-faint hover:text-paper transition-colors duration-150 motion-reduce:transition-none shrink-0 rounded-lg ${focusRing}`}
                   >
                     <XCircle className="w-6 h-6" />
                   </button>
@@ -562,28 +571,28 @@ export default function ServicesPage() {
               <div className="p-6 space-y-6 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('servicesPage.detail.basicInfo')}</h3>
+                    <h3 className="text-lg font-bold text-paper mb-4">{t('servicesPage.detail.basicInfo')}</h3>
                     <div className="space-y-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.serviceCode')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.code}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.serviceCode')}</span>
+                        <span className="text-sm font-medium text-paper">{selectedService.code}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.category')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.category.name}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.category')}</span>
+                        <span className="text-sm font-medium text-paper">{selectedService.category.name}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.serviceType')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{selectedService.service_type.replace('_', ' ')}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.serviceType')}</span>
+                        <span className="text-sm font-medium text-paper capitalize">{selectedService.service_type.replace('_', ' ')}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.platform')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{selectedService.platform.replace('_', ' ')}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.platform')}</span>
+                        <span className="text-sm font-medium text-paper capitalize">{selectedService.platform.replace('_', ' ')}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.riskLevel')}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.riskLevel')}</span>
                         <div className="mt-1">
-                          <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded ${getRiskLevelColor(selectedService.risk_level)}`}>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-eyebrow rounded ${getRiskLevelColor(selectedService.risk_level)}`}>
                             {selectedService.risk_level}
                           </span>
                         </div>
@@ -592,37 +601,37 @@ export default function ServicesPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('servicesPage.detail.priceAndSla')}</h3>
+                    <h3 className="text-lg font-bold text-paper mb-4">{t('servicesPage.detail.priceAndSla')}</h3>
                     <div className="space-y-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.basePrice')}</span>
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.basePrice')}</span>
+                        <span className="text-sm font-bold text-paper tabular-nums">
                           {selectedService.base_price ? formatPrice(selectedService.base_price) : t('servicesPage.negotiablePrice')}
-                          {selectedService.unit && <span className="text-gray-500 ml-1 font-medium">/{selectedService.unit}</span>}
+                          {selectedService.unit && <span className="text-paper-faint ml-1 font-medium">/{selectedService.unit}</span>}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.estimated_duration}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
+                        <span className="text-sm font-medium text-paper">{selectedService.estimated_duration}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">SLA</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.sla_hours}h</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">SLA</span>
+                        <span className="text-sm font-medium text-paper tabular-nums">{selectedService.sla_hours}h</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.minQuantity')}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.min_quantity || 1} {selectedService.unit}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.minQuantity')}</span>
+                        <span className="text-sm font-medium text-paper tabular-nums">{selectedService.min_quantity || 1} {selectedService.unit}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.requiresApproval')}</span>
+                        <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.requiresApproval')}</span>
                         <div className="mt-1">
                           {selectedService.requires_approval ? (
-                            <span className="inline-flex items-center text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded text-xs font-medium">
+                            <span className="inline-flex items-center text-warning bg-warning/10 border border-warning/25 px-2 py-1 rounded text-xs font-medium">
                               <CheckCircle className="w-3.5 h-3.5 mr-1" />
                               {t('servicesPage.required')}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-xs font-medium">
+                            <span className="inline-flex items-center text-success bg-success/10 border border-success/25 px-2 py-1 rounded text-xs font-medium">
                               <XCircle className="w-3.5 h-3.5 mr-1" />
                               {t('servicesPage.notRequired')}
                             </span>
@@ -633,23 +642,24 @@ export default function ServicesPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-200 dark:border-gray-800">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">{t('servicesPage.fields.description')}</h3>
-                  <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-slate-200 dark:border-gray-800">{selectedService.description}</p>
+
+                <div className="pt-4 border-t border-edge">
+                  <h3 className="text-lg font-bold text-paper mb-3">{t('servicesPage.fields.description')}</h3>
+                  <p className="text-sm text-paper-muted leading-relaxed bg-void-raised p-4 rounded-xl border border-edge">{selectedService.description}</p>
                 </div>
 
                 {selectedService.legal_basis && (
-                  <div className="pt-4 border-t border-slate-200 dark:border-gray-800">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">{t('servicesPage.fields.legalBasis')}</h3>
-                    <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-slate-200 dark:border-gray-800">{selectedService.legal_basis}</p>
+                  <div className="pt-4 border-t border-edge">
+                    <h3 className="text-lg font-bold text-paper mb-3">{t('servicesPage.detail.legalBasis')}</h3>
+                    <p className="text-sm text-paper-muted leading-relaxed bg-void-raised p-4 rounded-xl border border-edge">{selectedService.legal_basis}</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 flex justify-end space-x-3 shrink-0">
+              <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3 shrink-0">
                 <button
                   onClick={() => setShowServiceDetail(false)}
-                  className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
+                  className={`px-5 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium ${focusRing}`}
                 >
                   {t('servicesPage.actions.close')}
                 </button>
@@ -658,7 +668,7 @@ export default function ServicesPage() {
                     setShowServiceDetail(false);
                     handleCreateRequest(selectedService);
                   }}
-                  className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm shadow-indigo-500/20"
+                  className={`px-5 py-2.5 text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium ${focusRing} focus-visible:ring-offset-2 focus-visible:ring-offset-void`}
                 >
                   {t('servicesPage.actions.createRequest')}
                 </button>
@@ -673,18 +683,18 @@ export default function ServicesPage() {
       {/* Create Service Request Modal */}
       {showCreateRequest && selectedService && (
         <div className="fixed inset-0 z-[60] overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setShowCreateRequest(false)} />
+          <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm transition-opacity duration-150 motion-reduce:transition-none" onClick={() => setShowCreateRequest(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl transform transition-all overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 shrink-0">
+            <div className="relative bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-3xl transform transition-all overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-6 border-b border-edge bg-void-raised shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('servicesPage.createModal.title')}</h2>
-                    <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{selectedService.name}</p>
+                    <h2 className="text-xl font-bold text-paper">{t('servicesPage.createModal.title')}</h2>
+                    <p className="text-sm text-paper-muted mt-1">{selectedService.name}</p>
                   </div>
                   <button
                     onClick={() => setShowCreateRequest(false)}
-                    className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
+                    className={`text-paper-faint hover:text-paper transition-colors duration-150 motion-reduce:transition-none rounded-lg ${focusRing}`}
                   >
                     <XCircle className="w-6 h-6" />
                   </button>
@@ -693,38 +703,38 @@ export default function ServicesPage() {
 
               <div className="p-6 space-y-6 overflow-y-auto">
                 {/* Service Info */}
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-5">
+                <div className="bg-signal/10 border border-signal/25 rounded-xl p-5">
                   <div className="grid grid-cols-2 gap-6 text-sm">
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.category')}</span>
-                      <span className="font-medium text-slate-900 dark:text-white">{selectedService.category.name}</span>
+                      <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.category')}</span>
+                      <span className="font-medium text-paper">{selectedService.category.name}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.basePrice')}</span>
-                      <span className="font-bold text-indigo-400">
+                      <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.basePrice')}</span>
+                      <span className="font-bold text-signal dark:text-signal-bright tabular-nums">
                         {selectedService.base_price ? formatPrice(selectedService.base_price) : t('servicesPage.negotiablePrice')}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
-                      <span className="font-medium text-slate-900 dark:text-white">{selectedService.estimated_duration}</span>
+                      <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
+                      <span className="font-medium text-paper">{selectedService.estimated_duration}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">SLA</span>
-                      <span className="font-medium text-slate-900 dark:text-white">{selectedService.sla_hours}h</span>
+                      <span className="text-xs font-semibold text-paper-faint uppercase tracking-eyebrow mb-1">SLA</span>
+                      <span className="font-medium text-paper tabular-nums">{selectedService.sla_hours}h</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Priority */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    {t('servicesPage.form.priority')} <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
+                    {t('servicesPage.form.priority')} <span className="text-destructive">*</span>
                   </label>
                   <select
                     value={requestForm.priority}
                     onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper"
                   >
                     <option value="low">{t('servicesPage.priority.low')}</option>
                     <option value="medium">{t('servicesPage.priority.medium')}</option>
@@ -735,21 +745,21 @@ export default function ServicesPage() {
 
                 {/* Request Reason */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    {t('servicesPage.form.requestReason')} <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
+                    {t('servicesPage.form.requestReason')} <span className="text-destructive">*</span>
                   </label>
                   <textarea
                     value={requestForm.request_reason}
                     onChange={(e) => setRequestForm({ ...requestForm, request_reason: e.target.value })}
                     rows={3}
                     placeholder={t('servicesPage.form.requestReasonPlaceholder')}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
+                    className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper placeholder:text-paper-faint resize-none"
                   />
                 </div>
 
                 {/* Evidence Summary */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('servicesPage.form.evidenceSummary')}
                   </label>
                   <textarea
@@ -757,74 +767,74 @@ export default function ServicesPage() {
                     onChange={(e) => setRequestForm({ ...requestForm, evidence_summary: e.target.value })}
                     rows={3}
                     placeholder={t('servicesPage.form.evidenceSummaryPlaceholder')}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
+                    className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper placeholder:text-paper-faint resize-none"
                   />
                 </div>
 
                 {/* Desired Outcome */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    {t('servicesPage.form.desiredOutcome')} <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
+                    {t('servicesPage.form.desiredOutcome')} <span className="text-destructive">*</span>
                   </label>
                   <textarea
                     value={requestForm.desired_outcome}
                     onChange={(e) => setRequestForm({ ...requestForm, desired_outcome: e.target.value })}
                     rows={3}
                     placeholder={t('servicesPage.form.desiredOutcomePlaceholder')}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
+                    className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper placeholder:text-paper-faint resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Quoted Price */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-paper-muted mb-2">
                       {t('servicesPage.form.quotedPrice')}
                     </label>
                     <input
                       type="number"
                       value={requestForm.quoted_price}
                       onChange={(e) => setRequestForm({ ...requestForm, quoted_price: parseFloat(e.target.value) })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                      className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper tabular-nums"
                     />
                   </div>
 
                   {/* Deadline */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-paper-muted mb-2">
                       {t('servicesPage.form.deadline')}
                     </label>
                     <input
                       type="datetime-local"
                       value={requestForm.deadline}
                       onChange={(e) => setRequestForm({ ...requestForm, deadline: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                      className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal text-paper tabular-nums"
                     />
                   </div>
                 </div>
 
                 {/* Compliance Notice */}
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                <div className="bg-warning/10 border border-warning/25 rounded-xl p-4">
                   <div className="flex items-start space-x-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-amber-200/80">
-                      <strong className="text-amber-400">{t('servicesPage.createModal.noticeLabel')}</strong> {t('servicesPage.createModal.noticeBody')}
+                    <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-paper-muted">
+                      <strong className="text-warning">{t('servicesPage.createModal.noticeLabel')}</strong> {t('servicesPage.createModal.noticeBody')}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 flex justify-end space-x-3 shrink-0">
+              <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3 shrink-0">
                 <button
                   onClick={() => setShowCreateRequest(false)}
-                  className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
+                  className={`px-5 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium ${focusRing}`}
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSubmitRequest}
                   disabled={!requestForm.request_reason || !requestForm.desired_outcome}
-                  className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed font-medium shadow-sm shadow-indigo-500/20"
+                  className={`px-5 py-2.5 text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed font-medium ${focusRing} focus-visible:ring-offset-2 focus-visible:ring-offset-void`}
                 >
                   {t('servicesPage.actions.createRequest')}
                 </button>

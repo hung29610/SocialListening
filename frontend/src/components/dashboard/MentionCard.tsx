@@ -3,7 +3,8 @@ import {
   Facebook, Youtube, Globe, Rss, ExternalLink, Activity, 
   CheckCircle2, AlertTriangle, FileText, BrainCircuit, ShieldAlert, ShieldCheck, Image as ImageIcon, Link2, Info
 } from 'lucide-react';
-import { SentimentBadge, RiskBadge, CrisisLevelBadge } from './Badges';
+import { RiskBadge, CrisisLevelBadge } from './Badges';
+import { SentimentBadge } from '@/components/ui/SentimentBadge';
 import DashboardQuickActionButton from './DashboardQuickActionButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { mentions } from '@/lib/api';
@@ -107,26 +108,26 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
   else if (isLowConfidence) visitWarning = t('mentionsPage.card.lowConfidence');
 
   return (
-    <AppCard hoverable className="overflow-hidden border border-slate-200 dark:border-white/10">
+    <AppCard hoverable className="overflow-hidden border-edge">
       {/* Source & Provenance Header */}
-      <div className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
+      <div className="px-4 py-3 bg-void-raised border-b border-edge flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg shadow-sm">
-            <SourceIcon type={mention.source_type} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+          <div className="p-1.5 bg-void-surface border border-edge rounded-lg">
+            <SourceIcon type={mention.source_type} className="w-4 h-4 text-signal dark:text-signal-bright" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide">
+              <span className="text-sm font-semibold text-paper tracking-wide">
                 {sourceDomain}
               </span>
               {typeof mention.source_confidence !== 'undefined' && !isLowConfidence && (
-                <span title={t('mentionsPage.card.highConfidence')}><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /></span>
+                <span title={t('mentionsPage.card.highConfidence')}><ShieldCheck className="w-3.5 h-3.5 text-success" /></span>
               )}
               {isLowConfidence && (
-                <span title={t('mentionsPage.list.lowConfidence')}><ShieldAlert className="w-3.5 h-3.5 text-amber-500" /></span>
+                <span title={t('mentionsPage.list.lowConfidence')}><ShieldAlert className="w-3.5 h-3.5 text-warning" /></span>
               )}
             </div>
-            <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium tracking-wider uppercase">
+            <span className="text-[10px] text-paper-faint font-medium tracking-wider uppercase">
               {mention.source_type ? t(`mentions.sourceType.${mention.source_type}`) || mention.source_type : t('mentions.page.unknownSource')} • {new Date(mention.collected_at || mention.published_at).toLocaleString('vi-VN')}
             </span>
           </div>
@@ -134,17 +135,17 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
         
         <div className="flex gap-1.5 items-center">
           {mention.ai_provider === 'failed' && (
-            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-red-600 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20 rounded-md shadow-sm" title={t('mentionsPage.card.aiUnavailable')}>
+            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-destructive bg-destructive/10 border border-destructive/25 rounded-md" title={t('mentionsPage.card.aiUnavailable')}>
               {t('mentionsPage.detail.aiFailed')}
             </span>
           )}
           {['dummy', 'dummy_ai', 'dummy_fallback'].includes(mention.ai_provider) && (
-            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-amber-600 bg-amber-50 border border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20 rounded-md shadow-sm">
+            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-warning bg-warning/10 border border-warning/25 rounded-md">
               {t('mentionsPage.detail.ruleBased')}
             </span>
           )}
           {mention.ai_provider && !['dummy', 'dummy_ai', 'dummy_fallback', 'failed'].includes(mention.ai_provider) && (
-            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/10 dark:border-indigo-500/20 rounded-md shadow-sm">
+            <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-signal dark:text-signal-bright bg-signal/10 border border-signal/25 rounded-md">
               {mention.ai_provider.toUpperCase()}
             </span>
           )}
@@ -156,23 +157,23 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
       <div className="p-4 flex flex-col md:flex-row gap-4">
         {/* Preview Image if available safely */}
         {imageUrl && (
-          <div className="shrink-0 w-full md:w-32 h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
+          <div className="shrink-0 w-full md:w-32 h-24 rounded-lg overflow-hidden border border-edge bg-void-raised">
             <img src={imageUrl} alt={mention.title || t('mentionsPage.list.imagePreviewAlt')} className="w-full h-full object-cover" loading="lazy" />
           </div>
         )}
-        
+
         <div className="flex-1 min-w-0 space-y-2">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight line-clamp-2">
-            {mention.title || <span className="text-slate-400 italic font-normal">{t('mentions.page.noTitle')}</span>}
+          <h3 className="font-bold text-base text-paper leading-tight line-clamp-2">
+            {mention.title || <span className="text-paper-faint italic font-normal">{t('mentions.page.noTitle')}</span>}
           </h3>
-          <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed line-clamp-3">
-            {mention.content || <span className="text-slate-400 italic">{t('mentions.page.noDescription')}</span>}
+          <p className="text-sm text-paper-muted leading-relaxed line-clamp-3">
+            {mention.content || <span className="text-paper-faint italic">{t('mentions.page.noDescription')}</span>}
           </p>
-          
+
           {/* Metadata badges */}
           <div className="flex flex-wrap gap-2 pt-1">
             {keywordLabels.length > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-300 text-[10px] tracking-wide font-bold rounded shadow-sm">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-void-raised border border-edge text-paper-muted text-[10px] tracking-wide font-bold rounded">
                 <Link2 className="w-3 h-3" />
                 {keywordLabels.join(', ')}
               </span>
@@ -184,7 +185,7 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
       </div>
 
       {/* Actions Footer */}
-      <div className="px-4 py-3 bg-slate-50/50 dark:bg-black/10 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 py-3 bg-void-raised/50 border-t border-edge flex flex-wrap items-center justify-between gap-3">
         <div className="flex space-x-2">
           <DashboardQuickActionButton
             label={t('mentionsPage.list.seen')}
@@ -215,7 +216,7 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
         
         <div className="flex items-center gap-2">
           {visitWarning && (
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded border border-amber-200 dark:border-amber-500/20">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-warning bg-warning/10 px-2 py-1 rounded border border-warning/25">
               <Info className="w-3.5 h-3.5" />
               {visitWarning}
             </div>
@@ -223,7 +224,7 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
           {disableVisit ? (
             <button
               disabled
-              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 cursor-not-allowed"
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-edge bg-void-raised text-paper-faint cursor-not-allowed"
               title={visitWarning || t('mentionsPage.card.cannotVisit')}
             >
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
@@ -234,7 +235,7 @@ export default function MentionCard({ mention, onActionComplete, userRole }: Men
               href={bestUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors shadow-sm"
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-signal/25 bg-signal/10 text-signal dark:text-signal-bright hover:bg-signal/15 transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
               title={`${t('mentionsPage.card.visitSource')}: ${sourceDomain}`}
             >
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" />

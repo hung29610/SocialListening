@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Platform giám sát và xử lý khủng hoảng danh tiếng trên mạng xã hội.",
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "directories": {
     "doc": "docs"
   },

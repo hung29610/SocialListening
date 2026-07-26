@@ -16,11 +16,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import WebinarRegistrationModal from '@/components/dashboard/WebinarRegistrationModal';
 import WebinarSuccessModal from '@/components/dashboard/WebinarSuccessModal';
-import { 
-  LayoutDashboard, 
-  Globe, 
-  FileText, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Globe,
+  FileText,
+  Bell,
   LogOut,
   Menu,
   X,
@@ -47,6 +47,12 @@ import {
   Sparkles
 } from 'lucide-react';
 
+/* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const sidebarTooltip =
+  'pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 bg-void-raised border border-edge text-paper text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 motion-reduce:transition-none z-50 shadow-tile';
+
 function WorkerStatusBadge() {
   const { t } = useLanguage();
   const [status, setStatus] = useState<any>(null);
@@ -70,8 +76,8 @@ function WorkerStatusBadge() {
   if (!status) {
     if (!failed) return null;
     return (
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full border border-amber-200 dark:border-amber-800/50" title={t('header.workerStatusUnknown')}>
-        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-warning/10 text-warning text-[10px] font-semibold tracking-eyebrow uppercase rounded-full border border-warning/25" title={t('header.workerStatusUnknown')}>
+        <div className="w-2 h-2 rounded-full bg-warning"></div>
         {t('header.workerUnknown')}
       </div>
     );
@@ -79,24 +85,24 @@ function WorkerStatusBadge() {
 
   const isRunning = status.worker_running;
   const isEnabled = status.scheduler_enabled;
-  
+
   if (!isEnabled) {
     return (
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] font-bold rounded-full border border-gray-200 dark:border-slate-300 dark:border-gray-700" title={t('misc.layout.workerDisabledHint')}>
-        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-void-raised text-paper-faint text-[10px] font-semibold tracking-eyebrow uppercase rounded-full border border-edge" title={t('misc.layout.workerDisabledHint')}>
+        <div className="w-2 h-2 rounded-full bg-paper-faint"></div>
         {t('header.workerOff')}
       </div>
     );
   }
 
   return (
-    <div 
-      className={`hidden sm:flex items-center gap-1.5 px-3 py-1 ${isRunning ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50'} text-[10px] font-bold rounded-full cursor-help transition-colors`}
+    <div
+      className={`hidden sm:flex items-center gap-1.5 px-3 py-1 ${isRunning ? 'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/25' : 'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/25'} text-[10px] font-semibold tracking-eyebrow uppercase rounded-full cursor-help transition-colors duration-150 motion-reduce:transition-none`}
       title={isRunning
         ? t('misc.layout.workerOnlineHint', { jobs: status.running_jobs, due: status.due_sources })
         : t('misc.layout.workerOfflineHint', { error: status.last_error || '' })}
     >
-      <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
+      <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-sentiment-positive animate-pulse motion-reduce:animate-none' : 'bg-sentiment-negative'}`}></div>
       {isRunning ? t('header.workerOnline') : t('header.workerOffline')}
     </div>
   );
@@ -144,31 +150,32 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
     }
   };
 
-  // Shared nav item renderer
+  // Shared nav item renderer — active route carries the signal accent, sparingly
   const NavItem = ({ item, isActive }: { item: { name: string; href: string; icon: any }, isActive: boolean }) => (
     <Link
       href={item.href}
       prefetch={false}
       title={item.name}
-      className={`group relative flex items-center rounded-xl transition-all duration-200 ${
+      aria-current={isActive ? 'page' : undefined}
+      className={`group relative flex items-center rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${
         isActive
-          ? 'bg-white/[0.09] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_30px_rgba(99,102,241,0.12)]'
-          : 'text-slate-500 dark:text-gray-400 hover:text-white hover:bg-white/[0.06]'
+          ? 'bg-signal/[0.08] text-signal dark:text-signal-bright'
+          : 'text-paper-muted hover:text-paper hover:bg-paper/[0.04]'
       } ${sidebarCollapsed
           ? 'justify-center w-10 h-10 mx-auto'
           : 'px-3 py-2.5 gap-3'
       }`}
       onClick={() => setSidebarOpen(false)}
     >
-      {/* Active pill indicator */}
+      {/* Active route indicator */}
       {isActive && (
-        <span className={`absolute ${sidebarCollapsed ? 'left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full' : 'left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full'} bg-indigo-400`} />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-signal dark:bg-signal-bright" />
       )}
-      <item.icon className={`shrink-0 transition-colors ${sidebarCollapsed ? 'w-[18px] h-[18px]' : 'w-[17px] h-[17px]'} ${isActive ? 'text-indigo-300' : 'text-gray-500 group-hover:text-slate-700 dark:text-gray-300'}`} />
+      <item.icon className={`shrink-0 transition-colors duration-150 motion-reduce:transition-none ${sidebarCollapsed ? 'w-[18px] h-[18px]' : 'w-[17px] h-[17px]'} ${isActive ? 'text-signal dark:text-signal-bright' : 'text-paper-faint group-hover:text-paper-muted'}`} />
       {!sidebarCollapsed && <span className="truncate text-sm font-medium">{item.name}</span>}
       {/* Tooltip in collapsed mode */}
       {sidebarCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0F172A] border border-white/10 text-slate-900 dark:text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 shadow-xl">
+        <span className={sidebarTooltip}>
           {item.name}
         </span>
       )}
@@ -177,26 +184,26 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col premium-edge-light bg-[#07111f]/95 border-r border-white/[0.08] shadow-[18px_0_60px_rgba(0,0,0,0.35)] backdrop-blur-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-void-surface border-r border-edge transform transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } ${sidebarCollapsed ? 'w-[68px]' : 'w-64'}`}
     >
 
       {/* ── Header: Logo + Collapse Button ─────────────────────────────── */}
-      <div className={`flex items-center shrink-0 border-b border-white/[0.06] ${sidebarCollapsed ? 'flex-col justify-center py-4 gap-3' : 'h-[64px] justify-between px-4'}`}>
+      <div className={`flex items-center shrink-0 border-b border-edge ${sidebarCollapsed ? 'flex-col justify-center py-4 gap-3' : 'h-16 justify-between px-4'}`}>
         {sidebarCollapsed ? (
           /* Collapsed: Logo and Toggle button */
           <>
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-white/20">
-              <span className="text-white font-black text-base leading-none">N</span>
+            <div className="w-9 h-9 bg-signal rounded-lg flex items-center justify-center">
+              <span className="text-white font-display font-bold text-base leading-none">N</span>
             </div>
             <button
               onClick={toggleCollapse}
               title={t('common.expand')}
-              className="group relative w-8 h-8 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
+              className={`group relative w-8 h-8 rounded-lg text-paper-faint hover:text-paper hover:bg-paper/[0.04] flex items-center justify-center transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
             >
               <ChevronRight className="w-4 h-4" />
-              <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0F172A] border border-white/10 text-slate-900 dark:text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all z-50 shadow-xl">
+              <span className={sidebarTooltip}>
                 {t('common.expand')}
               </span>
             </button>
@@ -204,16 +211,16 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
         ) : (
           <>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-white/20 shrink-0">
-                <span className="text-white font-black text-base leading-none">N</span>
+              <div className="w-9 h-9 bg-signal rounded-lg flex items-center justify-center shrink-0">
+                <span className="text-white font-display font-bold text-base leading-none">N</span>
               </div>
-              <h1 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 tracking-tight">Nope360</h1>
+              <h1 className="text-lg font-display font-bold text-paper tracking-tight">Nope360</h1>
             </div>
             <div className="flex items-center gap-1">
               {/* Close on mobile */}
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className={`lg:hidden p-1.5 text-paper-faint hover:text-paper hover:bg-paper/[0.04] rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -221,7 +228,7 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
               <button
                 onClick={toggleCollapse}
                 title={t('common.collapse')}
-                className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+                className={`hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-paper-faint hover:text-paper hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -236,9 +243,9 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
         {/* Project selector */}
         <div className={`mb-1 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {!sidebarCollapsed && (
-            <div className="flex items-center justify-between px-2 mb-1">
-              <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('nav.projectsTitle')}</span>
-              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className="text-zinc-400 hover:text-emerald-400 transition-colors" prefetch={false}>
+            <div className="flex items-center justify-between px-2 mb-1.5">
+              <span className="text-[10px] tracking-eyebrow font-semibold uppercase text-paper-faint">{t('nav.projectsTitle')}</span>
+              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className={`text-paper-faint hover:text-signal dark:hover:text-signal-bright rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing}`} prefetch={false}>
                 <Plus className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -247,31 +254,31 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
           {sidebarCollapsed ? (
             /* Collapsed project: avatar only */
             <div className="flex flex-col items-center gap-2 mt-1">
-              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:text-emerald-400 hover:bg-white/5 transition-colors" prefetch={false}>
+              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className={`w-10 h-10 rounded-lg flex items-center justify-center text-paper-faint hover:text-signal dark:hover:text-signal-bright hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`} prefetch={false}>
                 <Plus className="w-4 h-4" />
               </Link>
               <button
                 onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
                 title={activeProject?.name || t('mentions.page.selectProject')}
-                className="group relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/[0.06] transition-all"
+                className={`group relative w-10 h-10 rounded-lg bg-signal/10 hover:bg-signal/15 flex items-center justify-center border border-signal/20 transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
-                <span className="text-white font-bold text-xs">
+                <span className="text-signal dark:text-signal-bright font-semibold text-xs">
                   {activeProject?.name?.charAt(0).toUpperCase() || '?'}
                 </span>
                 {/* Active dot */}
-                <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 border-2 border-[#0D1117]" />
+                <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-sentiment-positive border-2 border-void-surface" />
                 {/* Tooltip */}
-                <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0F172A] border border-white/10 text-slate-900 dark:text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 shadow-xl">
+                <span className={sidebarTooltip}>
                   {activeProject?.name || t('mentions.page.selectProject')}
                 </span>
               </button>
               {projectDropdownOpen && (
-                <div className="absolute left-[76px] top-[10px] w-52 bg-white dark:bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1.5 z-50">
+                <div className="absolute left-[76px] top-[10px] w-52 bg-void-surface border border-edge rounded-xl shadow-tile overflow-hidden py-1.5 z-50">
                   {projects.map((p: any) => (
                     <button
                       key={p.id}
                       onClick={() => { setActiveProject(p); setProjectDropdownOpen(false); router.push('/dashboard/mentions'); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${activeProject?.id === p.id ? 'bg-white/10 text-emerald-400 font-semibold' : 'text-slate-700 dark:text-gray-300 hover:bg-white/5'}`}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${activeProject?.id === p.id ? 'bg-signal/[0.08] text-signal dark:text-signal-bright font-semibold' : 'text-paper-muted hover:text-paper hover:bg-paper/[0.04]'}`}
                     >
                       {p.name}
                     </button>
@@ -284,35 +291,35 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
             <div className="relative">
               <button
                 onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none group ${focusRing}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-signal/10 border border-signal/20 flex items-center justify-center text-signal dark:text-signal-bright font-semibold text-xs shrink-0">
                     {activeProject?.name?.charAt(0).toUpperCase() || '?'}
                   </div>
                   <div className="min-w-0 text-left">
-                    <p className="text-sm font-semibold text-white truncate leading-none">
+                    <p className="text-sm font-semibold text-paper truncate leading-none">
                       {projectsLoading ? t('common.loading') : activeProject?.name || t('mentions.page.selectProject')}
                     </p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5 truncate flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <p className="text-[11px] text-paper-faint mt-1 truncate flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sentiment-positive shrink-0" />
                       {activeProject ? t('common.active') : t('mentions.page.noProject')}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-500 shrink-0">
-                  <Settings className="w-3.5 h-3.5 hover:text-white transition-colors" onClick={(e) => { e.stopPropagation(); router.push('/dashboard/project-settings'); }} />
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`} />
+                <div className="flex items-center gap-2 text-paper-faint shrink-0">
+                  <Settings className="w-3.5 h-3.5 hover:text-paper transition-colors duration-150 motion-reduce:transition-none" onClick={(e) => { e.stopPropagation(); router.push('/dashboard/project-settings'); }} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 motion-reduce:transition-none ${projectDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
               </button>
               {projectDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1.5 z-50">
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-void-surface border border-edge rounded-xl shadow-tile overflow-hidden py-1.5 z-50">
                   <div className="max-h-48 overflow-y-auto">
                     {projects.map((p: any) => (
                       <button
                         key={p.id}
                         onClick={() => { setActiveProject(p); setProjectDropdownOpen(false); router.push('/dashboard/mentions'); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${activeProject?.id === p.id ? 'bg-white/10 text-emerald-400 font-semibold' : 'text-slate-700 dark:text-gray-300 hover:bg-white/5'}`}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${activeProject?.id === p.id ? 'bg-signal/[0.08] text-signal dark:text-signal-bright font-semibold' : 'text-paper-muted hover:text-paper hover:bg-paper/[0.04]'}`}
                       >
                         {p.name}
                       </button>
@@ -325,12 +332,12 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
         </div>
 
         {/* Divider */}
-        <div className={`my-3 border-t border-white/[0.06] ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
+        <div className={`my-3 border-t border-edge ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
 
         {/* Project Nav */}
         <div className={`space-y-0.5 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {!sidebarCollapsed && (
-            <p className="px-2 mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('nav.workspace')}</p>
+            <p className="px-2 mb-1.5 text-[10px] tracking-eyebrow font-semibold uppercase text-paper-faint">{t('nav.workspace')}</p>
           )}
           {projectNav.map((item) => (
             <NavItem key={item.name} item={item} isActive={pathname === item.href} />
@@ -338,12 +345,12 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
         </div>
 
         {/* Divider */}
-        <div className={`my-3 border-t border-white/[0.06] ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
+        <div className={`my-3 border-t border-edge ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
 
         {/* Reports Nav */}
         <div className={`space-y-0.5 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {!sidebarCollapsed && (
-            <p className="px-2 mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('nav.reportsTitle')}</p>
+            <p className="px-2 mb-1.5 text-[10px] tracking-eyebrow font-semibold uppercase text-paper-faint">{t('nav.reportsTitle')}</p>
           )}
           {reportsNav.map((item) => (
             <NavItem key={item.name} item={item} isActive={pathname === item.href} />
@@ -351,12 +358,12 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
         </div>
 
         {/* Divider */}
-        <div className={`my-3 border-t border-white/[0.06] ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
+        <div className={`my-3 border-t border-edge ${sidebarCollapsed ? 'mx-3' : 'mx-4'}`} />
 
         {/* System Nav */}
         <div className={`space-y-0.5 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {!sidebarCollapsed && (
-            <p className="px-2 mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('nav.systemTitle')}</p>
+            <p className="px-2 mb-1.5 text-[10px] tracking-eyebrow font-semibold uppercase text-paper-faint">{t('nav.systemTitle')}</p>
           )}
           {systemNav.map((item) => (
             <NavItem key={item.name} item={item} isActive={pathname.startsWith(item.href)} />
@@ -365,10 +372,10 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
 
         {/* Webinar Banner (expanded only) */}
         {!sidebarCollapsed && (
-          <div className="mx-3 mt-4 p-3 rounded-xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/20">
-            <p className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase mb-1">{t('nav.webinar')}</p>
-            <p className="text-xs text-zinc-300 leading-relaxed mb-2">{t('nav.webinarDesc')}</p>
-            <button onClick={() => setIsWebinarModalOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+          <div className="mx-3 mt-4 p-3 rounded-xl bg-void-raised border border-edge">
+            <p className="text-[10px] tracking-eyebrow font-semibold uppercase text-signal dark:text-signal-bright mb-1">{t('nav.webinar')}</p>
+            <p className="text-xs text-paper-muted leading-relaxed mb-2">{t('nav.webinarDesc')}</p>
+            <button onClick={() => setIsWebinarModalOpen(true)} className={`flex items-center gap-1.5 text-xs font-semibold text-signal dark:text-signal-bright hover:text-signal-deep dark:hover:text-signal rounded transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
               <Award className="w-3.5 h-3.5" />
               {t('nav.signUp')}
             </button>
@@ -377,8 +384,8 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
       </nav>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <div className={`shrink-0 border-t border-white/[0.06] flex items-center ${sidebarCollapsed ? 'justify-center py-3' : 'justify-between px-4 py-3'}`}>
-        <button onClick={handleLogout} className={`flex items-center gap-2 text-xs text-zinc-500 hover:text-red-400 transition-colors font-medium ${sidebarCollapsed ? 'justify-center w-10 h-10 rounded-xl hover:bg-white/5' : ''}`}>
+      <div className={`shrink-0 border-t border-edge flex items-center ${sidebarCollapsed ? 'justify-center py-3' : 'justify-between px-4 py-3'}`}>
+        <button onClick={handleLogout} className={`flex items-center gap-2 text-xs text-paper-faint hover:text-destructive transition-colors duration-150 motion-reduce:transition-none font-medium rounded-lg ${focusRing} ${sidebarCollapsed ? 'justify-center w-10 h-10 hover:bg-paper/[0.04]' : ''}`}>
           <LogOut className="w-4 h-4" />
           {!sidebarCollapsed && t('nav.logout')}
         </button>
@@ -449,9 +456,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <ProjectProvider>
-      <div className="premium-depth-shell min-h-screen bg-[#F4F5F7] dark:bg-[#000511]">
+      <div className="min-h-screen bg-void">
         {sidebarOpen && (
-          <div className="fixed inset-0 z-40 bg-gray-900/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 z-40 bg-paper/25 dark:bg-void/70 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
         <DashboardSidebar
@@ -468,44 +475,44 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         position="top-right"
         toastOptions={{
           duration: 4000,
-          className: 'dark:!bg-white dark:bg-[#1E293B] dark:!text-white dark:!border-slate-300 dark:border-gray-700 dark:border shadow-lg'
+          className: '!bg-void-surface !text-paper !border !border-edge !shadow-tile'
         }}
       />
-      <div className={`transition-all duration-300 flex flex-col min-h-screen ${mounted ? (sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-64') : 'lg:pl-64'}`}>
-        <div className="sticky top-0 z-20 flex min-w-0 items-center h-16 px-3 bg-white/[0.88] dark:bg-[#050A15]/[0.86] border-b border-gray-200/80 dark:border-white/10 sm:px-4 lg:px-8 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-900 mr-2">
+      <div className={`transition-[padding] duration-200 ease-out motion-reduce:transition-none flex flex-col min-h-screen ${mounted ? (sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-64') : 'lg:pl-64'}`}>
+        <div className="sticky top-0 z-20 flex min-w-0 items-center h-16 px-3 bg-void/[0.85] border-b border-edge sm:px-4 lg:px-8 backdrop-blur-xl">
+          <button onClick={() => setSidebarOpen(true)} className={`lg:hidden p-2 -ml-2 text-paper-muted hover:text-paper mr-2 rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
             <Menu className="w-5 h-5" />
           </button>
 
           <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-4">
             <WorkerStatusBadge />
-            <button onClick={() => toast(t('misc.layout.billingComingSoon'), { icon: '⏳' })} className="hidden sm:flex items-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors tracking-wide shadow-sm">
+            <button onClick={() => toast(t('misc.layout.billingComingSoon'), { icon: '⏳' })} className={`hidden sm:flex items-center px-4 py-1.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white text-xs font-semibold rounded-full transition-colors duration-150 motion-reduce:transition-none tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void`}>
               {t('header.upgrade')}
             </button>
-            <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
-            <button onClick={() => toast.success(t('misc.layout.supportEmailHint'))} title={t('header.helpCenter')} className="text-slate-500 dark:text-gray-400 hover:text-gray-600">
+            <div className="h-6 w-px bg-edge mx-2 hidden sm:block"></div>
+            <button onClick={() => toast.success(t('misc.layout.supportEmailHint'))} title={t('header.helpCenter')} className={`text-paper-muted hover:text-paper rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
               <HelpCircle className="w-5 h-5" />
             </button>
-            <button disabled title={t('misc.layout.quickActionsComingSoon')} className="text-slate-500 dark:text-gray-400 opacity-50 cursor-not-allowed hidden sm:block">
+            <button disabled title={t('misc.layout.quickActionsComingSoon')} className="text-paper-faint opacity-50 cursor-not-allowed hidden sm:block">
               <Zap className="w-5 h-5" />
             </button>
             <LanguageSwitcher />
             <ThemeToggle />
 
             <div className="relative group">
-              <div suppressHydrationWarning className="w-8 h-8 rounded-full bg-slate-800 text-slate-900 dark:text-white flex items-center justify-center text-xs font-bold ml-2 cursor-pointer shadow-sm hover:ring-2 hover:ring-indigo-500 transition-all">
+              <div suppressHydrationWarning className="w-8 h-8 rounded-full bg-void-raised border border-edge-strong text-paper flex items-center justify-center text-xs font-bold ml-2 cursor-pointer hover:ring-2 hover:ring-signal/60 transition-shadow duration-150 motion-reduce:transition-none">
                 {authLoading ? '...' : (user?.full_name || user?.email || 'K')[0].toUpperCase()}
               </div>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#1E293B] rounded-lg shadow-xl border border-gray-100 dark:border-slate-300 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-300 dark:border-gray-700">
-                  <p suppressHydrationWarning className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.full_name || 'User'}</p>
-                  <p suppressHydrationWarning className="text-xs text-slate-500 dark:text-gray-400 truncate">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-void-surface rounded-xl shadow-tile border border-edge opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-150 motion-reduce:transition-none z-50">
+                <div className="px-4 py-3 border-b border-edge">
+                  <p suppressHydrationWarning className="text-sm font-semibold text-paper truncate">{user?.full_name || 'User'}</p>
+                  <p suppressHydrationWarning className="text-xs text-paper-faint truncate">{user?.email}</p>
                 </div>
                 <div className="py-1">
-                  <Link href="/dashboard/settings" className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800" prefetch={false}>
+                  <Link href="/dashboard/settings" className={`block px-4 py-2 text-sm text-paper-muted hover:text-paper hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`} prefetch={false}>
                     {t('nav.projectSettings')}
                   </Link>
-                  <button onClick={() => { auth.logout(); router.push('/login'); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium">
+                  <button onClick={() => { auth.logout(); router.push('/login'); }} className={`w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/[0.06] font-medium transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                     {t('nav.logout')}
                   </button>
                 </div>
@@ -517,11 +524,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex-1">
             {children}
           </div>
-          <footer className="mt-10 pt-4 border-t border-gray-200 dark:border-white/10">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-gray-400 dark:text-gray-500">
+          <footer className="mt-10 pt-4 border-t border-edge">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-paper-faint">
               <div className="flex items-center gap-4">
-                <span className="dark:text-gray-300">{t('header.legalInformation')}</span>
-                <span className="dark:text-gray-300">{t('header.cookiePreferences')}</span>
+                <span>{t('header.legalInformation')}</span>
+                <span>{t('header.cookiePreferences')}</span>
               </div>
               <p className="text-center sm:text-right">{t('header.copyright')}</p>
             </div>

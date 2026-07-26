@@ -121,7 +121,7 @@ export default function APIWebhooks() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-signal"></div>
       </div>
     );
   }
@@ -131,8 +131,8 @@ export default function APIWebhooks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.api.title')}</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.api.subtitle')}</p>
+          <h2 className="text-xl font-bold text-paper tracking-wide">{t('settingsPage.api.title')}</h2>
+          <p className="text-sm text-paper-muted mt-1">{t('settingsPage.api.subtitle')}</p>
         </div>
         <button 
           onClick={() => {
@@ -140,7 +140,7 @@ export default function APIWebhooks() {
             setCreatedKey(null);
             setNewKeyData({ name: '', permissions: [], expires_at: '' });
           }}
-          className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
+          className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
         >
           <Plus className="w-5 h-5 mr-2" />
           {t('settingsPage.api.create')}
@@ -150,70 +150,70 @@ export default function APIWebhooks() {
       {/* API Keys List */}
       <div className="space-y-4">
         {apiKeys.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm">
-            <Key className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-            <p className="text-slate-700 dark:text-gray-300 font-medium tracking-wide">{t('settingsPage.api.empty.title')}</p>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.api.empty.desc')}</p>
+          <div className="text-center py-12 bg-void-surface border border-edge rounded-xl shadow-sm">
+            <Key className="w-12 h-12 mx-auto text-paper-faint mb-3" />
+            <p className="text-paper-muted font-medium tracking-wide">{t('settingsPage.api.empty.title')}</p>
+            <p className="text-sm text-paper-muted mt-1">{t('settingsPage.api.empty.desc')}</p>
           </div>
         ) : (
           apiKeys.map((key) => (
-            <div key={key.id} className={`bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-5 shadow-sm transition-opacity ${!key.is_active ? 'opacity-50' : ''}`}>
+            <div key={key.id} className={`bg-void-surface border border-edge rounded-xl p-5 shadow-sm transition-opacity motion-reduce:transition-none ${!key.is_active ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-3">
-                    <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
-                      <Key className="w-4 h-4 text-indigo-400" />
+                    <div className="p-2 bg-signal/10 border border-signal/25 rounded-lg">
+                      <Key className="w-4 h-4 text-signal dark:text-signal-bright" />
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white tracking-wide">{key.name}</h3>
+                    <h3 className="font-bold text-paper tracking-wide">{key.name}</h3>
                     {!key.is_active && (
-                      <span className="px-2.5 py-1 text-xs font-medium bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md">
+                      <span className="px-2.5 py-1 text-xs font-medium bg-void-raised text-paper-faint border border-edge rounded-md">
                         {t('settingsPage.api.inactive')}
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center space-x-3 mb-4">
-                    <code className="px-4 py-1.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 rounded-lg text-sm font-mono tracking-wider">
+                    <code className="px-4 py-1.5 bg-void-raised border border-edge-strong text-paper-muted rounded-lg text-sm font-mono tracking-wider">
                       {key.prefix}••••••••
                     </code>
                     <button
                       onClick={() => copyToClipboard(key.prefix)}
-                      className="p-1.5 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                      className="p-1.5 text-paper-faint hover:text-signal dark:hover:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                       title={t('settingsPage.api.copyPrefix')}
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap gap-5 text-xs text-slate-500 dark:text-gray-400 font-medium">
+                  <div className="flex flex-wrap gap-5 text-xs text-paper-muted font-medium">
                     <span className="flex items-center">
-                      <Calendar className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
+                      <Calendar className="w-3.5 h-3.5 mr-1.5 text-paper-faint" />
                       {t('settingsPage.api.createdAt')} {formatDate(key.created_at)}
                     </span>
                     {key.expires_at && (
-                      <span className="flex items-center text-amber-500/80">
+                      <span className="flex items-center text-warning/80">
                         <Calendar className="w-3.5 h-3.5 mr-1.5" />
                         {t('settingsPage.api.expiresAt')} {formatDate(key.expires_at)}
                       </span>
                     )}
                     {key.last_used_at && (
-                      <span className="flex items-center text-indigo-400/80">
+                      <span className="flex items-center text-signal/80 dark:text-signal-bright/80">
                         <Eye className="w-3.5 h-3.5 mr-1.5" />
                         {t('settingsPage.api.lastUsed')} {formatDate(key.last_used_at)}
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gray-800/50">
-                    <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mb-2.5">{t('settingsPage.api.permissionsCount', { count: key.permissions.length })}</p>
+                  <div className="mt-4 pt-4 border-t border-edge">
+                    <p className="text-xs font-medium text-paper-muted mb-2.5">{t('settingsPage.api.permissionsCount', { count: key.permissions.length })}</p>
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(key.permissions) && key.permissions.slice(0, 5).map((perm, idx) => (
-                        <span key={idx} className="px-2.5 py-1 text-[11px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md uppercase tracking-wider">
+                        <span key={idx} className="px-2.5 py-1 text-[11px] font-medium bg-void-raised text-paper-muted border border-edge rounded-md uppercase tracking-wider">
                           {perm}
                         </span>
                       ))}
                       {key.permissions.length > 5 && (
-                        <span className="px-2.5 py-1 text-[11px] font-medium bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md">
+                        <span className="px-2.5 py-1 text-[11px] font-medium bg-void-raised text-paper-faint border border-edge rounded-md tabular-nums">
                           +{key.permissions.length - 5}
                         </span>
                       )}
@@ -224,14 +224,14 @@ export default function APIWebhooks() {
                 <div className="flex space-x-2 ml-4">
                   <button
                     onClick={() => handleToggleActive(key.id, key.is_active)}
-                    className={`p-2 rounded-lg transition-colors ${key.is_active ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                    className={`p-2 rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 ${key.is_active ? 'text-warning hover:bg-warning/10' : 'text-success hover:bg-success/10'}`}
                     title={key.is_active ? t('settingsPage.api.deactivate') : t('settingsPage.api.activate')}
                   >
                     {key.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => handleRevoke(key.id)}
-                    className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                     title={t('settingsPage.api.revoke')}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -245,36 +245,36 @@ export default function APIWebhooks() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl max-w-lg w-full">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile max-w-lg w-full">
+            <div className="p-6 border-b border-edge">
+              <h3 className="text-lg font-bold text-paper tracking-wide">
                 {createdKey ? t('settingsPage.api.modal.createdTitle') : t('settingsPage.api.modal.newTitle')}
               </h3>
             </div>
 
             {createdKey ? (
               <div className="p-6 space-y-6">
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5">
-                  <p className="text-sm text-amber-400 font-bold tracking-wide mb-2 flex items-center">
+                <div className="bg-warning/10 border border-warning/25 rounded-xl p-5">
+                  <p className="text-sm text-warning font-bold tracking-wide mb-2 flex items-center">
                     <span className="mr-2">⚠️</span> {t('settingsPage.api.modal.warningTitle')}
                   </p>
-                  <p className="text-sm text-amber-200">
+                  <p className="text-sm text-paper-muted">
                     {t('settingsPage.api.modal.warningBody')}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-medium text-paper-muted mb-3">
                     {t('settingsPage.api.modal.yourKey')}
                   </label>
                   <div className="flex items-center space-x-3">
-                    <code className="flex-1 px-4 py-3 bg-white dark:bg-[#1E293B] border border-indigo-500/30 text-indigo-300 rounded-xl text-sm font-mono break-all tracking-wider">
+                    <code className="flex-1 px-4 py-3 bg-void-raised border border-signal/25 text-signal dark:text-signal-bright rounded-xl text-sm font-mono break-all tracking-wider">
                       {createdKey}
                     </code>
                     <button
                       onClick={() => copyToClipboard(createdKey)}
-                      className="p-3 text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors border border-transparent hover:border-indigo-500/20"
+                      className="p-3 text-signal dark:text-signal-bright hover:bg-signal/10 rounded-xl transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-signal/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                       title={t('settingsPage.api.copy')}
                     >
                       <Copy className="w-5 h-5" />
@@ -288,7 +288,7 @@ export default function APIWebhooks() {
                       setShowModal(false);
                       setCreatedKey(null);
                     }}
-                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
+                    className="px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                   >
                     {t('settingsPage.api.close')}
                   </button>
@@ -297,27 +297,27 @@ export default function APIWebhooks() {
             ) : (
               <form onSubmit={handleCreate} className="p-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    {t('settingsPage.api.form.name')} <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
+                    {t('settingsPage.api.form.name')} <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="text"
                     value={newKeyData.name}
                     onChange={(e) => setNewKeyData({ ...newKeyData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                     placeholder={t('settingsPage.api.form.namePlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('settingsPage.api.form.permissions')}
                   </label>
-                  <div className="border border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B] rounded-xl p-4 max-h-48 overflow-y-auto">
+                  <div className="border border-edge bg-void-raised rounded-xl p-4 max-h-48 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-3">
                       {availablePermissions.map((perm) => (
-                        <label key={perm} className="flex items-center space-x-3 cursor-pointer group p-1.5 hover:bg-gray-800 rounded-lg transition-colors">
+                        <label key={perm} className="flex items-center space-x-3 cursor-pointer group p-1.5 hover:bg-paper/[0.04] rounded-lg transition-colors duration-150 motion-reduce:transition-none">
                           <input
                             type="checkbox"
                             checked={newKeyData.permissions.includes(perm)}
@@ -328,9 +328,9 @@ export default function APIWebhooks() {
                                 setNewKeyData({ ...newKeyData, permissions: newKeyData.permissions.filter(p => p !== perm) });
                               }
                             }}
-                            className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                            className="w-4 h-4 rounded accent-signal bg-void-surface border-edge-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                           />
-                          <span className="text-sm font-medium text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">{perm}</span>
+                          <span className="text-sm font-medium text-paper-muted group-hover:text-paper transition-colors duration-150 motion-reduce:transition-none">{perm}</span>
                         </label>
                       ))}
                     </div>
@@ -338,28 +338,28 @@ export default function APIWebhooks() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-paper-muted mb-2">
                     {t('settingsPage.api.form.expiresAt')}
                   </label>
                   <input
                     type="datetime-local"
                     value={newKeyData.expires_at}
                     onChange={(e) => setNewKeyData({ ...newKeyData, expires_at: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white [color-scheme:dark]"
+                    className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper dark:[color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-gray-800">
+                <div className="flex justify-end space-x-3 pt-6 border-t border-edge">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-6 py-2.5 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+                    className="px-6 py-2.5 bg-void-surface text-paper-muted border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
                   >
                     {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
+                    className="px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                   >
                     {t('settingsPage.api.create')}
                   </button>
@@ -371,9 +371,9 @@ export default function APIWebhooks() {
       )}
 
       {/* Info Box */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-        <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">{t('settingsPage.api.noteLabel')}</strong>{' '}
+      <div className="bg-signal/10 border border-signal/25 rounded-xl p-4">
+        <p className="text-sm text-paper-muted">
+          <strong className="text-signal dark:text-signal-bright">{t('settingsPage.api.noteLabel')}</strong>{' '}
           {t('settingsPage.api.note')}
         </p>
       </div>
