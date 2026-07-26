@@ -262,7 +262,7 @@
 ### Production Environment
 
 - **Frontend**: Vercel at https://social-listening-azure.vercel.app
-- **Backend**: Render at https://social-listening-backend.onrender.com
+- **Backend**: Render at https://sociallistening-9fvs.onrender.com
 - **Database**: Render Managed PostgreSQL
 - **Migrations**: All 19 migrations applied ✅
 

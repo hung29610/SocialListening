@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { FileText, Download, RefreshCcw, Eye, Settings2, Palette, Layout, Type, Lock } from 'lucide-react';
 import { reports as reportsApi } from '@/lib/api';
 import { useProject } from '@/contexts/ProjectContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
 import { ExportHistoryTable } from '@/components/reports/ExportHistoryTable';
@@ -11,37 +12,49 @@ import { PdfPreviewModal } from './PdfPreviewModal';
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
 const DATE_RANGE_OPTIONS = [
-  { label: 'Today', value: '1d', days: 1 },
-  { label: 'Last 7 days', value: '7d', days: 7 },
-  { label: 'Last 30 days', value: '30d', days: 30 },
-  { label: 'Last 90 days', value: '90d', days: 90 },
-  { label: 'All time', value: 'all', days: null },
+  { labelKey: 'reports.dateToday', value: '1d', days: 1 },
+  { labelKey: 'reports.date7d', value: '7d', days: 7 },
+  { labelKey: 'reports.date30d', value: '30d', days: 30 },
+  { labelKey: 'reports.date90d', value: '90d', days: 90 },
+  { labelKey: 'reports.dateAll', value: 'all', days: null },
+];
+
+const FONT_OPTIONS = [
+  { value: 'Helvetica', labelKey: 'reportsPage.pdf.font.helveticaDefault' },
+  { value: 'Times-Roman', labelKey: 'reportsPage.pdf.font.timesNewRoman' },
+  { value: 'Courier', labelKey: 'reportsPage.pdf.font.courier' },
+];
+
+const ASPECT_RATIO_OPTIONS = [
+  { value: 'vertical', labelKey: 'reportsPage.pdf.aspect.vertical' },
+  { value: 'horizontal', labelKey: 'reportsPage.pdf.aspect.horizontal' },
 ];
 
 const AVAILABLE_SECTIONS = [
-  { id: 'summary', title: 'Summary', desc: 'Title page with basic info' },
-  { id: 'overview', title: 'Overview', desc: 'KPIs and high-level metrics' },
-  { id: 'executive_summary', title: 'Executive Summary', desc: 'AI-generated summary text' },
-  { id: 'analysis', title: 'Analysis', desc: 'Sentiment breakdown and volume trend' },
-  { id: 'ai_visibility', title: 'AI Visibility', desc: 'Brand visibility in AI models', disabled: true, reason: 'AI visibility score not supported by current data model.' },
-  { id: 'demographics', title: 'Demographics', desc: 'Audience age and gender', disabled: true, reason: 'Demographics parsing not fully implemented in current pipeline.' },
-  { id: 'project_comparison', title: 'Project Comparison', desc: 'Compare with other projects', disabled: true, reason: 'Only single-project reporting supported currently.' },
-  { id: 'period_comparison', title: 'Period Comparison', desc: 'Compare with previous period' },
-  { id: 'influencers_sources', title: 'Influencers & Sources', desc: 'Top authors and platforms' },
-  { id: 'active_sites', title: 'Active Sites', desc: 'Most active domains', disabled: true, reason: 'Included inside Sources section.' },
-  { id: 'influential_sites', title: 'Most Influential Sites', desc: 'Sites by influence score', disabled: true, reason: 'Influence scores per site not currently tracked.' },
-  { id: 'mention_tags', title: 'Mention Tags', desc: 'Distribution of applied tags', disabled: true, reason: 'Mention tags not natively supported in reports endpoint.' },
-  { id: 'top_mentions', title: 'Top Mentions', desc: 'Most impactful mentions by reach' },
-  { id: 'recent_mentions', title: 'Recent Mentions', desc: 'Latest mentions chronologically' },
-  { id: 'sentiment', title: 'Sentiment', desc: 'Detailed sentiment analysis', disabled: true, reason: 'Included inside Analysis section in this version.' },
-  { id: 'mentions_reach', title: 'Mentions & Reach', desc: 'Volume and reach over time', disabled: true, reason: 'Included inside Analysis section in this version.' },
-  { id: 'categories', title: 'Categories / Sources', desc: 'Top domains and tags', disabled: true, reason: 'Included inside Influencers & Sources section.' },
-  { id: 'trending_hashtags', title: 'Trending Hashtags / Links', desc: 'Most common hashtags', disabled: true, reason: 'Hashtag extraction not fully supported by current data model.' },
-  { id: 'emojis', title: 'Emojis / Discussion Context', desc: 'Frequently used emojis', disabled: true, reason: 'Emoji extraction not supported by current data model.' }
+  { id: 'summary', titleKey: 'reports.summary', descKey: 'reportsPage.pdf.sections.summary.desc' },
+  { id: 'overview', titleKey: 'reportsPage.pdf.sections.overview.title', descKey: 'reportsPage.pdf.sections.overview.desc' },
+  { id: 'executive_summary', titleKey: 'reportsPage.pdf.sections.executiveSummary.title', descKey: 'reportsPage.pdf.sections.executiveSummary.desc' },
+  { id: 'analysis', titleKey: 'reportsPage.pdf.sections.analysis.title', descKey: 'reportsPage.pdf.sections.analysis.desc' },
+  { id: 'ai_visibility', titleKey: 'reportsPage.pdf.sections.aiVisibility.title', descKey: 'reportsPage.pdf.sections.aiVisibility.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.aiVisibility.reason' },
+  { id: 'demographics', titleKey: 'reportsPage.pdf.sections.demographics.title', descKey: 'reportsPage.pdf.sections.demographics.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.demographics.reason' },
+  { id: 'project_comparison', titleKey: 'reportsPage.pdf.sections.projectComparison.title', descKey: 'reportsPage.pdf.sections.projectComparison.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.projectComparison.reason' },
+  { id: 'period_comparison', titleKey: 'reportsPage.pdf.sections.periodComparison.title', descKey: 'reportsPage.pdf.sections.periodComparison.desc' },
+  { id: 'influencers_sources', titleKey: 'reports.influencers', descKey: 'reportsPage.pdf.sections.influencersSources.desc' },
+  { id: 'active_sites', titleKey: 'reportsPage.pdf.sections.activeSites.title', descKey: 'reportsPage.pdf.sections.activeSites.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.activeSites.reason' },
+  { id: 'influential_sites', titleKey: 'reportsPage.pdf.sections.influentialSites.title', descKey: 'reportsPage.pdf.sections.influentialSites.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.influentialSites.reason' },
+  { id: 'mention_tags', titleKey: 'reportsPage.pdf.sections.mentionTags.title', descKey: 'reportsPage.pdf.sections.mentionTags.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.mentionTags.reason' },
+  { id: 'top_mentions', titleKey: 'reportsPage.pdf.sections.topMentions.title', descKey: 'reportsPage.pdf.sections.topMentions.desc' },
+  { id: 'recent_mentions', titleKey: 'reportsPage.pdf.sections.recentMentions.title', descKey: 'reportsPage.pdf.sections.recentMentions.desc' },
+  { id: 'sentiment', titleKey: 'reports.sentiment', descKey: 'reportsPage.pdf.sections.sentiment.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.sentiment.reason' },
+  { id: 'mentions_reach', titleKey: 'reportsPage.pdf.sections.mentionsReach.title', descKey: 'reportsPage.pdf.sections.mentionsReach.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.mentionsReach.reason' },
+  { id: 'categories', titleKey: 'reportsPage.pdf.sections.categories.title', descKey: 'reportsPage.pdf.sections.categories.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.categories.reason' },
+  { id: 'trending_hashtags', titleKey: 'reportsPage.pdf.sections.trendingHashtags.title', descKey: 'reportsPage.pdf.sections.trendingHashtags.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.trendingHashtags.reason' },
+  { id: 'emojis', titleKey: 'reportsPage.pdf.sections.emojis.title', descKey: 'reportsPage.pdf.sections.emojis.desc', disabled: true, reasonKey: 'reportsPage.pdf.sections.emojis.reason' }
 ];
 
 export default function PdfReportPage() {
   const { activeProject } = useProject();
+  const { t } = useLanguage();
   const [dateRange, setDateRange] = useState('30d');
   const [loading, setLoading] = useState(false);
   const [exportHistory, setExportHistory] = useState<any[]>([]);
@@ -114,10 +127,10 @@ export default function PdfReportPage() {
       };
 
       await reportsApi.requestExport('pdf', activeProject?.id, config);
-      toast.success('PDF report requested! Check the history below.');
+      toast.success(t('reports.pdfRequested'));
       fetchExports();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Error requesting export');
+      toast.error(error?.response?.data?.detail || t('reports.exportRequestError'));
     } finally {
       setLoading(false);
     }
@@ -131,7 +144,7 @@ export default function PdfReportPage() {
       const res = await reportsApi.summaryData(params);
       setPreviewData(res);
     } catch (error) {
-      toast.error('Failed to load preview data');
+      toast.error(t('reportsPage.pdf.errors.previewLoadFailed'));
       setPreviewOpen(false);
     } finally {
       setPreviewLoading(false);
@@ -148,7 +161,7 @@ export default function PdfReportPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error('Failed to download file');
+      toast.error(t('reports.downloadFailed'));
     }
   };
 
@@ -156,12 +169,15 @@ export default function PdfReportPage() {
     setSections(prev => prev.map(s => s.id === id && !s.disabled ? { ...s, enabled: !s.enabled } : s));
   };
 
+  const selectedDateRange = DATE_RANGE_OPTIONS.find(r => r.value === dateRange);
+  const selectedDateRangeLabel = selectedDateRange ? t(selectedDateRange.labelKey) : undefined;
+
   return (
     <div className="max-w-7xl mx-auto py-10 space-y-6">
       <ReportDataScopeNotice
         projectName={activeProject?.name}
         dateRange={dateRange}
-        dateRangeLabel={DATE_RANGE_OPTIONS.find(r => r.value === dateRange)?.label}
+        dateRangeLabel={selectedDateRangeLabel}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -171,8 +187,8 @@ export default function PdfReportPage() {
           <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Report Content</h2>
-                <p className="text-gray-500 mt-1">Select the sections to include in your PDF.</p>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('reports.reportContent')}</h2>
+                <p className="text-gray-500 mt-1">{t('reportsPage.pdf.contentHint')}</p>
               </div>
               <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl">
                 <FileText className="w-6 h-6 text-indigo-500" />
@@ -184,8 +200,8 @@ export default function PdfReportPage() {
                 <div key={section.id} className={cn("flex flex-col p-4 rounded-xl border", section.disabled ? "border-gray-200 bg-gray-50 opacity-60 dark:border-gray-800 dark:bg-gray-900" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-[#0f172a]")}>
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-slate-800 dark:text-white">{section.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{section.desc}</p>
+                      <h3 className="font-semibold text-slate-800 dark:text-white">{t(section.titleKey)}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{t(section.descKey)}</p>
                     </div>
                     {!section.disabled && (
                       <label className="relative inline-flex items-center cursor-pointer mt-1">
@@ -196,7 +212,7 @@ export default function PdfReportPage() {
                   </div>
                   {section.disabled && (
                     <div className="mt-3 text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 p-2 rounded">
-                      Unavailable: {section.reason}
+                      {t('reportsPage.pdf.unavailable')} {section.reasonKey ? t(section.reasonKey) : null}
                     </div>
                   )}
                 </div>
@@ -209,23 +225,23 @@ export default function PdfReportPage() {
         <div className="space-y-6">
           <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-              <Settings2 className="w-5 h-5 text-gray-400" /> Customization
+              <Settings2 className="w-5 h-5 text-gray-400" /> {t('reports.customizeReport')}
             </h3>
             
             <div className="space-y-6">
               <div>
                 <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 flex items-center gap-2 mb-2">
-                  <Layout className="w-4 h-4 text-gray-400" /> Theme
+                  <Layout className="w-4 h-4 text-gray-400" /> {t('reportsPage.pdf.theme')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setTheme('light')} className={cn("p-2 rounded-lg border text-sm font-medium transition-all", theme === 'light' ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400")}>Light</button>
-                  <button onClick={() => setTheme('dark')} className={cn("p-2 rounded-lg border text-sm font-medium transition-all bg-slate-900", theme === 'dark' ? "border-indigo-500 shadow-md text-white" : "border-gray-700 text-gray-400")}>Dark</button>
+                  <button onClick={() => setTheme('light')} className={cn("p-2 rounded-lg border text-sm font-medium transition-all", theme === 'light' ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400")}>{t('reportsPage.pdf.themeLight')}</button>
+                  <button onClick={() => setTheme('dark')} className={cn("p-2 rounded-lg border text-sm font-medium transition-all bg-slate-900", theme === 'dark' ? "border-indigo-500 shadow-md text-white" : "border-gray-700 text-gray-400")}>{t('reportsPage.pdf.themeDark')}</button>
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 flex items-center gap-2 mb-2">
-                  <Palette className="w-4 h-4 text-gray-400" /> Accent Color
+                  <Palette className="w-4 h-4 text-gray-400" /> {t('reports.pickAccentColor')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#0ea5e9', '#14b8a6'].map(c => (
@@ -236,17 +252,17 @@ export default function PdfReportPage() {
               
               <div>
                 <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 flex items-center gap-2 mb-2">
-                  <Type className="w-4 h-4 text-gray-400" /> Font Family
+                  <Type className="w-4 h-4 text-gray-400" /> {t('reportsPage.pdf.fontFamily')}
                 </label>
                 <select value={fontFamily} onChange={e => setFontFamily(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                  <option value="Helvetica">Helvetica (Default)</option>
-                  <option value="Times-Roman">Times New Roman</option>
-                  <option value="Courier">Courier</option>
+                  {FONT_OPTIONS.map(font => (
+                    <option key={font.value} value={font.value}>{t(font.labelKey)}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">Font Color</label>
+                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">{t('reports.chooseFontColor')}</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} className="w-10 h-10 rounded border-0 cursor-pointer bg-transparent p-0" />
                   <span className="text-sm font-mono">{fontColor}</span>
@@ -254,34 +270,35 @@ export default function PdfReportPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">Aspect Ratio</label>
+                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">{t('reportsPage.pdf.aspectRatio')}</label>
                 <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                  <option value="vertical">Vertical (A4 Portrait)</option>
-                  <option value="horizontal">Horizontal (Landscape)</option>
+                  {ASPECT_RATIO_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">Language</label>
+                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">{t('reportsPage.pdf.language')}</label>
                 <select value={language} onChange={e => setLanguage(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                  <option value="english">English</option>
-                  <option value="vietnamese" disabled>Vietnamese (Not translated in PDF yet)</option>
+                  <option value="english">{t('reportsPage.pdf.languageEnglish')}</option>
+                  <option value="vietnamese" disabled>{t('reportsPage.pdf.languageVietnamese')}</option>
                 </select>
               </div>
               
               <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">Report Logo</label>
+                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">{t('reportsPage.pdf.reportLogo')}</label>
                 <div className="w-full flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-4 text-sm opacity-70">
                   <Lock className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-500 dark:text-gray-400 text-center text-xs px-2">Logo upload is disabled until report asset storage is implemented.</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-center text-xs px-2">{t('reportsPage.pdf.logoDisabled')}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">Time Range</label>
+                <label className="text-sm font-semibold text-slate-900 dark:text-gray-300 mb-2 block">{t('reports.timeRange')}</label>
                 <select value={dateRange} onChange={e => setDateRange(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                   {DATE_RANGE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -290,18 +307,18 @@ export default function PdfReportPage() {
 
           <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col gap-3">
             <button onClick={loadPreview} className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
-              <Eye className="w-5 h-5" /> Live Preview
+              <Eye className="w-5 h-5" /> {t('reportsPage.pdf.livePreview')}
             </button>
             <button onClick={handleGenerate} disabled={loading} className="w-full py-3 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50">
               {loading ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-              {loading ? 'Generating...' : 'Generate PDF'}
+              {loading ? t('reports.generating') : t('reportsPage.pdf.generate')}
             </button>
           </div>
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#1E293B] p-6 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Recent Exports</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">{t('reports.recentExports')}</h3>
         <ExportHistoryTable exports={exportHistory} loading={exportHistoryLoading} onDownload={downloadFile} />
       </div>
 

@@ -1,9 +1,26 @@
 """
 Quick check: Who is currently logged in?
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
+BACKEND_URL = backend_url()
 
 # Paste your token from browser localStorage
 print("=" * 60)

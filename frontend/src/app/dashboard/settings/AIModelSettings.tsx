@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Save, TestTube2, Loader2, CheckCircle, XCircle, Eye, EyeOff, Zap } from 'lucide-react';
 import { aiConfig } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 interface AIModelConfigData {
@@ -16,7 +17,7 @@ interface AIModelConfigData {
   system_prompt: string;
 }
 
-const PROVIDER_OPTIONS = [
+const buildProviderOptions = (t: (key: string) => string) => [
   {
     id: 'gemini',
     name: 'Google Gemini',
@@ -35,15 +36,17 @@ const PROVIDER_OPTIONS = [
   },
   {
     id: 'custom',
-    name: 'Custom Provider',
-    description: 'OpenAI-compatible API (Ollama, Together, Groq...)',
+    name: t('settingsPage.aiModel.customProvider'),
+    description: t('settingsPage.aiModel.customProviderDesc'),
     icon: '⚙',
     gradient: 'from-purple-500 to-pink-500',
-    models: [],
+    models: [] as string[],
   },
 ];
 
 export default function AIModelSettings() {
+  const { t } = useLanguage();
+  const PROVIDER_OPTIONS = buildProviderOptions(t);
   const [config, setConfig] = useState<AIModelConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,7 +81,7 @@ export default function AIModelSettings() {
       setSystemPrompt(data.system_prompt || '');
     } catch (err: any) {
       if (err?.response?.status !== 403) {
-        toast.error('Không thể tải cấu hình AI');
+        toast.error(t('settingsPage.aiModel.errors.loadFailed'));
       }
     } finally {
       setLoading(false);
@@ -115,9 +118,9 @@ export default function AIModelSettings() {
       const result = await aiConfig.updateConfig(data);
       setConfig(result);
       setApiKey(''); // Clear entered key after save
-      toast.success('Đã lưu cấu hình AI thành công!');
+      toast.success(t('settingsPage.aiModel.saveSuccess'));
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Lỗi khi lưu cấu hình');
+      toast.error(err?.response?.data?.detail || t('settingsPage.aiModel.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -132,7 +135,7 @@ export default function AIModelSettings() {
         // If no new key entered and current is masked, we need to test with the stored key
         // The backend test endpoint will use the provided key
         if (!apiKey) {
-          toast.error('Vui lòng nhập API key để kiểm tra kết nối');
+          toast.error(t('settingsPage.aiModel.errors.apiKeyRequired'));
           setTesting(false);
           return;
         }
@@ -150,7 +153,7 @@ export default function AIModelSettings() {
         toast.error(result.message);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data?.detail || 'Lỗi kết nối';
+      const msg = err?.response?.data?.message || err?.response?.data?.detail || t('settingsPage.aiModel.errors.connectionFailed');
       setTestResult({ success: false, message: msg });
       toast.error(msg);
     } finally {
@@ -176,10 +179,10 @@ export default function AIModelSettings() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          Cấu hình AI Model
+          {t('settingsPage.aiModel.title')}
         </h2>
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-2">
-          Chọn AI provider và cấu hình cho tính năng AI Assistant. Khách hàng sẽ được tính phí khi sử dụng tính năng AI.
+          {t('settingsPage.aiModel.subtitle')}
         </p>
       </div>
 
@@ -188,8 +191,8 @@ export default function AIModelSettings() {
         <div className="flex items-center gap-3">
           <Zap className={`w-5 h-5 ${isEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
           <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">Kích hoạt AI Assistant</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400">Bật/tắt tính năng chat với AI cho tất cả người dùng</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('settingsPage.aiModel.enableAssistant')}</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">{t('settingsPage.aiModel.enableAssistantDesc')}</p>
           </div>
         </div>
         <button
@@ -208,7 +211,7 @@ export default function AIModelSettings() {
 
       {/* Provider Selection */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3">Chọn AI Provider</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3">{t('settingsPage.aiModel.selectProvider')}</label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {PROVIDER_OPTIONS.map((opt) => (
             <button
@@ -237,13 +240,13 @@ export default function AIModelSettings() {
 
       {/* API Key */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">API Key</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.aiModel.apiKey')}</label>
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={config?.api_key_masked || 'Nhập API key...'}
+            placeholder={config?.api_key_masked || t('settingsPage.aiModel.apiKeyPlaceholder')}
             autoComplete="new-password"
             className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 pr-10"
           />
@@ -257,14 +260,14 @@ export default function AIModelSettings() {
         </div>
         {config?.api_key_masked && !apiKey && (
           <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-            Key hiện tại: {config.api_key_masked} — Nhập key mới để thay đổi
+            {t('settingsPage.aiModel.currentKeyHint', { key: config.api_key_masked })}
           </p>
         )}
       </div>
 
       {/* Model Selection */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Model</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.aiModel.model')}</label>
         {selectedProvider && selectedProvider.models.length > 0 ? (
           <select
             value={modelName}
@@ -280,7 +283,7 @@ export default function AIModelSettings() {
             type="text"
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            placeholder="Nhập tên model (vd: llama-3.1-70b)"
+            placeholder={t('settingsPage.aiModel.modelPlaceholder')}
             className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           />
         )}
@@ -289,7 +292,7 @@ export default function AIModelSettings() {
       {/* Custom Provider: Base URL */}
       {provider === 'custom' && (
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Base URL</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.aiModel.baseUrl')}</label>
           <input
             type="text"
             value={baseUrl}
@@ -298,23 +301,23 @@ export default function AIModelSettings() {
             className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           />
           <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-            URL gốc của API OpenAI-compatible (không cần thêm /chat/completions)
+            {t('settingsPage.aiModel.baseUrlHint')}
           </p>
         </div>
       )}
 
       {/* System Prompt */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">System Prompt (Chỉ dẫn AI)</label>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.aiModel.systemPrompt')}</label>
         <textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
-          placeholder="Nhập chỉ dẫn cho AI... (ví dụ: Bạn là trợ lý AI chuyên phân tích thương hiệu. Trả lời bằng tiếng Việt.)"
+          placeholder={t('settingsPage.aiModel.systemPromptPlaceholder')}
           rows={4}
           className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
         />
         <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-          Chỉ dẫn này sẽ được gửi kèm mỗi lần gọi AI để phân tích sentiment, tạo báo cáo, và trả lời chat.
+          {t('settingsPage.aiModel.systemPromptHint')}
         </p>
       </div>
 
@@ -322,7 +325,7 @@ export default function AIModelSettings() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-            Temperature: {temperature.toFixed(1)}
+            {t('settingsPage.aiModel.temperature', { value: temperature.toFixed(1) })}
           </label>
           <input
             type="range"
@@ -334,12 +337,12 @@ export default function AIModelSettings() {
             className="w-full accent-indigo-500"
           />
           <div className="flex justify-between text-xs text-slate-500 dark:text-gray-500 mt-1">
-            <span>Chính xác (0.0)</span>
-            <span>Sáng tạo (2.0)</span>
+            <span>{t('settingsPage.aiModel.temperaturePrecise')}</span>
+            <span>{t('settingsPage.aiModel.temperatureCreative')}</span>
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Max Tokens</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.aiModel.maxTokens')}</label>
           <input
             type="number"
             min={128}
@@ -370,7 +373,7 @@ export default function AIModelSettings() {
           </div>
           {testResult.preview && (
             <p className="text-xs text-slate-600 dark:text-gray-400 mt-2 italic">
-              AI trả lời: &ldquo;{testResult.preview}&rdquo;
+              {t('settingsPage.aiModel.aiReplied', { preview: testResult.preview })}
             </p>
           )}
         </div>
@@ -384,7 +387,7 @@ export default function AIModelSettings() {
           className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50 shadow-lg shadow-indigo-500/20"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Lưu cấu hình
+          {t('settings.saveConfig')}
         </button>
         <button
           onClick={handleTest}
@@ -392,7 +395,7 @@ export default function AIModelSettings() {
           className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl font-medium transition-colors disabled:opacity-50"
         >
           {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube2 className="w-4 h-4" />}
-          Kiểm tra kết nối
+          {t('settingsPage.aiModel.testConnection')}
         </button>
       </div>
     </div>

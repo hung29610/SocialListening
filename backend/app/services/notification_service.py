@@ -2,6 +2,7 @@
 Notification Service for Social Listening Platform
 Handles email (SMTP) and webhook notifications
 """
+import logging
 import smtplib
 import requests
 from email.mime.text import MIMEText
@@ -17,6 +18,31 @@ from app.core.config import Settings
 
 
 import os
+
+logger = logging.getLogger(__name__)
+
+
+def _notification_recipient(email_settings) -> Optional[str]:
+    """
+    Resolve the alert recipient from configuration only.
+
+    Order: the stored EmailSettings.from_email, then SMTP_FROM, then
+    ADMIN_SEED_EMAIL. Returns None when nothing is configured, so the caller can
+    skip and log instead of mailing a hardcoded address that nobody owns.
+    """
+    candidates = [getattr(email_settings, "from_email", None)]
+    try:
+        settings = Settings()
+        candidates.append(getattr(settings, "SMTP_FROM", None))
+        candidates.append(getattr(settings, "ADMIN_SEED_EMAIL", None))
+    except Exception as exc:  # configuration errors must not break notification flow
+        logger.info("Could not read notification settings for recipient fallback: %s", exc)
+
+    for candidate in candidates:
+        if candidate and str(candidate).strip():
+            return str(candidate).strip()
+    return None
+
 
 def has_been_notified(
     db: Session, event_type: str, channel: str, destination: str,
@@ -83,8 +109,11 @@ def send_email_notification(
     env_smtp_from_email = os.getenv("SMTP_FROM_EMAIL", "").strip() or env_smtp_user
     env_smtp_from_name = os.getenv("SMTP_FROM_NAME", "").strip()
     
-    # Check for Resend API Key
-    resend_api_key = os.getenv("RESEND_API_KEY", "re_BVeXv8Pn_DnJk8g6m2uNrQ2oSCohi8EQy").strip()
+    # Resend API key comes from the environment only. A hardcoded fallback key was
+    # committed here previously; it is live in Git history and on main, so it must be
+    # rotated in the Resend dashboard. With no key configured, this branch is skipped
+    # and delivery falls through to SMTP below.
+    resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
     if resend_api_key:
         try:
             headers = {
@@ -399,9 +428,13 @@ def notify_high_risk_mention(db: Session, mention_id: int, analysis: Dict):
     ).scalar_one_or_none()
     
     if email_settings and email_settings.is_configured:
-        # Send to configured recipient or default
-        recipient = email_settings.from_email or "admin@sociallistening.com"
-        send_email_notification(db, recipient, subject, body_html, body_text, event_type="mention_high_risk", mention_id=mention_id)
+        # Recipient comes from configuration only. The previous hardcoded
+        # fallback address silently sent alerts to an account nobody owns.
+        recipient = _notification_recipient(email_settings)
+        if recipient:
+            send_email_notification(db, recipient, subject, body_html, body_text, event_type="mention_high_risk", mention_id=mention_id)
+        else:
+            logger.warning("High-risk mention %s: no notification recipient configured, email skipped", mention_id)
     
     # Webhook notification
     webhook_data = {
@@ -460,8 +493,11 @@ def notify_alert_created(db: Session, alert_id: int):
     ).scalar_one_or_none()
     
     if email_settings and email_settings.is_configured:
-        recipient = email_settings.from_email or "admin@sociallistening.com"
-        send_email_notification(db, recipient, subject, body_html, event_type="alert_created", alert_id=alert_id, mention_id=alert.mention_id)
+        recipient = _notification_recipient(email_settings)
+        if recipient:
+            send_email_notification(db, recipient, subject, body_html, event_type="alert_created", alert_id=alert_id, mention_id=alert.mention_id)
+        else:
+            logger.warning("Alert %s: no notification recipient configured, email skipped", alert_id)
     
     # Webhook notification
     webhook_data = {

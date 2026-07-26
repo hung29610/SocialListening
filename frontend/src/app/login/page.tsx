@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { API_BASE_URL, auth, resetAuthRedirectLock } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 function getBackendUrl() {
   return (API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
@@ -57,9 +59,14 @@ function shouldRetryAfterWarmup(err: any) {
 
 function LoginContent() {
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Errors are stored as translation keys (plus an optional backend-provided
+  // detail) so the banner follows the active language instead of freezing the
+  // text that was active when the error happened.
+  const [errorKey, setErrorKey] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
   const [loading, setLoading] = useState(false);
   const [loginPhase, setLoginPhase] = useState<'idle' | 'waking' | 'authenticating' | 'redirecting'>('idle');
   const [serverStatus, setServerStatus] = useState<'checking' | 'ready' | 'slow'>('checking');
@@ -69,7 +76,8 @@ function LoginContent() {
   // Show session-expired banner if redirected from 401
   useEffect(() => {
     if (searchParams.get('expired') === '1') {
-      setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      setErrorKey('auth.sessionExpired');
+      setErrorDetail('');
     }
   }, [searchParams]);
 
@@ -116,7 +124,8 @@ function LoginContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setErrorKey('');
+    setErrorDetail('');
     setLoading(true);
     setLoginPhase('authenticating');
     let isRedirecting = false;
@@ -154,13 +163,19 @@ function LoginContent() {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 401 || status === 403) {
-        setError('Sai email hoặc mật khẩu.');
+        setErrorKey('auth.errorInvalidCredentials');
       } else if (status && status >= 500) {
-        setError('Lỗi máy chủ, vui lòng thử lại sau.');
+        setErrorKey('auth.errorServer');
       } else if (err.message === 'TIMEOUT' || err.code === 'ECONNABORTED' || !err.response) {
-        setError('Kết nối quá hạn. Vui lòng kiểm tra mạng và thử lại.');
+        setErrorKey('auth.errorTimeout');
       } else {
-        setError(err.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string' && detail.trim()) {
+          setErrorKey('');
+          setErrorDetail(detail);
+        } else {
+          setErrorKey('auth.errorGeneric');
+        }
       }
     } finally {
       if (!isRedirecting) {
@@ -171,21 +186,26 @@ function LoginContent() {
   };
 
   const btnLabel = () => {
-    if (!loading) return 'Đăng nhập';
+    if (!loading) return t('auth.loginButton');
     const suffix = elapsedSec > 2 ? ` (${elapsedSec}s)` : '';
-    if (loginPhase === 'waking') return `Đang chờ máy chủ khởi động...${suffix}`;
-    if (loginPhase === 'redirecting') return 'Đang mở dashboard...';
-    return `Đang xác thực...${suffix}`;
+    if (loginPhase === 'waking') return `${t('auth.wakingServer')}${suffix}`;
+    if (loginPhase === 'redirecting') return t('auth.openingDashboard');
+    return `${t('auth.loggingIn')}${suffix}`;
   };
+
+  const errorMessage = errorKey ? t(errorKey) : errorDetail;
 
   return (
     <div className="premium-auth-shell flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6">
       <div className="premium-auth-card w-full max-w-md min-w-0 space-y-6 rounded-[1.75rem] p-5 sm:p-8">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="text-center">
           <div className="premium-auth-mark mx-auto grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-teal-50">N</div>
-          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">Nope360 workspace</p>
-          <h1 className="mt-2 break-words text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">Đăng nhập Nope360</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Đăng nhập vào hệ thống</p>
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">{t('auth.workspaceTag')}</p>
+          <h1 className="mt-2 break-words text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">{t('auth.loginTitle')}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.loginSubtitle')}</p>
 
           {/* Server warm-up indicator */}
           {serverStatus === 'checking' && !loading && (
@@ -194,33 +214,36 @@ function LoginContent() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Đang kiểm tra trạng thái máy chủ...
+              {t('auth.serverChecking')}
             </p>
           )}
           {serverStatus === 'ready' && !loading && (
             <p className="mt-2 text-xs text-emerald-500 flex items-center justify-center gap-1.5">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-              Máy chủ sẵn sàng
+              {t('auth.serverReady')}
             </p>
           )}
           {serverStatus === 'slow' && !loading && (
             <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30 rounded text-xs text-orange-600 dark:text-orange-400 text-left">
-              <p className="font-semibold mb-1">⚠️ Lưu ý (Render Free Tier):</p>
-              <p>Máy chủ đang ngủ. Quá trình đăng nhập đầu tiên có thể mất <span className="font-bold">45-60 giây</span> để đánh thức hệ thống. Vui lòng bấm Đăng nhập và đợi.</p>
+              <p className="font-semibold mb-1">⚠️ {t('auth.serverSlowTitle')}</p>
+              <p>{t('auth.serverSlowBody')}</p>
             </div>
           )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800/30">
-              {error}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800/30"
+            >
+              {errorMessage}
             </div>
           )}
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
+              {t('auth.emailLabel')}
             </label>
             <input
               id="email"
@@ -229,14 +252,16 @@ function LoginContent() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-              placeholder="admin@example.com"
-              autoComplete="email"
+              placeholder={t('auth.emailPlaceholder')}
+              autoComplete="username"
+              name="email"
+              inputMode="email"
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Mật khẩu
+              {t('auth.passwordLabel')}
             </label>
             <input
               id="password"
@@ -245,8 +270,9 @@ function LoginContent() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder')}
               autoComplete="current-password"
+              name="password"
             />
           </div>
 
@@ -264,7 +290,7 @@ function LoginContent() {
                 {btnLabel()}
               </span>
             ) : (
-              'Đăng nhập'
+              t('auth.loginButton')
             )}
           </button>
         </form>
@@ -272,27 +298,25 @@ function LoginContent() {
         {/* Elapsed time hint when login is slow */}
         {loading && elapsedSec >= 5 && (
           <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-            {elapsedSec < 50 
-              ? `Hệ thống đang khởi động (thường mất ~50s), vui lòng không tắt trang...`
-              : 'Sắp xong rồi, vui lòng đợi thêm chút nữa...'}
+            {elapsedSec < 50 ? t('auth.slowHintStarting') : t('auth.slowHintAlmost')}
           </p>
         )}
 
         <div className="flex flex-col items-center gap-3 mt-4">
           <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>Chưa có tài khoản?{' '}
+            <p>{t('auth.noAccount')}{' '}
               <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                Đăng ký ngay
+                {t('auth.registerNow')}
               </a>
             </p>
           </div>
-          
+
           <button
             onClick={handleResetSession}
             type="button"
             className="text-xs font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 underline underline-offset-2 transition-colors"
           >
-            Reset phiên đăng nhập
+            {t('auth.resetSession')}
           </button>
         </div>
       </div>
@@ -300,14 +324,14 @@ function LoginContent() {
   );
 }
 
+function LoginFallback() {
+  const { t } = useLanguage();
+  return <LoadingSpinner message={t('common.loading')} submessage={t('common.pleaseWait')} />;
+}
+
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <LoadingSpinner 
-        message="Đang tải..."
-        submessage="Vui lòng đợi trong giây lát"
-      />
-    }>
+    <Suspense fallback={<LoginFallback />}>
       <LoginContent />
     </Suspense>
   );

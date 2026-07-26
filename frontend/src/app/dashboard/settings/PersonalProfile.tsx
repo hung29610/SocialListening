@@ -43,7 +43,7 @@ export default function PersonalProfile() {
       }
     } catch (error) {
       console.error('Failed to load profile:', error);
-      toast.error('Không thể tải thông tin cá nhân');
+      toast.error(t('settingsPage.profile.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function PersonalProfile() {
     if (saving) return; // Prevent double-click
     
     if (!profile.full_name || profile.full_name.trim() === '') {
-      toast.error('Vui lòng nhập họ và tên');
+      toast.error(t('settingsPage.profile.errors.nameRequired'));
       return;
     }
 
@@ -65,11 +65,11 @@ export default function PersonalProfile() {
         department: profile.department?.trim() || null
       });
 
-      toast.success('✅ Đã lưu thông tin cá nhân');
+      toast.success(`✅ ${t('settingsPage.profile.saveSuccess')}`);
       await loadProfile(); // Reload to verify
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.detail || error.message || 'Lỗi khi lưu thông tin');
+      toast.error(error.response?.data?.detail || error.message || t('settingsPage.profile.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -85,13 +85,13 @@ export default function PersonalProfile() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Vui lòng chọn file ảnh (JPG, PNG)');
+      toast.error(t('settingsPage.profile.errors.imageTypeInvalid'));
       return;
     }
 
     // Validate file size (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Kích thước ảnh không được vượt quá 2MB');
+      toast.error(t('settingsPage.profile.errors.imageTooLarge'));
       return;
     }
 
@@ -106,7 +106,7 @@ export default function PersonalProfile() {
 
       // TODO: Upload to server when avatar endpoint is ready
       // For now, just show preview
-      toast.success('✅ Đã tải ảnh lên (chức năng lưu ảnh đang phát triển)');
+      toast.success(`✅ ${t('settingsPage.profile.avatarUploadedPreview')}`);
       
       // Uncomment when backend avatar endpoint is ready:
       /*
@@ -125,22 +125,22 @@ export default function PersonalProfile() {
       */
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast.error(error.message || 'Lỗi khi tải ảnh lên');
+      toast.error(error.message || t('settingsPage.profile.errors.avatarUploadFailed'));
     } finally {
       setUploading(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Đang tải...</div>;
+    return <div className="text-center py-8">{t('common.loading')}</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Hồ sơ cá nhân</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý thông tin cá nhân của bạn</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.profile')}</h2>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.profile.subtitle')}</p>
       </div>
 
       {/* Avatar */}
@@ -148,7 +148,7 @@ export default function PersonalProfile() {
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-full flex items-center justify-center overflow-hidden shadow-inner">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt={t('settingsPage.profile.avatarAlt')} className="w-full h-full object-cover" />
             ) : (
               <UserIcon className="w-12 h-12 text-gray-500" />
             )}
@@ -169,7 +169,7 @@ export default function PersonalProfile() {
               <Upload className="w-4 h-4 mr-2" />
               {uploading ? t('common.loading') : t('common.uploadLogo')}
             </button>
-            <p className="text-xs text-gray-500 mt-2 font-medium">JPG, PNG. Tối đa 2MB</p>
+            <p className="text-xs text-gray-500 mt-2 font-medium">{t('settingsPage.profile.avatarHint')}</p>
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function PersonalProfile() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Họ và tên *
+              {t('auth.fullNameLabel')} *
             </label>
             <input
               type="text"
@@ -191,7 +191,7 @@ export default function PersonalProfile() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Email
+              {t('auth.emailLabel')}
             </label>
             <input
               type="email"
@@ -199,12 +199,12 @@ export default function PersonalProfile() {
               disabled
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B]/50 border border-slate-200 dark:border-gray-800 rounded-xl text-gray-500 cursor-not-allowed opacity-70"
             />
-            <p className="text-xs text-gray-500 mt-1.5 font-medium">Email không thể thay đổi</p>
+            <p className="text-xs text-gray-500 mt-1.5 font-medium">{t('settingsPage.profile.emailImmutable')}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Số điện thoại
+              {t('settingsPage.profile.phone')}
             </label>
             <input
               type="tel"
@@ -217,26 +217,26 @@ export default function PersonalProfile() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Phòng ban
+              {t('settingsPage.profile.department')}
             </label>
             <input
               type="text"
               value={profile.department}
               onChange={(e) => setProfile({ ...profile, department: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-              placeholder="Ví dụ: Marketing"
+              placeholder={t('settingsPage.profile.departmentPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Vai trò
+              {t('settingsPage.profile.role')}
             </label>
             <div className="flex items-center space-x-3 mt-1">
               <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${getRoleBadgeColor(profile.role)}`}>
-                {getRoleDisplayName(profile.role)}
+                {getRoleDisplayName(profile.role, t)}
               </span>
-              <span className="text-xs font-medium text-gray-500">(Chỉ admin có thể thay đổi)</span>
+              <span className="text-xs font-medium text-gray-500">{t('settingsPage.profile.roleAdminOnly')}</span>
             </div>
           </div>
         </div>

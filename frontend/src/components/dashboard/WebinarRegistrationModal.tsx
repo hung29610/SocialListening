@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { webinar } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   isOpen: boolean;
@@ -11,7 +14,8 @@ interface Props {
 
 export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }: Props) {
   const { user } = useAuth();
-  
+  const { t } = useLanguage();
+
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [time, setTime] = useState('3:00 PM');
@@ -30,11 +34,11 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setErrorMsg("Bạn phải đăng nhập hoặc có email để đăng ký.");
+      setErrorMsg(t('landing.webinarModal.errors.emailRequired'));
       return;
     }
     if (!name) {
-      setErrorMsg("Vui lòng nhập tên của bạn.");
+      setErrorMsg(t('landing.webinarModal.errors.nameRequired'));
       return;
     }
     setLoading(true);
@@ -50,7 +54,7 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
       onSuccess();
     } catch (error: any) {
       console.error('Failed to register', error);
-      setErrorMsg(error.response?.data?.detail || "Không gửi được email xác nhận. Vui lòng thử lại.");
+      setErrorMsg(error.response?.data?.detail || t('landing.webinarModal.errors.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -96,9 +100,9 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
             </div>
           </div>
 
-          <p className="text-gray-500 text-sm font-medium mb-1">Upcoming webinar:</p>
+          <p className="text-gray-500 text-sm font-medium mb-1">{t('landing.webinarModal.upcoming')}</p>
           <h2 className="text-xl font-bold text-gray-900 text-center mb-6 px-4">
-            Get a Social Listening certificate with Nope360
+            {t('nav.webinarDesc')}
           </h2>
 
           <div className="flex items-center text-blue-600 font-bold mb-8">
@@ -107,32 +111,32 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </span>
-            Wednesday, June 10, 2026
+            {t('landing.webinarModal.date')}
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-900 mb-1">
-                Choose your preferred time <span className="font-normal text-gray-500">(Asia/Bangkok):</span>
+                {t('landing.webinarModal.timeLabel')} <span className="font-normal text-gray-500">{t('landing.webinarModal.timezoneNote')}</span>
               </label>
               <select 
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-[right_16px_center] bg-no-repeat"
               >
-                <option value="3:00 PM">Wednesday, June 10, 2026 3:00 PM</option>
-                <option value="8:00 PM">Wednesday, June 10, 2026 8:00 PM</option>
+                <option value="3:00 PM">{t('landing.webinarModal.timeOptionAfternoon')}</option>
+                <option value="8:00 PM">{t('landing.webinarModal.timeOptionEvening')}</option>
               </select>
             </div>
 
             <div className="flex gap-4">
               <div className="flex-1 relative">
-                <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-500 z-10">E-mail</label>
-                <input 
-                  type="email" 
+                <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-gray-500 z-10">{t('auth.emailLabel')}</label>
+                <input
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   required
                   disabled
                   readOnly
@@ -140,7 +144,7 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
                 />
               </div>
               <div className="flex-1 relative">
-                <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-blue-600 font-medium z-10">Name</label>
+                <label className="absolute -top-2 left-3 bg-white px-1 text-xs text-blue-600 font-medium z-10">{t('landing.webinarModal.nameLabel')}</label>
                 <input 
                   type="text" 
                   value={name}
@@ -166,12 +170,12 @@ export default function WebinarRegistrationModal({ isOpen, onClose, onSuccess }:
                 disabled={loading}
                 className="bg-emerald-400 hover:bg-emerald-500 text-white font-bold py-3 px-16 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {loading ? 'Registering...' : 'Register'}
+                {loading ? t('landing.webinarModal.registering') : t('landing.webinarModal.register')}
               </button>
             </div>
-            
+
             <p className="text-center text-xs text-gray-500 mt-2">
-              By registering I accept the <a href="#" className="text-emerald-500 hover:underline">information clause</a>
+              {t('landing.webinarModal.consentPrefix')} <a href="#" className="text-emerald-500 hover:underline">{t('landing.webinarModal.consentLink')}</a>
             </p>
           </form>
         </div>

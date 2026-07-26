@@ -1,12 +1,29 @@
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 
 # Backend URL
-API_URL = "https://social-listening-backend.onrender.com"
+API_URL = backend_url()
 
 # Admin user info
 admin_data = {
-    "email": "admin@admin.com",
-    "password": "admin123",
+    "email": account_email("ACCOUNT7"),
+    "password": account_password("ACCOUNT6"),
     "full_name": "Administrator"
 }
 

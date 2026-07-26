@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SentimentBreakdown {
   positive_count: number;
@@ -37,6 +38,8 @@ export default function MonitorSentimentChart({
   data,
   isLoading,
 }: MonitorSentimentChartProps) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -52,7 +55,7 @@ export default function MonitorSentimentChart({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
         </svg>
-        <p className="text-sm">Chưa có dữ liệu sắc thái</p>
+        <p className="text-sm">{t('dashboard.charts.noSentimentData')}</p>
       </div>
     );
   }
@@ -60,9 +63,9 @@ export default function MonitorSentimentChart({
   const total = data.positive_count + data.negative_count + data.neutral_count;
 
   const chartData = [
-    { name: 'Tích cực', value: data.positive_count, color: '#10B981', pct: data.positive_pct },
-    { name: 'Trung lập', value: data.neutral_count, color: '#94A3B8', pct: data.neutral_pct },
-    { name: 'Tiêu cực', value: data.negative_count, color: '#F43F5E', pct: data.negative_pct },
+    { name: t('mentions.sentiment.positive'), value: data.positive_count, color: '#10B981', pct: data.positive_pct },
+    { name: t('mentions.sentiment.neutral'), value: data.neutral_count, color: '#94A3B8', pct: data.neutral_pct },
+    { name: t('mentions.sentiment.negative'), value: data.negative_count, color: '#F43F5E', pct: data.negative_pct },
   ].filter((item) => item.value > 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -72,7 +75,7 @@ export default function MonitorSentimentChart({
         <div className="bg-gray-900 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl shadow-xl border border-gray-700/50 text-sm">
           <p className="font-semibold">{entry.name}</p>
           <p className="text-slate-700 dark:text-gray-300">
-            {entry.value} đề cập ({entry.pct}%)
+            {t('crisis.charts.mentionsWithPct', { count: entry.value, pct: entry.pct })}
           </p>
         </div>
       );
@@ -104,7 +107,7 @@ export default function MonitorSentimentChart({
           className="fill-gray-500 text-xs"
           style={{ fontSize: '11px' }}
         >
-          đề cập
+          {t('crisis.charts.mentionsLabel')}
         </text>
       </g>
     );

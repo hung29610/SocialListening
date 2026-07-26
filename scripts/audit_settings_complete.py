@@ -2,11 +2,28 @@
 Complete Settings Audit - Test every tab end-to-end
 Tests both personal and admin settings with real API calls
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 import json
 from datetime import datetime
 
-BASE_URL = "https://social-listening-backend.onrender.com"
+BASE_URL = backend_url()
 
 class SettingsAudit:
     def __init__(self):
@@ -37,8 +54,8 @@ class SettingsAudit:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             data={
-                "username": "honguyenhung2010@gmail.com",
-                "password": "Hungnguyen@1515"
+                "username": admin_email(),
+                "password": admin_password()
             }
         )
         if response.status_code == 200:
@@ -54,8 +71,8 @@ class SettingsAudit:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             data={
-                "username": "admin@sociallistening.com",
-                "password": "Admin@123456"
+                "username": user_email(),
+                "password": user_password()
             }
         )
         if response.status_code == 200:
@@ -123,9 +140,9 @@ class SettingsAudit:
                 f"{BASE_URL}/api/auth/me/change-password",
                 headers={"Authorization": f"Bearer {token}"},
                 json={
-                    "current_password": "Hungnguyen@1515",
-                    "new_password": "Hungnguyen@1515",
-                    "confirm_password": "Hungnguyen@1515"
+                    "current_password": admin_password(),
+                    "new_password": admin_password(),
+                    "confirm_password": admin_password()
                 }
             )
             if response.status_code == 200:

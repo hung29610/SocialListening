@@ -1,6 +1,23 @@
 """
 Run role migration to add role column to users table
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 import os
 from dotenv import load_dotenv
@@ -9,11 +26,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get backend URL
-BACKEND_URL = os.getenv("BACKEND_URL", "https://social-listening-backend.onrender.com")
+BACKEND_URL = os.getenv("BACKEND_URL", backend_url())
 
 # Admin credentials
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+ADMIN_EMAIL = admin_email()
+ADMIN_PASSWORD = admin_password()
 
 def main():
     print("=" * 60)

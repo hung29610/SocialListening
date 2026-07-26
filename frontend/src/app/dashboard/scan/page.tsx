@@ -11,6 +11,7 @@ import { crawl, keywords as keywordsApi, sources as sourcesApi, discovery as dis
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import ScanSchedulesPanel from '@/components/ScanSchedulesPanel';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface WorkerStatus {
   scheduler_enabled: boolean;
@@ -65,6 +66,7 @@ function isTestSource(source: any): boolean {
 }
 
 export default function ScanPage() {
+  const { t } = useLanguage();
   const [keywordGroups, setKeywordGroups] = useState<any[]>([]);
   const [sources, setSources] = useState<any[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
@@ -205,7 +207,7 @@ export default function ScanPage() {
   // ── Quick Add keyword (no scan) ──
   const handleQuickAdd = async () => {
     if (!quickKeyword.trim()) {
-      toast.error('Vui lòng nhập từ khóa');
+      toast.error(t('scanPage.errors.keywordRequired'));
       return;
     }
     try {
@@ -227,16 +229,16 @@ export default function ScanPage() {
         group_id: targetGroupId,
         keyword_type: 'general',
       });
-      toast.success(`Đã thêm từ khóa "${quickKeyword}" vào nhóm`);
+      toast.success(t('scanPage.toast.keywordAdded', { keyword: quickKeyword }));
       setQuickKeyword('');
       await fetchData();
     } catch (error: any) {
       if (error.response?.status === 409) {
-        toast('Từ khóa đã tồn tại trong nhóm này', { icon: 'ℹ️' });
+        toast(t('scanPage.errors.keywordExists'), { icon: 'ℹ️' });
         setQuickKeyword('');
         return;
       }
-      toast.error('Lỗi: ' + (error.response?.data?.detail || error.message));
+      toast.error(t('scanPage.errors.generic', { message: error.response?.data?.detail || error.message }));
     } finally {
       setAddingKeyword(false);
     }
@@ -246,7 +248,7 @@ export default function ScanPage() {
   const handleScanSubmit = async () => {
     const hasKeyword = quickKeyword.trim().length > 0 || selectedGroups.length > 0;
     if (!hasKeyword) {
-      toast.error('Vui lòng nhập hoặc chọn ít nhất 1 từ khóa.');
+      toast.error(t('scanPage.errors.keywordOrGroupRequired'));
       return;
     }
 
@@ -256,18 +258,18 @@ export default function ScanPage() {
     });
     
     if (validSources.length < selectedSources.length) {
-      toast('Đã bỏ qua nguồn chưa tích hợp.', { icon: 'ℹ️' });
+      toast(t('scanPage.toast.skippedUnsupportedSources'), { icon: 'ℹ️' });
       setSelectedSources(validSources);
     }
 
     if (scanMode === 'SELECTED_SOURCES' && validSources.length === 0 && !customUrl) {
-      toast.error('Vui lòng chọn ít nhất 1 nguồn để quét.');
+      toast.error(t('scanPage.errors.sourceRequired'));
       return;
     }
-    
+
     try {
       setScanning(true);
-      const loadingToast = toast.loading('Đang xử lý và quét dữ liệu...');
+      const loadingToast = toast.loading(t('scanPage.toast.processing'));
       
       let finalKeywordGroups = [...selectedGroups];
       let finalKeywords: string[] = [];
@@ -332,9 +334,9 @@ export default function ScanPage() {
 
       toast.dismiss(loadingToast);
       if (result.message === "Returned existing running job to prevent duplicate crawl") {
-        toast.success("Đang có job quét tương tự đang chạy. Hệ thống đang theo dõi...");
+        toast.success(t('scanPage.toast.duplicateJobRunning'));
       } else {
-        toast.success(result.message || 'Đã tạo job scan. Hệ thống đang quét trong nền.');
+        toast.success(result.message || t('scanPage.toast.jobCreated'));
       }
       
       setQuickKeyword('');
@@ -352,7 +354,7 @@ export default function ScanPage() {
         lastResponseData: error?.response?.data || null,
         hasAuthToken: !!localStorage.getItem('access_token'),
       }));
-      toast.error('Lỗi: ' + errorMsg);
+      toast.error(t('scanPage.errors.generic', { message: errorMsg }));
     } finally {
       setScanning(false);
     }
@@ -362,11 +364,11 @@ export default function ScanPage() {
     try {
       setRetryingJobId(jobId);
       const result = await crawl.retryJob(jobId);
-      toast.success(`Retry thành công! Tìm thấy ${result.mentions_found} mentions`);
+      toast.success(t('scanPage.toast.retrySuccess', { count: result.mentions_found }));
       fetchCrawlJobs();
       fetchWorkerStatus();
     } catch (error: any) {
-      toast.error('Retry thất bại: ' + (error.response?.data?.detail || error.message));
+      toast.error(t('scanPage.errors.retryFailed', { message: error.response?.data?.detail || error.message }));
     } finally {
       setRetryingJobId(null);
     }
@@ -403,12 +405,12 @@ export default function ScanPage() {
 
   // Disable reason text
   const getDisableReason = () => {
-    if (!hasKeyword) return 'Vui lòng nhập hoặc chọn ít nhất 1 từ khóa';
-    if (scanMode === 'AUTO_DISCOVERY' && !isAutoDiscoveryConfigured) return 'Cần cấu hình SERPAPI_API_KEY để tự tìm nguồn';
+    if (!hasKeyword) return t('scanPage.hints.needKeyword');
+    if (scanMode === 'AUTO_DISCOVERY' && !isAutoDiscoveryConfigured) return t('scanPage.hints.serpApiRequiredForDiscovery');
     if (scanMode === 'SELECTED_SOURCES') {
-      if (selectedSources.length > 0 && validSelectedSources.length === 0) return 'Nguồn đã chọn chưa tích hợp';
-      if (customUrl.length > 0 && !isUrlValid) return 'URL tùy chỉnh không hợp lệ';
-      return 'Vui lòng chọn ít nhất 1 nguồn để quét';
+      if (selectedSources.length > 0 && validSelectedSources.length === 0) return t('scanPage.hints.selectedSourcesUnsupported');
+      if (customUrl.length > 0 && !isUrlValid) return t('scanPage.hints.invalidCustomUrl');
+      return t('scanPage.hints.needSource');
     }
     return '';
   };
@@ -431,11 +433,11 @@ export default function ScanPage() {
   // ── Badge helpers ──
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string; icon: React.ReactNode; label: string }> = {
-      completed: { bg: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', icon: <CheckCircle className="w-3 h-3 mr-1" />, label: 'Xong' },
-      running: { bg: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20', icon: <Loader2 className="w-3 h-3 mr-1 animate-spin" />, label: 'Đang chạy' },
-      failed: { bg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Thất bại' },
-      pending: { bg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', icon: <Clock className="w-3 h-3 mr-1" />, label: 'Chờ' },
-      cancelled: { bg: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Hủy' },
+      completed: { bg: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', icon: <CheckCircle className="w-3 h-3 mr-1" />, label: t('scanPage.jobStatus.completed') },
+      running: { bg: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20', icon: <Loader2 className="w-3 h-3 mr-1 animate-spin" />, label: t('scanPage.jobStatus.running') },
+      failed: { bg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', icon: <XCircle className="w-3 h-3 mr-1" />, label: t('scanPage.jobStatus.failed') },
+      pending: { bg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', icon: <Clock className="w-3 h-3 mr-1" />, label: t('scanPage.jobStatus.pending') },
+      cancelled: { bg: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700', icon: <XCircle className="w-3 h-3 mr-1" />, label: t('scanPage.jobStatus.cancelled') },
     };
     const s = map[status] || { bg: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700', icon: null, label: status };
     return (
@@ -452,9 +454,9 @@ export default function ScanPage() {
       retry: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
     };
     const labels: Record<string, string> = {
-      manual: 'Thủ công',
-      scheduled: 'Tự động',
-      retry: 'Retry',
+      manual: t('scanPage.jobType.manual'),
+      scheduled: t('scanPage.jobType.scheduled'),
+      retry: t('scanPage.jobType.retry'),
     };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${styles[jobType] || 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700'}`}>
@@ -473,7 +475,7 @@ export default function ScanPage() {
   };
 
   const filterTabs: { key: SourceFilter; label: string; icon: React.ReactNode }[] = [
-    { key: 'all', label: 'Tất cả', icon: <Globe className="w-3 h-3" /> },
+    { key: 'all', label: t('common.all'), icon: <Globe className="w-3 h-3" /> },
     { key: 'rss', label: 'RSS', icon: <Rss className="w-3 h-3" /> },
     { key: 'website', label: 'Website', icon: <LinkIcon className="w-3 h-3" /> },
     { key: 'global_search', label: 'Global Search', icon: <Sparkles className="w-3 h-3" /> },
@@ -503,41 +505,41 @@ export default function ScanPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-100 tracking-wide">
-              Trung tâm quét dữ liệu
+              {t('scanPage.title')}
             </h1>
             <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-              Quét theo từ khóa, tự tìm nguồn hoặc quét các nguồn đã cấu hình
+              {t('scanPage.subtitle')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <span className={`px-3 py-1 rounded text-xs font-medium border ${isAutoDiscoveryConfigured ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`} title={!isAutoDiscoveryConfigured ? 'Cần cấu hình SERPAPI_API_KEY' : undefined}>
-            Tự tìm nguồn: {isAutoDiscoveryConfigured ? 'Sẵn sàng' : 'Chưa cấu hình'}
+          <span className={`px-3 py-1 rounded text-xs font-medium border ${isAutoDiscoveryConfigured ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`} title={!isAutoDiscoveryConfigured ? t('scanPage.hints.serpApiRequired') : undefined}>
+            {t('scanPage.autoDiscovery.label')} {isAutoDiscoveryConfigured ? t('scanPage.status.ready') : t('scanPage.status.notConfigured')}
           </span>
           <button
             onClick={() => { fetchWorkerStatus(); fetchCrawlJobs(); fetchData(); }}
             className="group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-emerald-400 bg-gray-900 border border-emerald-500/30 rounded-lg transition-all hover:bg-emerald-900 hover:border-emerald-400"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-            Đồng bộ
+            {t('scanPage.actions.sync')}
           </button>
           <button
             onClick={async () => {
               try {
-                const toastId = toast.loading('Đang khởi chạy luồng thu thập RSS...');
+                const toastId = toast.loading(t('scanPage.toast.rssStarting'));
                 const { collectors } = await import('@/lib/api');
                 await collectors.runRss();
-                toast.success('Đã khởi chạy thu thập RSS thành công!', { id: toastId });
+                toast.success(t('scanPage.toast.rssStarted'), { id: toastId });
                 fetchWorkerStatus();
               } catch (error) {
                 const { getErrorMessage } = await import('@/lib/api');
-                toast.error(`Lỗi: ${getErrorMessage(error)}`);
+                toast.error(t('scanPage.errors.generic', { message: getErrorMessage(error) }));
               }
             }}
             className="group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-orange-400 bg-gray-900 border border-orange-500/30 rounded-lg transition-all hover:bg-orange-900 hover:border-orange-400"
           >
             <Rss className="w-3.5 h-3.5" />
-            Cập nhật RSS
+            {t('scanPage.actions.updateRss')}
           </button>
         </div>
       </div>
@@ -619,7 +621,7 @@ export default function ScanPage() {
           <div className="lg:col-span-8 flex flex-col gap-5">
             <div>
               <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">
-                Từ khóa cần quét
+                {t('scanPage.form.keywordLabel')}
               </label>
               <div className="flex gap-3">
                 <input
@@ -628,7 +630,7 @@ export default function ScanPage() {
                   value={quickKeyword}
                   onChange={(e) => setQuickKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleScanSubmit()}
-                  placeholder="Nhập từ khóa cần theo dõi, ví dụ: Bệnh viện TTH"
+                  placeholder={t('scanPage.form.keywordPlaceholder')}
                   className="flex-1 bg-[#1e293b] border border-slate-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
                 />
                 <select
@@ -637,7 +639,7 @@ export default function ScanPage() {
                   onChange={(e) => setQuickGroupId(e.target.value ? Number(e.target.value) : '')}
                   className="w-48 bg-[#1e293b] border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="">-- Dự án / Nhãn hiệu --</option>
+                  <option value="">{t('scanPage.form.groupPlaceholder')}</option>
                   {keywordGroups.map((g) => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
@@ -646,13 +648,13 @@ export default function ScanPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">Chế độ quét</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">{t('scanPage.form.modeLabel')}</label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'AUTO_DISCOVERY', label: 'Tự tìm nguồn', disabled: !isAutoDiscoveryConfigured },
-                  { id: 'HYBRID', label: 'Kết hợp' },
-                  { id: 'SELECTED_SOURCES', label: 'Nguồn đã chọn' },
-                  { id: 'ALL_ACTIVE_SOURCES', label: 'Tất cả nguồn đang bật' }
+                  { id: 'AUTO_DISCOVERY', label: t('scanPage.mode.autoDiscovery'), disabled: !isAutoDiscoveryConfigured },
+                  { id: 'HYBRID', label: t('scanPage.mode.hybrid') },
+                  { id: 'SELECTED_SOURCES', label: t('scanPage.mode.selectedSources') },
+                  { id: 'ALL_ACTIVE_SOURCES', label: t('scanPage.mode.allActiveSources') }
                 ].map(mode => (
                   <div key={mode.id} className="group relative">
                     <label
@@ -663,7 +665,7 @@ export default function ScanPage() {
                             ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 cursor-pointer'
                             : 'bg-[#1e293b] hover:bg-gray-800 border-slate-300 dark:border-gray-700 text-slate-500 dark:text-gray-400 hover:text-gray-200 cursor-pointer'
                       }`}
-                      title={mode.disabled ? "Chưa cấu hình Web Search provider" : undefined}
+                      title={mode.disabled ? t('scanPage.hints.webSearchNotConfigured') : undefined}
                     >
                       <input
                         type="radio"
@@ -690,7 +692,7 @@ export default function ScanPage() {
                  {getDisableReason() ? (
                    <span className="text-rose-400 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4"/> {getDisableReason()}</span>
                  ) : (
-                   <span className="text-emerald-400 flex items-center gap-1.5"><CheckCircle className="w-4 h-4"/> Sẵn sàng quét</span>
+                   <span className="text-emerald-400 flex items-center gap-1.5"><CheckCircle className="w-4 h-4"/> {t('scanPage.hints.readyToScan')}</span>
                  )}
                </p>
             </div>
@@ -700,7 +702,7 @@ export default function ScanPage() {
               className="w-full px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 transition-all"
             >
               {scanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Radar className="w-5 h-5" />}
-              Bắt đầu quét
+              {t('scanPage.actions.startScan')}
             </button>
             <button
               onClick={handleQuickAdd}
@@ -708,7 +710,7 @@ export default function ScanPage() {
               className="w-full px-6 py-2.5 bg-gray-800 text-slate-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300 dark:border-gray-700 transition-all"
             >
               {addingKeyword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Chỉ thêm từ khóa
+              {t('scanPage.actions.addKeywordOnly')}
             </button>
           </div>
         </div>
@@ -720,17 +722,17 @@ export default function ScanPage() {
       <div className="bg-[#0f172a] border border-slate-200 dark:border-gray-800 rounded-xl mb-6">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
           <h2 className="text-base font-semibold text-gray-100 flex items-center gap-2">
-            Nguồn tùy chọn
+            {t('scanPage.sources.title')}
           </h2>
           <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-            Chỉ cần chọn nguồn khi muốn giới hạn phạm vi quét. Nếu không chọn, hệ thống sẽ tự tìm nguồn theo từ khóa.
+            {t('scanPage.sources.subtitle')}
           </p>
         </div>
 
         {/* ── 4B. Source Filters + Quick Actions ─────────────────────── */}
         <div className="px-4 py-2.5 border-b border-gray-800/80 flex flex-wrap items-center gap-2">
           {/* Filter tabs */}
-          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1">Nguồn:</span>
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1">{t('scanPage.labels.sources')}</span>
           {filterTabs.map((tab) => (
             <button
               key={tab.key}
@@ -752,10 +754,10 @@ export default function ScanPage() {
                 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/15'
                 : 'bg-slate-50 dark:bg-[#0B1220] text-gray-500 hover:text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-800'
             }`}
-            title={hideTestSources ? 'Test sources đang ẩn' : 'Hiện tất cả sources'}
+            title={hideTestSources ? t('scanPage.sources.testHiddenTitle') : t('scanPage.sources.testShownTitle')}
           >
             {hideTestSources ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            {hideTestSources ? 'Ẩn test' : 'Hiện test'}
+            {hideTestSources ? t('scanPage.sources.hideTest') : t('scanPage.sources.showTest')}
           </button>
 
           <div className="ml-auto flex items-center gap-2">
@@ -764,17 +766,17 @@ export default function ScanPage() {
               className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               <CheckSquare className="w-3 h-3" />
-              Chọn tất cả
+              {t('scanPage.sources.selectAll')}
             </button>
             <button
               onClick={clearSelection}
               className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
             >
               <Square className="w-3 h-3" />
-              Bỏ chọn
+              {t('scanPage.sources.clearSelection')}
             </button>
             <span className="text-[10px] text-gray-600 font-medium border-l border-slate-200 dark:border-gray-800 pl-2 ml-1">
-              <span className="text-indigo-400">{validSelectedSources.length}</span>/{selectableCount} nguồn hợp lệ
+              <span className="text-indigo-400">{validSelectedSources.length}</span>/{selectableCount} {t('scanPage.sources.validCount')}
             </span>
           </div>
         </div>
@@ -786,8 +788,8 @@ export default function ScanPage() {
               <Globe className="w-8 h-8 text-gray-700 mx-auto mb-2" />
               <p className="text-xs text-gray-500 font-medium">
                 {realSourceCount === 0
-                  ? 'Chưa có nguồn thật để quét. Hãy thêm nguồn RSS/Web trước.'
-                  : 'Không có nguồn nào phù hợp bộ lọc.'}
+                  ? t('scanPage.sources.emptyNoReal')
+                  : t('scanPage.sources.emptyNoMatch')}
               </p>
             </div>
           ) : (
@@ -795,11 +797,11 @@ export default function ScanPage() {
               <thead className="sticky top-0 z-10">
                 <tr className="bg-slate-50 dark:bg-[#0B1220] text-left text-[10px] text-gray-500 uppercase tracking-wider">
                   <th className="px-3 py-2 w-8 font-medium"></th>
-                  <th className="px-3 py-2 font-medium">Nguồn</th>
-                  <th className="px-3 py-2 hidden md:table-cell font-medium w-20">Loại</th>
-                  <th className="px-3 py-2 hidden lg:table-cell font-medium w-16">Status</th>
-                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">Crawl gần nhất</th>
-                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">Crawl tiếp</th>
+                  <th className="px-3 py-2 font-medium">{t('scanPage.table.source')}</th>
+                  <th className="px-3 py-2 hidden md:table-cell font-medium w-20">{t('scanPage.table.type')}</th>
+                  <th className="px-3 py-2 hidden lg:table-cell font-medium w-16">{t('scanPage.table.status')}</th>
+                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">{t('scanPage.table.lastCrawl')}</th>
+                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">{t('scanPage.table.nextCrawl')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/60">
@@ -843,7 +845,7 @@ export default function ScanPage() {
                                 if (isUnsupported) {
                                   return (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
-                                      Chưa hỗ trợ
+                                      {t('scanPage.badge.unsupported')}
                                     </span>
                                   );
                                 }
@@ -851,7 +853,7 @@ export default function ScanPage() {
                                   return (
                                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
                                       <FlaskConical className="w-2.5 h-2.5" />
-                                      Nguồn test
+                                      {t('scanPage.badge.testSource')}
                                     </span>
                                   );
                                 }
@@ -870,25 +872,25 @@ export default function ScanPage() {
                                 if (isInvalidRss) {
                                   return (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-shrink-0">
-                                      RSS không hợp lệ
+                                      {t('scanPage.badge.invalidRss')}
                                     </span>
                                   );
                                 } else if (error && !isAiConfigError) {
                                   return (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-shrink-0">
-                                      Lỗi crawl
+                                      {t('scanPage.badge.crawlError')}
                                     </span>
                                   );
                                 } else if (source.last_crawled_at) {
                                   return (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
-                                      Quét thành công
+                                      {t('scanPage.badge.scanSuccess')}
                                     </span>
                                   );
                                 } else {
                                   return (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20 flex-shrink-0">
-                                      Chưa crawl
+                                      {t('scanPage.badge.notCrawled')}
                                     </span>
                                   );
                                 }
@@ -909,10 +911,10 @@ export default function ScanPage() {
                                  return (
                                    <div className="mt-1 flex items-center gap-1">
                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                       AI chưa cấu hình
+                                       {t('scanPage.badge.aiNotConfigured')}
                                      </span>
-                                     <span className="text-[10px] text-gray-500 truncate" title="Mention đã thu thập, nhưng AI chưa phân tích do thiếu package.">
-                                       Mention đã thu thập, thiếu package.
+                                     <span className="text-[10px] text-gray-500 truncate" title={t('scanPage.badge.aiMissingPackageTitle')}>
+                                       {t('scanPage.badge.aiMissingPackage')}
                                      </span>
                                    </div>
                                  );
@@ -920,7 +922,7 @@ export default function ScanPage() {
                                  return (
                                    <div className="mt-1 flex items-center gap-1">
                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                       AI đã phân tích
+                                       {t('scanPage.badge.aiAnalyzed')}
                                      </span>
                                    </div>
                                  );
@@ -937,8 +939,8 @@ export default function ScanPage() {
                                                    ((source.source_type || '').toLowerCase() === 'rss' && error.includes('not well-formed'));
                               if (isInvalidRss) {
                                 return (
-                                  <div className="text-[10px] text-rose-400 mt-1 truncate max-w-sm" title="URL này là trang web, không phải RSS feed. Hãy đổi loại nguồn sang Website.">
-                                    ⚠ RSS không hợp lệ: URL hiện tại là trang web.
+                                  <div className="text-[10px] text-rose-400 mt-1 truncate max-w-sm" title={t('scanPage.hints.invalidRssTitle')}>
+                                    ⚠ {t('scanPage.hints.invalidRssBody')}
                                   </div>
                                 );
                               }
@@ -964,7 +966,7 @@ export default function ScanPage() {
                               if (test) {
                                 return (
                                   <div className="text-[10px] text-gray-500 mt-1 truncate max-w-sm" title={error}>
-                                    ⚠ {cleanMsg} (lỗi test)
+                                    ⚠ {cleanMsg} {t('scanPage.badge.testErrorSuffix')}
                                   </div>
                                 );
                               }
@@ -1020,7 +1022,7 @@ export default function ScanPage() {
           >
             {showCustomUrl ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             <LinkIcon className="w-3 h-3" />
-            Hoặc nhập URL tùy chỉnh
+            {t('scanPage.sources.customUrlToggle')}
           </button>
           {showCustomUrl && (
             <div className="mt-2 relative animate-fadeIn">
@@ -1033,7 +1035,7 @@ export default function ScanPage() {
                   setCustomUrl(e.target.value);
                   if (e.target.value) setSelectedSources([]);
                 }}
-                placeholder="https://example.com hoặc https://example.com/rss"
+                placeholder={t('scanPage.sources.customUrlPlaceholder')}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-white text-xs placeholder-gray-500 transition-shadow"
               />
             </div>
@@ -1059,16 +1061,16 @@ export default function ScanPage() {
             <span className="text-[10px] text-gray-500 font-mono">#{latestJob.id}</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-gray-400 font-medium">
-            <span>Nguồn: <strong className="text-slate-700 dark:text-gray-300">{latestJob.processed_sources}/{latestJob.total_sources}</strong></span>
-            <span>Mentions: <strong className="text-slate-700 dark:text-gray-300">{latestJob.mentions_found}</strong></span>
-            {latestJob.completed_at && <span>Xong: {formatDate(latestJob.completed_at)}</span>}
+            <span>{t('scanPage.labels.sources')} <strong className="text-slate-700 dark:text-gray-300">{latestJob.processed_sources}/{latestJob.total_sources}</strong></span>
+            <span>{t('scanPage.labels.mentions')} <strong className="text-slate-700 dark:text-gray-300">{latestJob.mentions_found}</strong></span>
+            {latestJob.completed_at && <span>{t('scanPage.labels.finished')} {formatDate(latestJob.completed_at)}</span>}
           </div>
           {latestJob.mentions_found > 0 && (
             <Link
               href={latestJob.project_id ? `/dashboard/mentions?project_id=${latestJob.project_id}&job_id=${latestJob.id}` : `/dashboard/mentions?job_id=${latestJob.id}`}
               className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
             >
-              Xem lượt đề cập
+              {t('scanPage.actions.viewMentions')}
               <ExternalLink className="w-3 h-3" />
             </Link>
           )}
@@ -1097,7 +1099,7 @@ export default function ScanPage() {
         >
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Lịch Sử Crawl Jobs</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t('scanPage.history.title')}</h2>
             <span className="text-[10px] text-gray-500 font-medium bg-gray-800 px-2 py-0.5 rounded">{crawlJobs.length}</span>
           </div>
           {showHistory ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
@@ -1106,7 +1108,7 @@ export default function ScanPage() {
         {showHistory && (
           <div className="border-t border-gray-800/80 divide-y divide-gray-800/60 max-h-[340px] overflow-y-auto scrollbar-hide">
             {crawlJobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-6 text-xs font-medium">Chưa có lịch sử scan</p>
+              <p className="text-gray-500 text-center py-6 text-xs font-medium">{t('scanPage.history.empty')}</p>
             ) : (
               crawlJobs.map((job) => (
                 <div key={job.id} className="px-4 py-3 hover:bg-white dark:bg-[#1E293B]/30 transition-colors">
@@ -1124,7 +1126,7 @@ export default function ScanPage() {
                           className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
                         >
                           <Eye className="w-3 h-3" />
-                          Xem
+                          {t('scanPage.actions.view')}
                         </Link>
                       )}
                       {(job.status === 'failed' || job.status === 'cancelled') && (
@@ -1138,19 +1140,19 @@ export default function ScanPage() {
                           ) : (
                             <RefreshCw className="w-3 h-3 mr-1" />
                           )}
-                          Retry
+                          {t('scanPage.actions.retry')}
                         </button>
                       )}
                     </div>
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-medium text-gray-500">
-                    <span>Nguồn: <strong className="text-slate-500 dark:text-gray-400">{job.processed_sources}/{job.total_sources}</strong></span>
+                    <span>{t('scanPage.labels.sources')} <strong className="text-slate-500 dark:text-gray-400">{job.processed_sources}/{job.total_sources}</strong></span>
                     {job.status === 'completed' && job.total_sources > job.processed_sources && (
-                      <span className="text-rose-400">Thất bại: {job.total_sources - job.processed_sources} nguồn</span>
+                      <span className="text-rose-400">{t('scanPage.history.failedSources', { count: job.total_sources - job.processed_sources })}</span>
                     )}
-                    {job.created_at && <span>Tạo: {formatDate(job.created_at)}</span>}
-                    {job.completed_at && <span>Xong: {formatDate(job.completed_at)}</span>}
-                    {job.retry_count > 0 && <span className="text-amber-400">Retry #{job.retry_count}</span>}
+                    {job.created_at && <span>{t('scanPage.labels.created')} {formatDate(job.created_at)}</span>}
+                    {job.completed_at && <span>{t('scanPage.labels.finished')} {formatDate(job.completed_at)}</span>}
+                    {job.retry_count > 0 && <span className="text-amber-400">{t('scanPage.history.retryCount', { count: job.retry_count })}</span>}
                   </div>
                   {job.error_message && (
                     <p className="mt-1.5 text-[10px] text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/15 truncate" title={job.error_message}>
@@ -1174,7 +1176,7 @@ export default function ScanPage() {
         >
           <div className="flex items-center gap-2">
             <FlaskConical className="w-4 h-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-slate-500 dark:text-gray-400">Debug kết nối backend</h2>
+            <h2 className="text-sm font-semibold text-slate-500 dark:text-gray-400">{t('scanPage.debug.title')}</h2>
           </div>
           {showDebug ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
         </button>
@@ -1185,23 +1187,23 @@ export default function ScanPage() {
             <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">API_BASE_URL (resolved):</span><span className="text-cyan-400 break-all">{API_BASE_URL}</span></div>
             <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">capabilities URL:</span><span className="text-slate-700 dark:text-gray-300 break-all">{API_BASE_URL}/api/crawl/capabilities</span></div>
             <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">manual-scan URL:</span><span className="text-slate-700 dark:text-gray-300 break-all">{API_BASE_URL}/api/crawl/manual-scan</span></div>
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Auth token exists:</span><span className={debugInfo.hasAuthToken ? 'text-emerald-400' : 'text-rose-400'}>{debugInfo.hasAuthToken ? 'true' : 'false'}</span></div>
+            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.authTokenExists')}</span><span className={debugInfo.hasAuthToken ? 'text-emerald-400' : 'text-rose-400'}>{debugInfo.hasAuthToken ? 'true' : 'false'}</span></div>
             
             {debugInfo.lastUrl && (
               <>
                 <div className="border-t border-slate-200 dark:border-gray-800 mt-2 pt-2" />
-                <div className="text-slate-500 dark:text-gray-400 font-semibold">Lần gọi gần nhất:</div>
+                <div className="text-slate-500 dark:text-gray-400 font-semibold">{t('scanPage.debug.lastCall')}</div>
                 <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">URL:</span><span className="text-yellow-400 break-all">{debugInfo.lastUrl}</span></div>
-                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Payload:</span><span className="text-slate-700 dark:text-gray-300 break-all">{JSON.stringify(debugInfo.lastPayload)}</span></div>
-                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Response status:</span><span className={debugInfo.lastStatus === 200 ? 'text-emerald-400' : debugInfo.lastStatus ? 'text-rose-400' : 'text-gray-500'}>{debugInfo.lastStatus ?? '(no response)'}</span></div>
+                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.payload')}</span><span className="text-slate-700 dark:text-gray-300 break-all">{JSON.stringify(debugInfo.lastPayload)}</span></div>
+                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.responseStatus')}</span><span className={debugInfo.lastStatus === 200 ? 'text-emerald-400' : debugInfo.lastStatus ? 'text-rose-400' : 'text-gray-500'}>{debugInfo.lastStatus ?? '(no response)'}</span></div>
                 {debugInfo.lastErrorName && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Error name:</span><span className="text-rose-400">{debugInfo.lastErrorName}</span></div>
+                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.errorName')}</span><span className="text-rose-400">{debugInfo.lastErrorName}</span></div>
                 )}
                 {debugInfo.lastErrorMessage && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Error message:</span><span className="text-rose-400 break-all">{debugInfo.lastErrorMessage}</span></div>
+                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.errorMessage')}</span><span className="text-rose-400 break-all">{debugInfo.lastErrorMessage}</span></div>
                 )}
                 {debugInfo.lastResponseData && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Response data:</span><span className="text-slate-700 dark:text-gray-300 break-all">{(JSON.stringify(debugInfo.lastResponseData) || '').slice(0, 500)}</span></div>
+                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">{t('scanPage.debug.responseData')}</span><span className="text-slate-700 dark:text-gray-300 break-all">{(JSON.stringify(debugInfo.lastResponseData) || '').slice(0, 500)}</span></div>
                 )}
               </>
             )}

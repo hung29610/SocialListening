@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Twitter, MessageCircle, Globe, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Mention {
   id: number;
@@ -17,6 +18,7 @@ interface Mention {
 }
 
 export default function MentionsPage() {
+  const { t } = useLanguage();
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,7 +29,7 @@ export default function MentionsPage() {
       const res = await api.get('/api/echomind/mentions');
       setMentions(res.data);
     } catch (error) {
-      toast.error('Failed to load mentions');
+      toast.error(t('echomind.mentions.errors.loadFailed'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -63,23 +65,23 @@ export default function MentionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">Mentions Feed</h2>
-          <p className="text-slate-400 mt-1">Live stream of conversations across the web.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-white">{t('echomind.mentions.title')}</h2>
+          <p className="text-slate-400 mt-1">{t('echomind.mentions.subtitle')}</p>
         </div>
         <button
           onClick={() => fetchMentions(true)}
           className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors"
         >
           <RefreshCw size={16} className={refreshing ? "animate-spin text-blue-500" : ""} />
-          <span>Refresh</span>
+          <span>{t('mentions.filterBar.refresh')}</span>
         </button>
       </div>
 
       <div className="space-y-4">
         {loading && !mentions.length ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">Loading mentions...</div>
+          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">{t('echomind.mentions.loading')}</div>
         ) : mentions.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">No mentions found yet. Make sure you have active keywords!</div>
+          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">{t('echomind.mentions.empty')}</div>
         ) : (
           mentions.map((mention) => (
             <div key={mention.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">

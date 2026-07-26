@@ -105,7 +105,7 @@ export default function RealtimeStatsSection({ projectId }: { projectId?: number
           <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('dashboard.realtimeMonitor')}</h2>
           <span className="text-[10px] uppercase tracking-wider text-zinc-500 bg-white/5 px-2 py-0.5 rounded">
-            refresh 5s
+            {t('crisis.realtime.refreshInterval', { seconds: REFRESH_MS / 1000 })}
           </span>
         </div>
         <Activity className="w-4 h-4 text-violet-400" />

@@ -118,8 +118,8 @@ alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
 **Verified Scenarios**:
-1. ✅ Admin (honguyenhung2010@gmail.com) - Full access
-2. ✅ Normal user (admin@sociallistening.com) - Limited access
+1. ✅ Admin (<redacted-email>) - Full access
+2. ✅ Normal user (<redacted-email>) - Limited access
 3. ✅ 403 errors returned for unauthorized access
 
 ---
@@ -454,7 +454,7 @@ Total Tests: 22
 - Build time: ~2-3 minutes
 
 **Backend**: ✅ Render
-- URL: https://social-listening-backend.onrender.com
+- URL: https://sociallistening-9fvs.onrender.com
 - Manual deploy from main after PR merge
 - Build time: ~3-5 minutes
 - Command: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`

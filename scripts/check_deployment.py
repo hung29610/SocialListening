@@ -4,11 +4,28 @@ Check Deployment Status
 Kiểm tra xem backend đã deploy xong chưa
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
+
 import requests
 import time
 from datetime import datetime
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
+BACKEND_URL = backend_url()
 FRONTEND_URL = "https://social-listening-azure.vercel.app"
 
 def check_backend():

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Key, Plus, Copy, Eye, EyeOff, Trash2, Power, PowerOff, Calendar } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
@@ -22,6 +23,7 @@ interface APIKeyCreateResponse extends APIKey {
 }
 
 export default function APIWebhooks() {
+  const { t } = useLanguage();
   const { confirm } = useDialog();
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function APIWebhooks() {
       setApiKeys(response.data);
     } catch (error) {
       console.error('Error loading API keys:', error);
-      toast.error('Không thể tải danh sách API keys');
+      toast.error(t('settingsPage.api.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -68,29 +70,29 @@ export default function APIWebhooks() {
       const response = await api.post('/api/api-keys/', payload);
       const data: APIKeyCreateResponse = response.data;
       setCreatedKey(data.full_key);
-      toast.success('Tạo API key thành công');
+      toast.success(t('settingsPage.api.created'));
       loadAPIKeys();
     } catch (error: any) {
       console.error('Error creating API key:', error);
-      toast.error(error.response?.data?.detail || 'Không thể tạo API key');
+      toast.error(error.response?.data?.detail || t('settingsPage.api.errors.createFailed'));
     }
   };
 
   const handleRevoke = async (keyId: number) => {
     const ok = await confirm({
-      title: 'Thu hồi API Key',
-      message: 'Bạn có chắc muốn thu hồi API key này? Hành động này không thể hoàn tác.',
+      title: t('settingsPage.api.revokeConfirm.title'),
+      message: t('settingsPage.api.revokeConfirm.message'),
       variant: 'danger'
     });
     if (!ok) return;
 
     try {
       await api.delete(`/api/api-keys/${keyId}`);
-      toast.success('Thu hồi API key thành công');
+      toast.success(t('settingsPage.api.revoked'));
       loadAPIKeys();
     } catch (error) {
       console.error('Error revoking API key:', error);
-      toast.error('Không thể thu hồi API key');
+      toast.error(t('settingsPage.api.errors.revokeFailed'));
     }
   };
 
@@ -98,21 +100,21 @@ export default function APIWebhooks() {
     try {
       const action = currentStatus ? 'deactivate' : 'activate';
       await api.post(`/api/api-keys/${keyId}/${action}`);
-      toast.success(currentStatus ? 'Vô hiệu hóa thành công' : 'Kích hoạt thành công');
+      toast.success(currentStatus ? t('settingsPage.api.deactivated') : t('settingsPage.api.activated'));
       loadAPIKeys();
     } catch (error) {
       console.error('Error toggling API key:', error);
-      toast.error('Không thể thay đổi trạng thái');
+      toast.error(t('settingsPage.api.errors.toggleFailed'));
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Đã sao chép vào clipboard');
+    toast.success(t('settingsPage.api.copied'));
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Không giới hạn';
+    if (!dateString) return t('settingsPage.api.noExpiry');
     return new Date(dateString).toLocaleDateString('vi-VN');
   };
 
@@ -129,8 +131,8 @@ export default function APIWebhooks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">API Keys & Webhooks</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý API keys để truy cập programmatic</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.api.title')}</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.api.subtitle')}</p>
         </div>
         <button 
           onClick={() => {
@@ -141,7 +143,7 @@ export default function APIWebhooks() {
           className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Tạo API Key
+          {t('settingsPage.api.create')}
         </button>
       </div>
 
@@ -150,8 +152,8 @@ export default function APIWebhooks() {
         {apiKeys.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm">
             <Key className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-            <p className="text-slate-700 dark:text-gray-300 font-medium tracking-wide">Chưa có API key nào</p>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Tạo API key để truy cập hệ thống qua API</p>
+            <p className="text-slate-700 dark:text-gray-300 font-medium tracking-wide">{t('settingsPage.api.empty.title')}</p>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.api.empty.desc')}</p>
           </div>
         ) : (
           apiKeys.map((key) => (
@@ -165,7 +167,7 @@ export default function APIWebhooks() {
                     <h3 className="font-bold text-slate-900 dark:text-white tracking-wide">{key.name}</h3>
                     {!key.is_active && (
                       <span className="px-2.5 py-1 text-xs font-medium bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md">
-                        Vô hiệu hóa
+                        {t('settingsPage.api.inactive')}
                       </span>
                     )}
                   </div>
@@ -177,7 +179,7 @@ export default function APIWebhooks() {
                     <button
                       onClick={() => copyToClipboard(key.prefix)}
                       className="p-1.5 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
-                      title="Sao chép prefix"
+                      title={t('settingsPage.api.copyPrefix')}
                     >
                       <Copy className="w-4 h-4" />
                     </button>
@@ -186,24 +188,24 @@ export default function APIWebhooks() {
                   <div className="flex flex-wrap gap-5 text-xs text-slate-500 dark:text-gray-400 font-medium">
                     <span className="flex items-center">
                       <Calendar className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
-                      Tạo: {formatDate(key.created_at)}
+                      {t('settingsPage.api.createdAt')} {formatDate(key.created_at)}
                     </span>
                     {key.expires_at && (
                       <span className="flex items-center text-amber-500/80">
                         <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                        Hết hạn: {formatDate(key.expires_at)}
+                        {t('settingsPage.api.expiresAt')} {formatDate(key.expires_at)}
                       </span>
                     )}
                     {key.last_used_at && (
                       <span className="flex items-center text-indigo-400/80">
                         <Eye className="w-3.5 h-3.5 mr-1.5" />
-                        Dùng lần cuối: {formatDate(key.last_used_at)}
+                        {t('settingsPage.api.lastUsed')} {formatDate(key.last_used_at)}
                       </span>
                     )}
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-800/50">
-                    <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mb-2.5">Quyền hạn ({key.permissions.length}):</p>
+                    <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mb-2.5">{t('settingsPage.api.permissionsCount', { count: key.permissions.length })}</p>
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(key.permissions) && key.permissions.slice(0, 5).map((perm, idx) => (
                         <span key={idx} className="px-2.5 py-1 text-[11px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md uppercase tracking-wider">
@@ -223,14 +225,14 @@ export default function APIWebhooks() {
                   <button
                     onClick={() => handleToggleActive(key.id, key.is_active)}
                     className={`p-2 rounded-lg transition-colors ${key.is_active ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
-                    title={key.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                    title={key.is_active ? t('settingsPage.api.deactivate') : t('settingsPage.api.activate')}
                   >
                     {key.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => handleRevoke(key.id)}
                     className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                    title="Thu hồi"
+                    title={t('settingsPage.api.revoke')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -247,7 +249,7 @@ export default function APIWebhooks() {
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl max-w-lg w-full">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">
-                {createdKey ? 'API Key đã tạo' : 'Tạo API Key mới'}
+                {createdKey ? t('settingsPage.api.modal.createdTitle') : t('settingsPage.api.modal.newTitle')}
               </h3>
             </div>
 
@@ -255,16 +257,16 @@ export default function APIWebhooks() {
               <div className="p-6 space-y-6">
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5">
                   <p className="text-sm text-amber-400 font-bold tracking-wide mb-2 flex items-center">
-                    <span className="mr-2">⚠️</span> Lưu ý quan trọng
+                    <span className="mr-2">⚠️</span> {t('settingsPage.api.modal.warningTitle')}
                   </p>
                   <p className="text-sm text-amber-200">
-                    Đây là lần duy nhất bạn có thể xem API key đầy đủ. Hãy sao chép và lưu trữ an toàn.
+                    {t('settingsPage.api.modal.warningBody')}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-3">
-                    API Key của bạn:
+                    {t('settingsPage.api.modal.yourKey')}
                   </label>
                   <div className="flex items-center space-x-3">
                     <code className="flex-1 px-4 py-3 bg-white dark:bg-[#1E293B] border border-indigo-500/30 text-indigo-300 rounded-xl text-sm font-mono break-all tracking-wider">
@@ -273,7 +275,7 @@ export default function APIWebhooks() {
                     <button
                       onClick={() => copyToClipboard(createdKey)}
                       className="p-3 text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors border border-transparent hover:border-indigo-500/20"
-                      title="Sao chép"
+                      title={t('settingsPage.api.copy')}
                     >
                       <Copy className="w-5 h-5" />
                     </button>
@@ -288,7 +290,7 @@ export default function APIWebhooks() {
                     }}
                     className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
                   >
-                    Đóng
+                    {t('settingsPage.api.close')}
                   </button>
                 </div>
               </div>
@@ -296,21 +298,21 @@ export default function APIWebhooks() {
               <form onSubmit={handleCreate} className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Tên API Key <span className="text-rose-500">*</span>
+                    {t('settingsPage.api.form.name')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={newKeyData.name}
                     onChange={(e) => setNewKeyData({ ...newKeyData, name: e.target.value })}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
-                    placeholder="e.g., Production API Key"
+                    placeholder={t('settingsPage.api.form.namePlaceholder')}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Quyền hạn
+                    {t('settingsPage.api.form.permissions')}
                   </label>
                   <div className="border border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B] rounded-xl p-4 max-h-48 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-3">
@@ -337,7 +339,7 @@ export default function APIWebhooks() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Ngày hết hạn (tùy chọn)
+                    {t('settingsPage.api.form.expiresAt')}
                   </label>
                   <input
                     type="datetime-local"
@@ -353,13 +355,13 @@ export default function APIWebhooks() {
                     onClick={() => setShowModal(false)}
                     className="px-6 py-2.5 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
                   >
-                    Hủy
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
                   >
-                    Tạo API Key
+                    {t('settingsPage.api.create')}
                   </button>
                 </div>
               </form>
@@ -371,8 +373,8 @@ export default function APIWebhooks() {
       {/* Info Box */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> API keys cho phép truy cập programmatic vào hệ thống. 
-          Hãy giữ chúng an toàn và không chia sẻ công khai. Bạn có thể tạo tối đa 10 API keys đang hoạt động.
+          <strong className="text-indigo-300">{t('settingsPage.api.noteLabel')}</strong>{' '}
+          {t('settingsPage.api.note')}
         </p>
       </div>
     </div>

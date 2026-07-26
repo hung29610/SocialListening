@@ -1,3 +1,21 @@
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 import time
 import io
@@ -7,7 +25,7 @@ import json
 # Force UTF-8 output
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-base_url = 'https://social-listening-backend.onrender.com/api'
+base_url = 'api'
 
 def safe_print(*args):
     try:
@@ -17,7 +35,7 @@ def safe_print(*args):
         print(text.encode('ascii', errors='replace').decode('ascii'))
 
 def login():
-    res = requests.post(f"{base_url}/auth/login", data={'username': 'test1234@example.com', 'password': 'Password123!'})
+    res = requests.post(f"{base_url}/auth/login", data={'username': account_email("ACCOUNT6"), 'password': account_password("ACCOUNT5")})
     if res.status_code == 200:
         token = res.json().get('access_token')
         safe_print("Login OK")

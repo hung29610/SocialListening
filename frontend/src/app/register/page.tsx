@@ -4,31 +4,44 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+
+/** Matches the backend floor in POST /api/auth/register. */
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     full_name: ''
   });
-  const [error, setError] = useState('');
+  // Stored as a translation key (or a raw backend detail) so the message follows
+  // the active language rather than the one selected when it was set.
+  const [errorKey, setErrorKey] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const failWith = (key: string) => {
+    setErrorKey(key);
+    setErrorDetail('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setErrorKey('');
+    setErrorDetail('');
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu không khớp');
+      failWith('auth.errorPasswordMismatch');
       return;
     }
 
-    // Validate password length
-    if (formData.password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự');
+    if (formData.password.length < MIN_PASSWORD_LENGTH) {
+      failWith('auth.errorPasswordTooShort');
       return;
     }
 
@@ -49,56 +62,72 @@ export default function RegisterPage() {
 
       if (response.ok) {
         // Registration successful, redirect to login
-        toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+        toast.success(t('auth.registerSuccess'));
         router.push('/login');
       } else {
-        const data = await response.json();
-        setError(data.detail || 'Đăng ký thất bại');
+        const data = await response.json().catch(() => ({}));
+        const detail = typeof data?.detail === 'string' ? data.detail.trim() : '';
+        if (detail) {
+          setErrorKey('');
+          setErrorDetail(detail);
+        } else {
+          failWith('auth.errorRegisterFailed');
+        }
       }
     } catch (err) {
-      setError('Không thể kết nối đến server');
-      console.error('Register error:', err);
+      failWith('auth.errorTimeout');
+      // Never log the submitted credentials, only the transport failure.
+      console.error('Register request failed');
     } finally {
       setLoading(false);
     }
   };
 
+  const errorMessage = errorKey ? t(errorKey) : errorDetail;
+
   return (
     <div className="premium-auth-shell flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6">
       <div className="premium-auth-card w-full max-w-md min-w-0 space-y-6 rounded-[1.75rem] p-5 sm:p-8">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="text-center">
           <div className="premium-auth-mark mx-auto grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-teal-50">N</div>
-          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">Nope360 workspace</p>
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">{t('auth.workspaceTag')}</p>
           <h2 className="mt-2 text-center text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">
-            Đăng ký tài khoản
+            {t('auth.registerTitle')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Hoặc{' '}
+            {t('auth.haveAccount')}{' '}
             <Link href="/login" className="font-semibold text-primary transition-colors hover:text-primary-hover">
-              đăng nhập nếu đã có tài khoản
+              {t('auth.loginNow')}
             </Link>
           </p>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
-              {error}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400"
+            >
+              {errorMessage}
             </div>
           )}
 
           <div className="space-y-4">
             <div>
               <label htmlFor="full_name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Họ và tên
+                {t('auth.fullNameLabel')}
               </label>
               <input
                 id="full_name"
                 name="full_name"
                 type="text"
+                autoComplete="name"
                 required
                 className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Nguyễn Văn A"
+                placeholder={t('auth.fullNamePlaceholder')}
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
               />
@@ -106,16 +135,17 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
+                {t('auth.emailLabel')}
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
+                inputMode="email"
                 required
                 className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="email@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
@@ -123,33 +153,39 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Mật khẩu
+                {t('auth.passwordLabel')}
               </label>
               <input
                 id="password"
-                name="password"
+                name="new-password"
                 type="password"
                 autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
                 required
+                aria-describedby="password-hint"
                 className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Ít nhất 6 ký tự"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
+              <p id="password-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {t('auth.passwordHint')}
+              </p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Xác nhận mật khẩu
+                {t('auth.confirmPasswordLabel')}
               </label>
               <input
                 id="confirmPassword"
-                name="confirmPassword"
+                name="confirm-new-password"
                 type="password"
                 autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
                 required
                 className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Nhập lại mật khẩu"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               />
@@ -162,7 +198,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="premium-auth-submit flex w-full justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+              {loading ? t('auth.registering') : t('auth.registerButton')}
             </button>
           </div>
         </form>

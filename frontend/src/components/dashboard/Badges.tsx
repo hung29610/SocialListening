@@ -1,6 +1,8 @@
 import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function SeverityBadge({ severity }: { severity: string }) {
+  const { t } = useLanguage();
   const colors: Record<string, string> = {
     critical: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
     high: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -12,12 +14,13 @@ export function SeverityBadge({ severity }: { severity: string }) {
   
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${bgClass}`}>
-      {severity ? severity.toUpperCase() : 'CHƯA XÁC ĐỊNH'}
+      {severity ? severity.toUpperCase() : t('crisis.badges.severityUnknown')}
     </span>
   );
 }
 
 export function SentimentBadge({ sentiment }: { sentiment: string }) {
+  const { t } = useLanguage();
   const colors: Record<string, string> = {
     positive: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     neutral: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700',
@@ -28,12 +31,13 @@ export function SentimentBadge({ sentiment }: { sentiment: string }) {
   
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${bgClass}`}>
-      {sentiment ? sentiment.replace('_', ' ').toUpperCase() : 'CHƯA PHÂN TÍCH'}
+      {sentiment ? sentiment.replace('_', ' ').toUpperCase() : t('crisis.badges.sentimentUnanalyzed')}
     </span>
   );
 }
 
 export function RiskBadge({ score }: { score: number | null | undefined }) {
+  const { t } = useLanguage();
   if (score === null || score === undefined) return null;
   
   let color = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
@@ -43,16 +47,17 @@ export function RiskBadge({ score }: { score: number | null | undefined }) {
   
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border tracking-wide shadow-sm ${color}`}>
-      Risk: {score}
+      {t('crisis.riskWithScore', { score })}
     </span>
   );
 }
 
 export function CrisisLevelBadge({ level }: { level: number | null | undefined }) {
+  const { t } = useLanguage();
   if (!level) return null;
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 tracking-wide shadow-sm`}>
-      Crisis: L{level}
+      {t('crisis.badges.crisisLevel', { level })}
     </span>
   );
 }

@@ -7,6 +7,7 @@ import { mentions as mentionsApi, alerts as alertsApi, incidents as incidentsApi
 import { getSafeVisitUrl } from '@/lib/visit-url';
 import toast, { Toaster } from 'react-hot-toast';
 import ExecutiveBriefModal from '@/components/dashboard/ExecutiveBriefModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function keywordToText(keyword: any): string | null {
   if (typeof keyword === 'string') return keyword.trim() || null;
@@ -20,6 +21,7 @@ function keywordTexts(keywords: any[] | null | undefined): string[] {
 }
 
 export default function MentionDetailPage() {
+  const { t } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const [mention, setMention] = useState<any>(null);
@@ -57,10 +59,10 @@ export default function MentionDetailPage() {
         severity: mention.ai_analysis?.risk_score >= 70 ? 'high' : 'medium',
         message: `Risk score: ${mention.ai_analysis?.risk_score}`
       });
-      toast.success('Tạo cảnh báo thành công!');
+      toast.success(t('mentionsPage.detail.alertCreated'));
     } catch (error: any) {
       console.error('Error creating alert:', error);
-      toast.error('Lỗi khi tạo cảnh báo');
+      toast.error(t('mentionsPage.detail.alertError'));
     }
   };
 
@@ -73,24 +75,24 @@ export default function MentionDetailPage() {
         title: `Incident: ${mention.title || 'No title'}`,
         description: mention.ai_analysis?.summary_vi || ''
       });
-      toast.success('Tạo sự cố thành công!');
+      toast.success(t('mentionsPage.detail.incidentCreated'));
     } catch (error: any) {
       console.error('Error creating incident:', error);
-      toast.error('Lỗi khi tạo sự cố');
+      toast.error(t('mentionsPage.detail.incidentError'));
     }
   };
 
   const handleCreateReputationCase = async () => {
     if (!mention) return;
-    const toastId = toast.loading('Đang tạo hồ sơ xử lý danh tiếng...');
+    const toastId = toast.loading(t('mentionsPage.detail.caseCreating'));
     try {
       const newCase = await reputation.createFromMention(mention.id);
-      toast.success('Tạo hồ sơ xử lý thành công!', { id: toastId });
+      toast.success(t('mentionsPage.detail.caseCreated'), { id: toastId });
       // Redirect to the new case
       router.push(`/dashboard/reputation`);
     } catch (error: any) {
       console.error('Error creating reputation case:', error);
-      toast.error('Lỗi khi tạo hồ sơ xử lý', { id: toastId });
+      toast.error(t('mentionsPage.detail.caseError'), { id: toastId });
     }
   };
 
@@ -122,7 +124,7 @@ export default function MentionDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
@@ -130,7 +132,7 @@ export default function MentionDetailPage() {
   if (!mention) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">Không tìm thấy mention</p>
+        <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('mentionsPage.detail.notFound')}</p>
       </div>
     );
   }
@@ -148,8 +150,8 @@ export default function MentionDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Chi tiết Mention</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1 font-mono">ID: {mention.id}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('mentionsPage.detail.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1 font-mono">{t('reports.exportId')}: {mention.id}</p>
         </div>
       </div>
 
@@ -161,7 +163,7 @@ export default function MentionDetailPage() {
             {mention.ai_analysis?.sentiment === 'negative' && <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 blur-3xl rounded-full" />}
             {mention.ai_analysis?.sentiment === 'positive' && <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full" />}
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 leading-snug relative z-10">
-              {mention.title || 'No title'}
+              {mention.title || t('mentions.page.noTitle')}
             </h2>
             <div className="prose prose-invert max-w-none">
               <p className="text-slate-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
@@ -178,10 +180,10 @@ export default function MentionDetailPage() {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center font-medium transition-colors text-indigo-400 hover:text-indigo-300"
-                    title="Nguon bai viet"
+                    title={t('mentionsPage.detail.sourceTooltip')}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Xem nguồn gốc
+                    {t('mentionsPage.detail.viewOriginal')}
                   </a>
                 );
               })()}
@@ -191,7 +193,7 @@ export default function MentionDetailPage() {
           {/* Matched Keywords */}
           {keywordTexts(mention.matched_keywords).length > 0 && (
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 flex items-center">Từ khóa khớp</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 flex items-center">{t('mentionsPage.detail.matchedKeywords')}</h3>
               <div className="flex flex-wrap gap-2.5">
                 {keywordTexts(mention.matched_keywords).map((kw: string, idx: number) => (
                   <span key={idx} className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 text-sm rounded-lg font-semibold tracking-wide border border-indigo-500/20 uppercase">
@@ -210,15 +212,15 @@ export default function MentionDetailPage() {
             <div className="bg-[#050A15]/90 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] p-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Analysis</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('mentionsPage.detail.aiAnalysis')}</h3>
                 {mention.ai_analysis.ai_provider === 'failed' && (
                   <span className="px-2.5 py-1 text-xs font-bold tracking-wider text-red-400 bg-red-500/10 rounded-md border border-red-500/20">
-                    AI FAILED
+                    {t('mentionsPage.detail.aiFailed')}
                   </span>
                 )}
                 {(mention.ai_analysis.ai_provider === 'dummy' || mention.ai_analysis.ai_provider === 'dummy_ai') && (
                   <span className="px-2.5 py-1 text-xs font-bold tracking-wider text-amber-400 bg-amber-500/10 rounded-md border border-amber-500/20">
-                    RULE-BASED
+                    {t('mentionsPage.detail.ruleBased')}
                   </span>
                 )}
                 {mention.ai_analysis.ai_provider && !['dummy', 'dummy_ai', 'failed'].includes(mention.ai_analysis.ai_provider) && (
@@ -233,19 +235,19 @@ export default function MentionDetailPage() {
                 <div className={`text-4xl font-black ${getRiskColor(mention.ai_analysis.risk_score)}`}>
                   {mention.ai_analysis.risk_score}
                 </div>
-                <div className="text-xs font-bold tracking-wider uppercase text-gray-500 mt-2">Risk Score</div>
+                <div className="text-xs font-bold tracking-wider uppercase text-gray-500 mt-2">{t('mentionsPage.detail.riskScore')}</div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
-                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">Sentiment</span>
+                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">{t('mentions.page.sentimentTitle')}</span>
                   <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border ${getSentimentColor(mention.ai_analysis.sentiment)}`}>
                     {mention.ai_analysis.sentiment}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
-                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">Crisis Level</span>
+                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">{t('mentionsPage.detail.crisisLevel')}</span>
                   <div className="flex items-center space-x-1.5">
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div
@@ -264,7 +266,7 @@ export default function MentionDetailPage() {
                 </div>
 
                 <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
-                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">Suggested Action</span>
+                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">{t('mentionsPage.detail.suggestedAction')}</span>
                   <span className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
                     {mention.ai_analysis.suggested_action?.replace('_', ' ')}
                   </span>
@@ -272,7 +274,7 @@ export default function MentionDetailPage() {
 
                 {mention.ai_analysis.responsible_department && (
                   <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
-                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">Department</span>
+                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">{t('mentionsPage.detail.department')}</span>
                     <span className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
                       {mention.ai_analysis.responsible_department?.replace('_', ' ')}
                     </span>
@@ -281,7 +283,7 @@ export default function MentionDetailPage() {
 
                 {mention.ai_analysis.confidence_score && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">Confidence</span>
+                    <span className="text-sm font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">{t('mentionsPage.detail.confidence')}</span>
                     <span className="text-sm font-bold text-slate-900 dark:text-white">
                       {mention.ai_analysis.confidence_score}%
                     </span>
@@ -291,7 +293,7 @@ export default function MentionDetailPage() {
 
               {mention.ai_analysis.summary_vi && (
                 <div className="mt-6 pt-5 border-t border-slate-200 dark:border-gray-800">
-                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-3">Tóm tắt AI:</h4>
+                  <h4 className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-3">{t('mentionsPage.detail.aiSummaryLabel')}</h4>
                   <p className="text-sm text-slate-700 dark:text-gray-300 bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-gray-800 p-4 rounded-xl leading-relaxed">
                     {mention.ai_analysis.summary_vi}
                   </p>
@@ -303,18 +305,18 @@ export default function MentionDetailPage() {
                 <div className="mt-6 pt-5 border-t border-slate-200 dark:border-gray-800">
                   <h4 className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center">
                     <Activity className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-                    Risk-to-Action Engine
+                    {t('mentionsPage.detail.riskToAction')}
                   </h4>
                   <div className="bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-gray-800 p-4 rounded-xl space-y-4">
                     {mention.ai_analysis.why_it_matters && (
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Mức độ ảnh hưởng</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">{t('mentionsPage.detail.whyItMatters')}</span>
                         <p className="text-sm text-slate-700 dark:text-gray-300">{mention.ai_analysis.why_it_matters}</p>
                       </div>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Độ khẩn cấp</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">{t('mentionsPage.detail.urgency')}</span>
                         <span className={`px-2 py-0.5 text-xs font-semibold rounded-md ${
                           mention.ai_analysis.urgency === 'critical' ? 'bg-rose-500/10 text-rose-400' :
                           mention.ai_analysis.urgency === 'high' ? 'bg-orange-500/10 text-orange-400' :
@@ -325,15 +327,15 @@ export default function MentionDetailPage() {
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Đề xuất xử lý</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">{t('mentionsPage.detail.responseType')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{mention.ai_analysis.response_type?.replace(/_/g, ' ')}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Người phụ trách (Gợi ý)</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">{t('mentionsPage.detail.recommendedOwner')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{mention.ai_analysis.recommended_owner}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Thời hạn</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">{t('mentionsPage.detail.deadline')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{mention.ai_analysis.deadline_suggestion}</span>
                       </div>
                     </div>
@@ -341,7 +343,7 @@ export default function MentionDetailPage() {
                       <div className="pt-2">
                         <span className="inline-flex items-center px-2 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold rounded">
                           <AlertTriangle className="w-3 h-3 mr-1" />
-                          CẦN LEO THANG (ESCALATION REQUIRED)
+                          {t('mentionsPage.detail.escalationRequired')}
                         </span>
                       </div>
                     )}
@@ -353,52 +355,52 @@ export default function MentionDetailPage() {
 
           {/* Actions */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 uppercase tracking-widest text-[11px] border-b border-white/10 pb-2">Hành động xử lý</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 uppercase tracking-widest text-[11px] border-b border-white/10 pb-2">{t('mentionsPage.detail.actionsTitle')}</h3>
             <div className="space-y-4">
               <button
                 onClick={handleCreateAlert}
                 className="w-full flex items-center justify-center px-4 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors font-semibold shadow-sm shadow-amber-500/20"
               >
                 <AlertTriangle className="w-5 h-5 mr-2" />
-                Tạo Cảnh Báo
+                {t('mentionsPage.detail.createAlert')}
               </button>
               <button
                 onClick={() => setIsBriefModalOpen(true)}
                 className="flex items-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-900/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Tạo Executive Brief
+                {t('mentionsPage.detail.createBrief')}
               </button>
               <button
                 onClick={handleCreateReputationCase}
                 className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold shadow-sm shadow-indigo-500/20"
               >
                 <FileText className="w-5 h-5 mr-2" />
-                Tạo Hồ Sơ Xử Lý
+                {t('mentionsPage.detail.createCase')}
               </button>
               <button
                 onClick={handleCreateIncident}
                 className="w-full flex items-center justify-center px-4 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors font-semibold shadow-sm shadow-rose-500/20"
               >
                 <FileText className="w-5 h-5 mr-2" />
-                Tạo Sự Cố
+                {t('mentionsPage.detail.createIncident')}
               </button>
             </div>
           </div>
 
           {/* Meta Information */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 uppercase tracking-widest text-[11px] border-b border-white/10 pb-2">Thông tin hệ thống</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 uppercase tracking-widest text-[11px] border-b border-white/10 pb-2">{t('mentionsPage.detail.systemInfo')}</h3>
             <div className="space-y-4 text-sm">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 dark:text-gray-400 font-medium">Thu thập:</span>
+                <span className="text-slate-500 dark:text-gray-400 font-medium">{t('mentionsPage.detail.collectedAt')}</span>
                 <span className="text-slate-900 dark:text-white font-medium">
                   {new Date(mention.collected_at).toLocaleString('vi-VN')}
                 </span>
               </div>
               {mention.published_at && (
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500 dark:text-gray-400 font-medium">Xuất bản:</span>
+                  <span className="text-slate-500 dark:text-gray-400 font-medium">{t('mentionsPage.detail.publishedAt')}</span>
                   <span className="text-slate-900 dark:text-white font-medium">
                     {new Date(mention.published_at).toLocaleString('vi-VN')}
                   </span>
@@ -406,12 +408,12 @@ export default function MentionDetailPage() {
               )}
               {mention.author && (
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500 dark:text-gray-400 font-medium">Tác giả:</span>
+                  <span className="text-slate-500 dark:text-gray-400 font-medium">{t('mentionsPage.detail.author')}</span>
                   <span className="text-slate-900 dark:text-white font-medium">{mention.author}</span>
                 </div>
               )}
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 dark:text-gray-400 font-medium">Source ID:</span>
+                <span className="text-slate-500 dark:text-gray-400 font-medium">{t('mentionsPage.detail.sourceId')}</span>
                 <span className="text-slate-900 dark:text-white font-mono">{mention.source_id}</span>
               </div>
             </div>

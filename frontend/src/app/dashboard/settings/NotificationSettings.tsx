@@ -48,7 +48,7 @@ export default function NotificationSettings() {
       });
     } catch (error) {
       console.error('Failed to load notification settings:', error);
-      toast.error('Không thể tải cấu hình thông báo');
+      toast.error(t('settingsPage.notifications.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -70,10 +70,10 @@ export default function NotificationSettings() {
         weekly_report_day: settings.weeklyReportDay,
         weekly_report_time: settings.weeklyReportTime
       });
-      toast.success('Đã lưu cấu hình thông báo');
+      toast.success(t('settingsPage.notifications.saved'));
     } catch (error: any) {
       console.error('Failed to save notification settings:', error);
-      toast.error('Không thể lưu cấu hình thông báo');
+      toast.error(t('settingsPage.notifications.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -84,10 +84,10 @@ export default function NotificationSettings() {
     try {
       const response = await api.post(`/api/admin/settings/notifications/test?channel=${channel}`);
       const data = response.data;
-      toast.success(data.message || `Test ${channel} thành công`);
+      toast.success(data.message || t('settingsPage.notifications.testSuccess', { channel }));
     } catch (error: any) {
       console.error(`Failed to test ${channel}:`, error);
-      toast.error(error.response?.data?.detail || `Test ${channel} thất bại`);
+      toast.error(error.response?.data?.detail || t('settingsPage.notifications.testFailed', { channel }));
     } finally {
       setTesting(null);
     }
@@ -119,16 +119,16 @@ export default function NotificationSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Thông báo hệ thống</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Cấu hình kênh thông báo và báo cáo tự động</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.systemNotifications')}</h2>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.subtitle')}</p>
       </div>
 
       {/* System Alerts */}
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-gray-800">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Cảnh báo hệ thống</h3>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Bật/tắt thông báo cảnh báo tự động</p>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.notifications.systemAlerts.title')}</h3>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.systemAlerts.desc')}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
@@ -143,7 +143,7 @@ export default function NotificationSettings() {
 
         {/* Alert Channels */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">Kênh thông báo</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">{t('settingsPage.notifications.channelsLabel')}</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {['email', 'telegram', 'slack', 'discord'].map((channel) => (
               <label key={channel} className="flex items-center cursor-pointer group">
@@ -164,14 +164,14 @@ export default function NotificationSettings() {
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center">
           <Bell className="w-5 h-5 mr-2 text-indigo-400" />
-          Webhook URLs
+          {t('settingsPage.notifications.webhookUrlsTitle')}
         </h3>
 
         <div className="space-y-6">
           {/* Generic Webhook */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Generic Webhook URL
+              {t('settingsPage.notifications.genericWebhook')}
             </label>
             <div className="flex space-x-3">
               <input
@@ -185,7 +185,7 @@ export default function NotificationSettings() {
                 onClick={() => handleTest('webhook')}
                 disabled={!settings.webhookUrl || testing === 'webhook'}
                 className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
-                title="Test Webhook"
+                title={t('settingsPage.notifications.testWebhook')}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -195,7 +195,7 @@ export default function NotificationSettings() {
           {/* Telegram */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Telegram Webhook
+              {t('settingsPage.notifications.telegramWebhook')}
             </label>
             <div className="flex space-x-3">
               <input
@@ -209,7 +209,7 @@ export default function NotificationSettings() {
                 onClick={() => handleTest('telegram')}
                 disabled={!settings.telegramWebhook || testing === 'telegram'}
                 className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
-                title="Test Telegram"
+                title={t('settingsPage.notifications.testTelegram')}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -219,7 +219,7 @@ export default function NotificationSettings() {
           {/* Slack */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Slack Webhook
+              {t('settingsPage.notifications.slackWebhook')}
             </label>
             <div className="flex space-x-3">
               <input
@@ -233,7 +233,7 @@ export default function NotificationSettings() {
                 onClick={() => handleTest('slack')}
                 disabled={!settings.slackWebhook || testing === 'slack'}
                 className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
-                title="Test Slack"
+                title={t('settingsPage.notifications.testSlack')}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -243,7 +243,7 @@ export default function NotificationSettings() {
           {/* Discord */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Discord Webhook
+              {t('settingsPage.notifications.discordWebhook')}
             </label>
             <div className="flex space-x-3">
               <input
@@ -257,7 +257,7 @@ export default function NotificationSettings() {
                 onClick={() => handleTest('discord')}
                 disabled={!settings.discordWebhook || testing === 'discord'}
                 className="px-4 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
-                title="Test Discord"
+                title={t('settingsPage.notifications.testDiscord')}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -268,13 +268,13 @@ export default function NotificationSettings() {
 
       {/* Report Scheduling */}
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-2">Báo cáo tự động</h3>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-2">{t('settingsPage.notifications.scheduled.title')}</h3>
 
         {/* Daily Report */}
         <div className="flex items-center justify-between py-4 border-b border-slate-200 dark:border-gray-800">
           <div className="flex-1 pr-4">
-            <p className="text-sm font-medium text-gray-200">Báo cáo hàng ngày</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Gửi báo cáo tổng hợp mỗi ngày</p>
+            <p className="text-sm font-medium text-gray-200">{t('settingsPage.notifications.scheduled.daily')}</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.scheduled.dailyDesc')}</p>
           </div>
           <div className="flex items-center space-x-4">
             <input
@@ -299,8 +299,8 @@ export default function NotificationSettings() {
         {/* Weekly Report */}
         <div className="flex items-center justify-between py-4">
           <div className="flex-1 pr-4">
-            <p className="text-sm font-medium text-gray-200">Báo cáo hàng tuần</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Gửi báo cáo tổng hợp mỗi tuần</p>
+            <p className="text-sm font-medium text-gray-200">{t('settingsPage.notifications.scheduled.weekly')}</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.notifications.scheduled.weeklyDesc')}</p>
           </div>
           <div className="flex items-center space-x-4">
             <select
@@ -309,13 +309,13 @@ export default function NotificationSettings() {
               disabled={!settings.weeklyReportEnabled}
               className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="0">Thứ 2</option>
-              <option value="1">Thứ 3</option>
-              <option value="2">Thứ 4</option>
-              <option value="3">Thứ 5</option>
-              <option value="4">Thứ 6</option>
-              <option value="5">Thứ 7</option>
-              <option value="6">Chủ nhật</option>
+              <option value="0">{t('settingsPage.notifications.weekdays.mon')}</option>
+              <option value="1">{t('settingsPage.notifications.weekdays.tue')}</option>
+              <option value="2">{t('settingsPage.notifications.weekdays.wed')}</option>
+              <option value="3">{t('settingsPage.notifications.weekdays.thu')}</option>
+              <option value="4">{t('settingsPage.notifications.weekdays.fri')}</option>
+              <option value="5">{t('settingsPage.notifications.weekdays.sat')}</option>
+              <option value="6">{t('settingsPage.notifications.weekdays.sun')}</option>
             </select>
             <input
               type="time"
@@ -352,8 +352,8 @@ export default function NotificationSettings() {
       {/* Info */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Báo cáo tự động sẽ được gửi qua các kênh đã cấu hình. 
-          Đảm bảo đã cấu hình Email hoặc Webhook trước khi bật báo cáo tự động.
+          <strong className="text-indigo-300">{t('settingsPage.notifications.noteLabel')}</strong>{' '}
+          {t('settingsPage.notifications.note')}
         </p>
       </div>
     </div>

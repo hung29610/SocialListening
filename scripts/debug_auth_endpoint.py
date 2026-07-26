@@ -4,12 +4,29 @@ Debug Auth Endpoint
 Kiểm tra chi tiết lỗi của /api/auth/me endpoint
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
+
 import requests
 import json
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-EMAIL = "admin@sociallistening.com"
-PASSWORD = "Admin@123456"
+BASE_URL = backend_url()
+EMAIL = user_email()
+PASSWORD = user_password()
 
 def login():
     """Login and get token"""

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { FileText, Search, Filter, Download, Calendar, User, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
@@ -28,6 +29,7 @@ interface FilterParams {
 }
 
 export default function AuditLogs() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -63,7 +65,7 @@ export default function AuditLogs() {
       setLogs(response.data);
     } catch (error) {
       console.error('Error loading audit logs:', error);
-      toast.error('Không thể tải audit logs');
+      toast.error(t('settingsPage.auditLogs.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -123,15 +125,15 @@ export default function AuditLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Audit Logs</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Lịch sử hoạt động và thay đổi trong hệ thống</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.logs')}</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.auditLogs.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center px-4 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
         >
           <Filter className="w-4 h-4 mr-2" />
-          {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+          {showFilters ? t('settingsPage.auditLogs.hideFilters') : t('settingsPage.auditLogs.showFilters')}
         </button>
       </div>
 
@@ -141,7 +143,7 @@ export default function AuditLogs() {
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Tổng số logs</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t('settingsPage.auditLogs.stats.totalLogs')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{stats.total_logs}</p>
               </div>
               <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
@@ -153,7 +155,7 @@ export default function AuditLogs() {
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Loại hành động</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t('settingsPage.auditLogs.stats.actionTypes')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{stats.by_action?.length || 0}</p>
               </div>
               <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
@@ -165,7 +167,7 @@ export default function AuditLogs() {
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Hiển thị</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t('settingsPage.auditLogs.stats.displayed')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{logs.length}</p>
               </div>
               <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
@@ -179,44 +181,44 @@ export default function AuditLogs() {
       {/* Filters */}
       {showFilters && (
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-6">Bộ lọc</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-6">{t('settingsPage.auditLogs.filters.title')}</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">User ID</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.userId')}</label>
               <input
                 type="number"
                 value={filters.user_id}
                 onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-                placeholder="ID người dùng"
+                placeholder={t('settingsPage.auditLogs.filters.userIdPlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Hành động</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.action')}</label>
               <input
                 type="text"
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-                placeholder="e.g., user.create"
+                placeholder={t('settingsPage.auditLogs.filters.actionPlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Loại tài nguyên</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.resourceType')}</label>
               <input
                 type="text"
                 value={filters.resource_type}
                 onChange={(e) => setFilters({ ...filters, resource_type: e.target.value })}
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-                placeholder="e.g., user, source"
+                placeholder={t('settingsPage.auditLogs.filters.resourceTypePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Từ ngày</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.startDate')}</label>
               <input
                 type="datetime-local"
                 value={filters.start_date}
@@ -226,7 +228,7 @@ export default function AuditLogs() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Đến ngày</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.endDate')}</label>
               <input
                 type="datetime-local"
                 value={filters.end_date}
@@ -236,7 +238,7 @@ export default function AuditLogs() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Số lượng</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.auditLogs.filters.limit')}</label>
               <select
                 value={filters.limit}
                 onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value) })}
@@ -255,14 +257,14 @@ export default function AuditLogs() {
               onClick={handleReset}
               className="px-6 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
             >
-              Đặt lại
+              {t('settingsPage.auditLogs.filters.reset')}
             </button>
             <button
               onClick={handleSearch}
               className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm shadow-indigo-500/20"
             >
               <Search className="w-4 h-4 mr-2" />
-              Tìm kiếm
+              {t('settingsPage.auditLogs.filters.search')}
             </button>
           </div>
         </div>
@@ -273,17 +275,17 @@ export default function AuditLogs() {
         {logs.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 mx-auto text-gray-600 mb-3" />
-            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">Không có audit logs</p>
+            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('settingsPage.auditLogs.empty')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-white dark:bg-[#1E293B]/50 border-b border-slate-200 dark:border-gray-800">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Thời gian</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Hành động</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Tài nguyên</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">{t('settingsPage.auditLogs.table.time')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">{t('settingsPage.auditLogs.table.user')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">{t('settingsPage.auditLogs.table.action')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">{t('settingsPage.auditLogs.table.resource')}</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">IP</th>
                 </tr>
               </thead>
@@ -297,10 +299,10 @@ export default function AuditLogs() {
                       {log.user_id ? (
                         <span className="flex items-center text-slate-700 dark:text-gray-300">
                           <User className="w-4 h-4 mr-2 text-indigo-400" />
-                          ID: {log.user_id}
+                          {t('reports.exportId')}: {log.user_id}
                         </span>
                       ) : (
-                        <span className="text-gray-500 font-medium">System</span>
+                        <span className="text-gray-500 font-medium">{t('settingsPage.auditLogs.table.system')}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -331,7 +333,7 @@ export default function AuditLogs() {
       {logs.length > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-            Hiển thị <span className="text-slate-900 dark:text-white">{filters.offset + 1} - {filters.offset + logs.length}</span> logs
+            {t('settingsPage.auditLogs.showing')} <span className="text-slate-900 dark:text-white">{filters.offset + 1} - {filters.offset + logs.length}</span> logs
           </p>
           <div className="flex space-x-3">
             <button
@@ -342,7 +344,7 @@ export default function AuditLogs() {
               disabled={filters.offset === 0}
               className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Trước
+              {t('settingsPage.auditLogs.prev')}
             </button>
             <button
               onClick={() => {
@@ -352,7 +354,7 @@ export default function AuditLogs() {
               disabled={logs.length < filters.limit}
               className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sau
+              {t('settingsPage.auditLogs.next')}
             </button>
           </div>
         </div>
@@ -361,8 +363,8 @@ export default function AuditLogs() {
       {/* Info Box */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Audit logs ghi lại tất cả hoạt động quan trọng trong hệ thống. 
-          Dữ liệu này được lưu trữ vĩnh viễn để đảm bảo tính minh bạch và truy vết.
+          <strong className="text-indigo-300">{t('settingsPage.auditLogs.noteLabel')}</strong>{' '}
+          {t('settingsPage.auditLogs.note')}
         </p>
       </div>
     </div>

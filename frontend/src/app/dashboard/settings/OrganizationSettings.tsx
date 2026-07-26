@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { languageNames } from '@/i18n';
 import { Building, Save, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
@@ -41,7 +42,7 @@ export default function OrganizationSettings() {
       });
     } catch (error) {
       console.error('Failed to load organization settings:', error);
-      toast.error('Không thể tải thông tin tổ chức');
+      toast.error(t('settingsPage.organization.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -60,10 +61,10 @@ export default function OrganizationSettings() {
         timezone: settings.timezone,
         language: settings.language
       });
-      toast.success('Đã lưu thông tin tổ chức');
+      toast.success(t('settingsPage.organization.saveSuccess'));
     } catch (error: any) {
       console.error('Failed to save organization settings:', error);
-      toast.error('Không thể lưu thông tin tổ chức');
+      toast.error(t('settingsPage.organization.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -81,17 +82,17 @@ export default function OrganizationSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Thông tin tổ chức</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Cấu hình thông tin công ty</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.organization')}</h2>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.organization.subtitle')}</p>
       </div>
 
       {/* Logo Upload */}
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
-        <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">Logo công ty</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-4">{t('settingsPage.organization.companyLogo')}</label>
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 bg-white dark:bg-[#1E293B] rounded-xl flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-gray-700">
             {settings.logoUrl ? (
-              <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-xl p-2" />
+              <img src={settings.logoUrl} alt={t('settingsPage.organization.companyLogo')} className="w-full h-full object-contain rounded-xl p-2" />
             ) : (
               <Building className="w-10 h-10 text-gray-500" />
             )}
@@ -99,9 +100,9 @@ export default function OrganizationSettings() {
           <div>
             <button className="flex items-center px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium shadow-sm">
               <Upload className="w-4 h-4 mr-2 text-slate-500 dark:text-gray-400" />
-              Tải logo lên
+              {t('settingsPage.organization.uploadLogo')}
             </button>
-            <p className="text-xs text-gray-500 mt-2.5 font-medium">PNG, JPG. Tối đa 2MB. Khuyến nghị 200x200px</p>
+            <p className="text-xs text-gray-500 mt-2.5 font-medium">{t('settingsPage.organization.logoHint')}</p>
           </div>
         </div>
       </div>
@@ -111,46 +112,46 @@ export default function OrganizationSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Tên tổ chức *
+              {t('settingsPage.organization.orgName')} *
             </label>
             <input
               type="text"
               value={settings.organizationName}
               onChange={(e) => setSettings({ ...settings, organizationName: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-              placeholder="Ví dụ: Công ty TNHH ABC"
+              placeholder={t('settingsPage.organization.orgNamePlaceholder')}
             />
           </div>
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Địa chỉ
+              {t('settingsPage.organization.address')}
             </label>
             <textarea
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
               rows={3}
               className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
-              placeholder="Địa chỉ văn phòng"
+              placeholder={t('settingsPage.organization.addressPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Email liên hệ
+              {t('settingsPage.organization.contactEmail')}
             </label>
             <input
               type="email"
               value={settings.contactEmail}
               onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-              placeholder="contact@company.com"
+              placeholder={t('settingsPage.organization.contactEmailPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Hotline
+              {t('settingsPage.organization.hotline')}
             </label>
             <input
               type="tel"
@@ -163,7 +164,7 @@ export default function OrganizationSettings() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Website
+              {t('settingsPage.organization.website')}
             </label>
             <input
               type="url"
@@ -176,31 +177,31 @@ export default function OrganizationSettings() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Múi giờ
+              {t('settingsPage.organization.timezone')}
             </label>
             <select
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
             >
-              <option value="Asia/Ho_Chi_Minh">Việt Nam (GMT+7)</option>
-              <option value="Asia/Bangkok">Bangkok (GMT+7)</option>
-              <option value="Asia/Singapore">Singapore (GMT+8)</option>
-              <option value="Asia/Tokyo">Tokyo (GMT+9)</option>
+              <option value="Asia/Ho_Chi_Minh">{t('settingsPage.organization.timezoneVietnam')}</option>
+              <option value="Asia/Bangkok">{t('settingsPage.organization.timezoneBangkok')}</option>
+              <option value="Asia/Singapore">{t('settingsPage.organization.timezoneSingapore')}</option>
+              <option value="Asia/Tokyo">{t('settingsPage.organization.timezoneTokyo')}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Ngôn ngữ mặc định
+              {t('settingsPage.organization.defaultLanguage')}
             </label>
             <select
               value={settings.language}
               onChange={(e) => setSettings({ ...settings, language: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
             >
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">English</option>
+              <option value="vi">{languageNames.vi}</option>
+              <option value="en">{languageNames.en}</option>
             </select>
           </div>
         </div>

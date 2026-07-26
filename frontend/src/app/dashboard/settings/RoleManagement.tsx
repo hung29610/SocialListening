@@ -5,6 +5,7 @@ import { Shield, Plus, Edit2, Trash2, X, Check, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useDialog } from '@/components/ui/Dialog';
 import { api } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Role {
   id: number;
@@ -26,6 +27,7 @@ interface RoleFormData {
 }
 
 export default function RoleManagement() {
+  const { t } = useLanguage();
   const { confirm } = useDialog();
   const [roles, setRoles] = useState<Role[]>([]);
   const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
@@ -51,7 +53,7 @@ export default function RoleManagement() {
       setRoles(response.data);
     } catch (error) {
       console.error('Error loading roles:', error);
-      toast.error('Không thể tải danh sách vai trò');
+      toast.error(t('settingsPage.roleManagement.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -108,30 +110,32 @@ export default function RoleManagement() {
         await api.post(url, payload);
       }
 
-      toast.success(editingRole ? 'Cập nhật vai trò thành công' : 'Tạo vai trò thành công');
+      toast.success(editingRole
+        ? t('settingsPage.roleManagement.updateSuccess')
+        : t('settingsPage.roleManagement.createSuccess'));
       setShowModal(false);
       loadRoles();
     } catch (error: any) {
       console.error('Error saving role:', error);
-      toast.error(error.response?.data?.detail || error.message || 'Không thể lưu vai trò');
+      toast.error(error.response?.data?.detail || error.message || t('settingsPage.roleManagement.errors.saveFailed'));
     }
   };
 
   const handleDelete = async (role: Role) => {
     const ok = await confirm({
-      title: 'Xóa vai trò',
-      message: `Bạn có chắc muốn xóa vai trò "${role.display_name}"?`,
+      title: t('settingsPage.roleManagement.deleteTitle'),
+      message: t('settingsPage.roleManagement.deleteMessage', { name: role.display_name }),
       variant: 'danger',
     });
     if (!ok) return;
 
     try {
       await api.delete(`/api/admin/roles/${role.id}`);
-      toast.success('Xóa vai trò thành công');
+      toast.success(t('settingsPage.roleManagement.deleteSuccess'));
       loadRoles();
     } catch (error: any) {
       console.error('Error deleting role:', error);
-      toast.error(error.response?.data?.detail || error.message || 'Không thể xóa vai trò');
+      toast.error(error.response?.data?.detail || error.message || t('settingsPage.roleManagement.errors.deleteFailed'));
     }
   };
 
@@ -157,15 +161,15 @@ export default function RoleManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Quản lý vai trò</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Định nghĩa vai trò và quyền hạn trong hệ thống</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.roleManagement.title')}</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.roleManagement.subtitle')}</p>
         </div>
         <button 
           onClick={handleCreate}
           className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Thêm vai trò
+          {t('settingsPage.roleManagement.addRole')}
         </button>
       </div>
 
@@ -183,7 +187,7 @@ export default function RoleManagement() {
                   <p className="text-xs text-slate-500 dark:text-gray-400 font-mono mt-0.5">{role.name}</p>
                   {role.is_system && (
                     <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md">
-                      Hệ thống
+                      {t('settingsPage.roleManagement.systemBadge')}
                     </span>
                   )}
                 </div>
@@ -192,7 +196,7 @@ export default function RoleManagement() {
                 <button 
                   onClick={() => handleEdit(role)}
                   className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
-                  title="Chỉnh sửa"
+                  title={t('settingsPage.roleManagement.actions.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -200,7 +204,7 @@ export default function RoleManagement() {
                   <button 
                     onClick={() => handleDelete(role)}
                     className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                    title="Xóa"
+                    title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -213,7 +217,7 @@ export default function RoleManagement() {
             )}
 
             <div>
-              <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mb-2.5">Quyền hạn ({role.permissions.length}):</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-gray-300 mb-2.5">{t('settingsPage.roleManagement.permissionsCount', { count: role.permissions.length })}</p>
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(role.permissions) && role.permissions.slice(0, 5).map((perm, idx) => (
                   <span
@@ -225,7 +229,7 @@ export default function RoleManagement() {
                 ))}
                 {role.permissions.length > 5 && (
                   <span className="px-2.5 py-1 text-xs bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 rounded-md">
-                    +{role.permissions.length - 5} more
+                    {t('settingsPage.roleManagement.morePermissions', { count: role.permissions.length - 5 })}
                   </span>
                 )}
               </div>
@@ -240,7 +244,9 @@ export default function RoleManagement() {
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">
-                {editingRole ? `Chỉnh sửa vai trò: ${editingRole.display_name}` : 'Tạo vai trò mới'}
+                {editingRole
+                  ? t('settingsPage.roleManagement.editModalTitle', { name: editingRole.display_name })
+                  : t('settingsPage.roleManagement.createModalTitle')}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:text-gray-300 transition-colors">
                 <X className="w-5 h-5" />
@@ -250,7 +256,7 @@ export default function RoleManagement() {
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {editingRole?.is_system && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-200">
-                  <strong className="text-amber-300">Lưu ý:</strong> Vai trò hệ thống chỉ có thể chỉnh sửa quyền hạn và trạng thái.
+                  <strong className="text-amber-300">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.systemRoleNote')}
                 </div>
               )}
 
@@ -258,14 +264,14 @@ export default function RoleManagement() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      Mã vai trò <span className="text-rose-500">*</span>
+                      {t('settingsPage.roleManagement.form.code')} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
-                      placeholder="e.g., content_moderator"
+                      placeholder={t('settingsPage.roleManagement.form.codePlaceholder')}
                       required
                       disabled={!!editingRole}
                     />
@@ -273,26 +279,26 @@ export default function RoleManagement() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      Tên hiển thị <span className="text-rose-500">*</span>
+                      {t('settingsPage.roleManagement.form.displayName')} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                       className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
-                      placeholder="e.g., Người kiểm duyệt nội dung"
+                      placeholder={t('settingsPage.roleManagement.form.displayNamePlaceholder')}
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Mô tả</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('settingsPage.roleManagement.form.description')}</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500"
                       rows={2}
-                      placeholder="Mô tả vai trò này..."
+                      placeholder={t('settingsPage.roleManagement.form.descriptionPlaceholder')}
                     />
                   </div>
                 </>
@@ -300,7 +306,7 @@ export default function RoleManagement() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Quyền hạn <span className="text-rose-500">*</span>
+                  {t('settingsPage.roleManagement.form.permissions')} <span className="text-rose-500">*</span>
                 </label>
                 <div className="border border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B] rounded-xl p-4 max-h-60 overflow-y-auto">
                   <div className="grid grid-cols-2 gap-3">
@@ -318,7 +324,7 @@ export default function RoleManagement() {
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-gray-400 mt-2 font-medium">
-                  Đã chọn: <span className="text-indigo-400">{formData.permissions.length}</span> quyền
+                  {t('settingsPage.roleManagement.form.selectedPrefix')} <span className="text-indigo-400">{formData.permissions.length}</span> {t('settingsPage.roleManagement.form.selectedSuffix')}
                 </p>
               </div>
 
@@ -331,7 +337,7 @@ export default function RoleManagement() {
                   className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900"
                 />
                 <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-gray-300">
-                  Vai trò đang hoạt động
+                  {t('settingsPage.roleManagement.form.isActive')}
                 </label>
               </div>
 
@@ -341,13 +347,13 @@ export default function RoleManagement() {
                   onClick={() => setShowModal(false)}
                   className="px-6 py-2.5 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
                 >
-                  {editingRole ? 'Cập nhật' : 'Tạo vai trò'}
+                  {editingRole ? t('common.update') : t('settingsPage.roleManagement.form.submitCreate')}
                 </button>
               </div>
             </form>
@@ -358,8 +364,7 @@ export default function RoleManagement() {
       {/* Info Box */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Vai trò hệ thống (Super Admin, Admin, Manager, Analyst, Viewer) không thể xóa. 
-          Thay đổi quyền hạn sẽ ảnh hưởng đến tất cả người dùng có vai trò đó.
+          <strong className="text-indigo-300">{t('settingsPage.roleManagement.noteLabel')}</strong> {t('settingsPage.roleManagement.infoNote')}
         </p>
       </div>
     </div>

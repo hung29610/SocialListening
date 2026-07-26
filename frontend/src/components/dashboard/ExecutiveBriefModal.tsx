@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, FileText, MessageSquare, Zap, Loader2 } from 'lucide-react';
 import { ai } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ExecutiveBriefModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface ExecutiveBriefModalProps {
 }
 
 export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incidentId }: ExecutiveBriefModalProps) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [brief, setBrief] = useState<any>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -32,7 +34,9 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
       });
       setBrief(data);
     } catch (error: any) {
-      toast.error('Lỗi khi tạo báo cáo: ' + (error?.response?.data?.detail || error.message));
+      toast.error(t('crisis.brief.errors.generateFailed', {
+        detail: error?.response?.data?.detail || error.message,
+      }));
       onClose();
     } finally {
       setLoading(false);
@@ -42,7 +46,7 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     setCopied(type);
-    toast.success('Đã sao chép vào clipboard');
+    toast.success(t('crisis.brief.copied'));
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -59,8 +63,8 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
               <Zap className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Executive Brief Generator</h2>
-              <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Báo cáo tóm tắt cho ban lãnh đạo được tạo bởi AI</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('crisis.brief.title')}</h2>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">{t('crisis.brief.subtitle')}</p>
             </div>
           </div>
           <button 
@@ -76,14 +80,14 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-              <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">AI đang phân tích và tổng hợp báo cáo...</p>
+              <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('crisis.brief.generating')}</p>
             </div>
           ) : brief ? (
             <>
               {/* Meta Info */}
               <div className="flex flex-wrap gap-4 p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl">
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">Mức độ rủi ro</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">{t('crisis.brief.riskLevel')}</span>
                   <span className={`text-sm font-bold uppercase ${
                     brief.risk_level === 'critical' ? 'text-rose-500' :
                     brief.risk_level === 'high' ? 'text-orange-500' :
@@ -95,12 +99,12 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
                 </div>
                 <div className="w-px h-10 bg-gray-800 hidden sm:block"></div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">Hành động đề xuất</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">{t('crisis.brief.recommendedAction')}</span>
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">{brief.recommended_decision}</span>
                 </div>
                 <div className="w-px h-10 bg-gray-800 hidden sm:block"></div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">Phụ trách / Thời hạn</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-500 mb-1">{t('crisis.brief.ownerDeadline')}</span>
                   <span className="text-sm font-semibold text-indigo-400">{brief.owner} • {brief.deadline}</span>
                 </div>
               </div>
@@ -111,12 +115,12 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
                       <FileText className="w-4 h-4 mr-2 text-indigo-400" />
-                      Tóm tắt 3 dòng (Executive Summary)
+                      {t('crisis.brief.summary3Lines')}
                     </h3>
-                    <button 
+                    <button
                       onClick={() => handleCopy(brief.summary_3_lines, '3lines')}
                       className="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white p-1"
-                      title="Copy"
+                      title={t('crisis.brief.copy')}
                     >
                       {copied === '3lines' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -133,12 +137,12 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
                       <MessageSquare className="w-4 h-4 mr-2 text-blue-400" />
-                      Zalo Short Brief
+                      {t('crisis.brief.zaloBrief')}
                     </h3>
-                    <button 
+                    <button
                       onClick={() => handleCopy(brief.zalo_brief, 'zalo')}
                       className="text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white p-1"
-                      title="Copy"
+                      title={t('crisis.brief.copy')}
                     >
                       {copied === 'zalo' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -156,16 +160,16 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
                     <FileText className="w-4 h-4 mr-2 text-indigo-400" />
-                    Báo cáo đầy đủ (Full Brief)
+                    {t('crisis.brief.fullBrief')}
                   </h3>
                   <button 
                     onClick={() => handleCopy(brief.full_brief, 'full')}
                     className="flex items-center px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-slate-900 dark:text-white rounded-lg transition-colors"
                   >
                     {copied === 'full' ? (
-                      <><Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> Đã copy</>
+                      <><Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> {t('crisis.brief.copiedShort')}</>
                     ) : (
-                      <><Copy className="w-3.5 h-3.5 mr-1.5" /> Copy toàn bộ</>
+                      <><Copy className="w-3.5 h-3.5 mr-1.5" /> {t('crisis.brief.copyAll')}</>
                     )}
                   </button>
                 </div>
@@ -177,7 +181,7 @@ export default function ExecutiveBriefModal({ isOpen, onClose, mentionIds, incid
               </div>
             </>
           ) : (
-            <div className="text-center text-gray-500 py-10">Không có dữ liệu báo cáo.</div>
+            <div className="text-center text-gray-500 py-10">{t('crisis.brief.noData')}</div>
           )}
         </div>
       </div>

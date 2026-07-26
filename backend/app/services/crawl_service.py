@@ -88,25 +88,25 @@ def validate_rss_feed(url: str) -> tuple[bool, str, str]:
     """
     Validate if a URL is a valid RSS/Atom feed.
     Returns (is_valid, error_code, error_message_vi).
-    """
-    import requests
-    try:
-        headers = {"User-Agent": USER_AGENT}
-        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-        response.raise_for_status()
-    except requests.exceptions.Timeout:
-        return False, "timeout", "Kết nối hết hạn (timeout). Vui lòng thử lại sau."
-    except Exception as e:
-        return False, "rss_fetch_failed", f"Lấy dữ liệu RSS feed thất bại: {str(e)}"
 
-    content_type = response.headers.get("content-type", "").lower()
-    
+    The fetch goes through app.services.feed_fetcher so that user-supplied URLs
+    cannot be used to reach internal addresses, follow unbounded redirect chains
+    or stream an unbounded response body.
+    """
+    from app.services.feed_fetcher import fetch_url
+
+    result = fetch_url(url)
+    if not result.ok:
+        return False, result.error_code, result.error_message
+
+    content_type = result.content_type
+
     # Check if content type is html
     is_html = "text/html" in content_type
-    
+
     # Inspect first few bytes/chars
     try:
-        content_preview = response.content[:2048].decode('utf-8', errors='ignore').strip().lower()
+        content_preview = result.content[:2048].decode('utf-8', errors='ignore').strip().lower()
     except Exception:
         content_preview = ""
 
@@ -141,14 +141,22 @@ def crawl_rss_feed(url: str) -> Dict:
             "error": "..." (if failed)
         }
     """
+    from app.services.feed_fetcher import fetch_url
+
     try:
-        # Fetch with requests first for proper timeout/error handling
-        headers = {"User-Agent": USER_AGENT}
-        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
-        response.raise_for_status()
+        # Guarded fetch: SSRF checks, bounded redirects, response-size ceiling.
+        fetched = fetch_url(url)
+        if not fetched.ok:
+            return {
+                "success": False,
+                "articles": [],
+                "feed_title": "",
+                "error": fetched.error_message,
+                "error_code": fetched.error_code,
+            }
 
         # Parse with feedparser
-        feed = feedparser.parse(response.content)
+        feed = feedparser.parse(fetched.content)
 
         if feed.bozo and not feed.entries:
             # feedparser detected an error and there are no entries
@@ -239,25 +247,32 @@ def crawl_rss_feed(url: str) -> Dict:
             "error": None
         }
 
-    except requests.exceptions.Timeout:
-        return {"success": False, "articles": [], "feed_title": "", "error": "timeout: Kết nối hết hạn (timeout). Vui lòng thử lại sau."}
-    except requests.exceptions.ConnectionError as e:
-        return {"success": False, "articles": [], "feed_title": "", "error": f"rss_fetch_failed: Lấy dữ liệu RSS feed thất bại do lỗi kết nối: {e}"}
-    except requests.exceptions.HTTPError as e:
-        return {"success": False, "articles": [], "feed_title": "", "error": f"rss_fetch_failed: Lấy dữ liệu RSS feed thất bại với mã lỗi HTTP: {e}"}
     except Exception as e:
         logger.error(f"Unexpected error crawling RSS feed {url}: {e}")
-        return {"success": False, "articles": [], "feed_title": "", "error": f"rss_fetch_failed: Lấy dữ liệu RSS feed thất bại: {e}"}
+        return {
+            "success": False,
+            "articles": [],
+            "feed_title": "",
+            "error": "rss_fetch_failed: Lấy dữ liệu RSS feed thất bại.",
+            "error_code": "rss_fetch_failed",
+        }
 
 
 def crawl_html_page(url: str) -> Dict:
     """Crawl HTML page using BeautifulSoup"""
-    try:
-        headers = {"User-Agent": USER_AGENT}
-        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
+    from app.services.feed_fetcher import fetch_url
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+    try:
+        fetched = fetch_url(url, accept="text/html, application/xhtml+xml, */*")
+        if not fetched.ok:
+            return {
+                "success": False,
+                "articles": [],
+                "error": fetched.error_message,
+                "error_code": fetched.error_code,
+            }
+
+        soup = BeautifulSoup(fetched.content, 'html.parser')
 
         # Remove script and style
         for script in soup(["script", "style"]):
@@ -293,7 +308,8 @@ def crawl_html_page(url: str) -> Dict:
             "error": None
         }
     except Exception as e:
-        return {"success": False, "articles": [], "feed_title": "", "error": str(e)}
+        logger.info("HTML page crawl failed for %s: %s", url, e)
+        return {"success": False, "articles": [], "feed_title": "", "error": "Không lấy được nội dung trang."}
 
 
 def test_rss_feed(url: str) -> Dict:

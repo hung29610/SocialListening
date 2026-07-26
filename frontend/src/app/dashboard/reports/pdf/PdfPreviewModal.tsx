@@ -2,8 +2,10 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const { sections, theme, accentColor, fontColor, fontFamily, aspectRatio } = config;
@@ -22,9 +24,9 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
   const getSentimentData = () => {
     if (!data?.metrics?.sentiment) return [];
     return [
-      { name: 'Positive', value: data.metrics.sentiment.positive || 0, color: '#22c55e' },
-      { name: 'Negative', value: data.metrics.sentiment.negative || 0, color: '#ef4444' },
-      { name: 'Neutral', value: data.metrics.sentiment.neutral || 0, color: '#64748b' }
+      { name: t('reports.positive'), value: data.metrics.sentiment.positive || 0, color: '#22c55e' },
+      { name: t('reports.negative'), value: data.metrics.sentiment.negative || 0, color: '#ef4444' },
+      { name: t('reports.neutral'), value: data.metrics.sentiment.neutral || 0, color: '#64748b' }
     ].filter(d => d.value > 0);
   };
 
@@ -43,18 +45,18 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'overview':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-2xl font-bold">Overview</h2>
+            <h2 className="text-2xl font-bold">{t('reportsPage.pdf.sections.overview.title')}</h2>
             <div className="grid grid-cols-3 gap-4">
               <div className={`p-4 rounded-xl ${cardClass}`}>
-                <div className="text-sm font-semibold opacity-70">Total Mentions</div>
+                <div className="text-sm font-semibold opacity-70">{t('reports.totalMentions')}</div>
                 <div className="text-2xl font-bold mt-1">{data?.metrics?.total_mentions?.toLocaleString() || 0}</div>
               </div>
               <div className={`p-4 rounded-xl ${cardClass}`}>
-                <div className="text-sm font-semibold opacity-70">Total Reach</div>
+                <div className="text-sm font-semibold opacity-70">{t('reportsPage.preview.totalReach')}</div>
                 <div className="text-2xl font-bold mt-1">{data?.metrics?.total_reach?.toLocaleString() || 0}</div>
               </div>
               <div className={`p-4 rounded-xl ${cardClass}`}>
-                <div className="text-sm font-semibold opacity-70">Positive Results</div>
+                <div className="text-sm font-semibold opacity-70">{t('reportsPage.preview.positiveResults')}</div>
                 <div className="text-2xl font-bold mt-1 text-emerald-500">{data?.metrics?.sentiment?.positive?.toLocaleString() || 0}</div>
               </div>
             </div>
@@ -63,9 +65,9 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'executive_summary':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Executive Summary</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reportsPage.pdf.sections.executiveSummary.title')}</h2>
             <div className={`p-6 rounded-xl text-sm leading-relaxed ${cardClass}`}>
-              {data?.exec_summary || "No executive summary available for this period."}
+              {data?.exec_summary || t('reportsPage.preview.noExecSummary')}
             </div>
           </div>
         );
@@ -74,10 +76,10 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
         const trendData = getTrendData();
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Analysis & Trends</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reports.analysisTrends')}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className={`p-6 rounded-xl flex flex-col items-center justify-center h-64 ${cardClass}`}>
-                <h3 className="font-bold mb-2">Sentiment Breakdown</h3>
+                <h3 className="font-bold mb-2">{t('reports.sentimentBreakdown')}</h3>
                 {pieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -90,11 +92,11 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="opacity-50 text-sm">No sentiment data available.</div>
+                  <div className="opacity-50 text-sm">{t('reportsPage.preview.noSentimentData')}</div>
                 )}
               </div>
               <div className={`p-6 rounded-xl flex flex-col items-center justify-center h-64 ${cardClass}`}>
-                <h3 className="font-bold mb-2">Daily Volume</h3>
+                <h3 className="font-bold mb-2">{t('reportsPage.preview.dailyVolume')}</h3>
                 {trendData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData}>
@@ -105,7 +107,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="opacity-50 text-sm">No trend data available.</div>
+                  <div className="opacity-50 text-sm">{t('reportsPage.preview.noTrendData')}</div>
                 )}
               </div>
             </div>
@@ -114,17 +116,17 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'period_comparison':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Period Comparison</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reportsPage.pdf.sections.periodComparison.title')}</h2>
             {!data?.comparison ? (
-               <div className="opacity-50 text-sm">No comparison data available.</div>
+               <div className="opacity-50 text-sm">{t('reportsPage.preview.noComparisonData')}</div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className={`p-4 rounded-xl ${cardClass}`}>
-                  <div className="text-sm font-semibold opacity-70">Mentions Change</div>
+                  <div className="text-sm font-semibold opacity-70">{t('reportsPage.preview.mentionsChange')}</div>
                   <div className="text-2xl font-bold mt-1">{data.comparison.mentions_change}</div>
                 </div>
                 <div className={`p-4 rounded-xl ${cardClass}`}>
-                  <div className="text-sm font-semibold opacity-70">Reach Change</div>
+                  <div className="text-sm font-semibold opacity-70">{t('reportsPage.preview.reachChange')}</div>
                   <div className="text-2xl font-bold mt-1">{data.comparison.reach_change}</div>
                 </div>
               </div>
@@ -135,10 +137,10 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'influencers_sources':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Sources & Topics</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reportsPage.preview.sourcesAndTopics')}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className={`p-4 rounded-xl ${cardClass}`}>
-                <h3 className="font-bold mb-3">Top Domains</h3>
+                <h3 className="font-bold mb-3">{t('reportsPage.preview.topDomains')}</h3>
                 {data?.sources_list?.length > 0 ? (
                   <ul className="space-y-2 text-sm">
                     {data.sources_list.slice(0,5).map((s: any, i: number) => (
@@ -146,7 +148,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                     ))}
                   </ul>
                 ) : (
-                  <div className="opacity-50 text-sm">No source data available.</div>
+                  <div className="opacity-50 text-sm">{t('reports.noSourceData')}</div>
                 )}
               </div>
             </div>
@@ -155,16 +157,16 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'top_mentions':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Top Mentions by Reach</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reportsPage.preview.topMentionsByReach')}</h2>
             <div className="space-y-3">
               {data?.top_mentions?.length > 0 ? data.top_mentions.slice(0,3).map((m: any, i: number) => (
                 <div key={i} className={`p-4 rounded-xl border-l-4 ${cardClass}`} style={{ borderLeftColor: accentColor }}>
-                  <div className="font-bold">{m.title || 'Untitled'}</div>
-                  <div className="text-xs mt-1 mb-2 opacity-70">{m.domain} • Reach: {m.reach}</div>
-                  <div className="text-sm italic opacity-80">"{m.content?.substring(0, 150)}..."</div>
+                  <div className="font-bold">{m.title || t('mentions.page.noTitle')}</div>
+                  <div className="text-xs mt-1 mb-2 opacity-70">{m.domain} • {t('reportsPage.preview.reachLabel')} {m.reach}</div>
+                  <div className="text-sm italic opacity-80">&ldquo;{m.content?.substring(0, 150)}...&rdquo;</div>
                 </div>
               )) : (
-                <div className="opacity-50 text-sm">No top mentions available.</div>
+                <div className="opacity-50 text-sm">{t('reportsPage.preview.noTopMentions')}</div>
               )}
             </div>
           </div>
@@ -172,16 +174,16 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
       case 'recent_mentions':
         return (
           <div key={id} className="space-y-4">
-            <h2 className="text-xl font-bold" style={{ color: accentColor }}>Recent Mentions</h2>
+            <h2 className="text-xl font-bold" style={{ color: accentColor }}>{t('reportsPage.pdf.sections.recentMentions.title')}</h2>
             <div className="space-y-3">
               {data?.raw_mentions?.length > 0 ? data.raw_mentions.slice(0,3).map((m: any, i: number) => (
                 <div key={i} className={`p-4 rounded-xl border-l-4 ${cardClass}`} style={{ borderLeftColor: accentColor }}>
-                  <div className="font-bold">{m.title || 'Untitled'}</div>
+                  <div className="font-bold">{m.title || t('mentions.page.noTitle')}</div>
                   <div className="text-xs mt-1 mb-2 opacity-70">{m.domain} • {m.date}</div>
-                  <div className="text-sm italic opacity-80">"{m.content?.substring(0, 150)}..."</div>
+                  <div className="text-sm italic opacity-80">&ldquo;{m.content?.substring(0, 150)}...&rdquo;</div>
                 </div>
               )) : (
-                <div className="opacity-50 text-sm">No recent mentions available.</div>
+                <div className="opacity-50 text-sm">{t('reportsPage.preview.noRecentMentions')}</div>
               )}
             </div>
           </div>
@@ -222,7 +224,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
             >
               <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-4 border-b">
-                  <Dialog.Title className="text-lg font-bold text-slate-900">PDF Live Preview</Dialog.Title>
+                  <Dialog.Title className="text-lg font-bold text-slate-900">{t('reportsPage.preview.modalTitle')}</Dialog.Title>
                   <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
                 </div>
                 
@@ -230,7 +232,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                   {loading ? (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                       <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                      Loading preview data...
+                      {t('reportsPage.preview.loading')}
                     </div>
                   ) : (
                     <div 
@@ -247,8 +249,8 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                     >
                       {/* Cover */}
                       <div className="h-64 flex flex-col items-center justify-center border-b" style={{ borderColor: borderClass }}>
-                        <h1 className="text-4xl font-bold mb-4">{data?.project_name || 'Project Name'}</h1>
-                        <p style={{ color: mutedTextColor }}>{data?.date_from} to {data?.date_to}</p>
+                        <h1 className="text-4xl font-bold mb-4">{data?.project_name || t('reportsPage.preview.projectNamePlaceholder')}</h1>
+                        <p style={{ color: mutedTextColor }}>{data?.date_from} {t('reportsPage.preview.dateRangeSeparator')} {data?.date_to}</p>
                       </div>
 
                       {/* Content */}

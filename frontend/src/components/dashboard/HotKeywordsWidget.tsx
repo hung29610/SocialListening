@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flame } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HotKeyword {
   keyword: string;
@@ -9,12 +10,14 @@ interface HotKeyword {
 }
 
 export default function HotKeywordsWidget({ data, isLoading }: { data: HotKeyword[] | null; isLoading: boolean }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
-    return <div className="h-48 flex items-center justify-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải từ khóa...</div>;
+    return <div className="h-48 flex items-center justify-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('crisis.hotKeywords.loading')}</div>;
   }
 
   if (!data || data.length === 0) {
-    return <div className="h-48 flex items-center justify-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">Chưa có từ khóa nổi bật</div>;
+    return <div className="h-48 flex items-center justify-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('crisis.hotKeywords.empty')}</div>;
   }
 
   return (
@@ -30,7 +33,7 @@ export default function HotKeywordsWidget({ data, isLoading }: { data: HotKeywor
               <div className="flex space-x-2 mt-1 text-xs font-medium">
                 <span className="text-slate-500 dark:text-gray-400">{kw.count} mentions</span>
                 {kw.negative_count > 0 && (
-                  <span className="text-rose-400">({kw.negative_count} tiêu cực)</span>
+                  <span className="text-rose-400">{t('crisis.hotKeywords.negativeCount', { count: kw.negative_count })}</span>
                 )}
               </div>
             </div>
@@ -41,7 +44,7 @@ export default function HotKeywordsWidget({ data, isLoading }: { data: HotKeywor
               kw.risk_score_avg >= 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
               'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
             }`}>
-              Rủi ro: {kw.risk_score_avg.toFixed(1)}
+              {t('crisis.riskWithScore', { score: kw.risk_score_avg.toFixed(1) })}
             </span>
           </div>
         </div>

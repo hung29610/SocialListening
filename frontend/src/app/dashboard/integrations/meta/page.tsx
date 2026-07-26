@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Facebook, Instagram, CheckCircle2, XCircle, Loader2, ArrowLeft, Plug, LogOut, CheckSquare, Square } from 'lucide-react';
 import Link from 'next/link';
 import { useDialog } from '@/components/ui/Dialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MetaAccount {
   id: number;
@@ -25,6 +26,7 @@ interface MetaStatus {
 
 export default function MetaIntegrationPage() {
   const { confirm } = useDialog();
+  const { t } = useLanguage();
   const [metaStatus, setMetaStatus] = useState<MetaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -47,7 +49,7 @@ export default function MetaIntegrationPage() {
       setMetaStatus(data);
     } catch (err) {
       console.error(err);
-      setError('Lỗi kết nối máy chủ');
+      setError(t('landing.metaIntegration.errors.serverConnection'));
     } finally {
       setLoading(false);
     }
@@ -63,20 +65,20 @@ export default function MetaIntegrationPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Không lấy được URL kết nối');
+        setError(t('landing.metaIntegration.errors.noConnectUrl'));
         setActionLoading(false);
       }
     } catch (err) {
       console.error(err);
-      setError('Lỗi gọi API');
+      setError(t('landing.metaIntegration.errors.apiCall'));
       setActionLoading(false);
     }
   };
 
   const handleDisconnect = async () => {
     const ok = await confirm({
-      title: 'Ngắt kết nối Meta',
-      message: 'Bạn có chắc muốn ngắt kết nối Meta? Mọi tài khoản đang đồng bộ sẽ bị dừng.',
+      title: t('landing.metaIntegration.disconnectTitle'),
+      message: t('landing.metaIntegration.disconnectConfirm'),
       variant: 'danger'
     });
     if (!ok) return;
@@ -87,11 +89,11 @@ export default function MetaIntegrationPage() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       await fetchStatus();
-      setSuccessMsg('Đã ngắt kết nối thành công.');
+      setSuccessMsg(t('landing.metaIntegration.disconnected'));
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       console.error(err);
-      setError('Lỗi khi ngắt kết nối');
+      setError(t('landing.metaIntegration.errors.disconnect'));
     } finally {
       setActionLoading(false);
     }
@@ -130,14 +132,14 @@ export default function MetaIntegrationPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccessMsg('Kết nối hoạt động tốt!');
+        setSuccessMsg(t('landing.metaIntegration.testOk'));
       } else {
-        setError(data.message || 'Lỗi kết nối');
+        setError(data.message || t('landing.metaIntegration.errors.connectionFailed'));
       }
       setTimeout(() => { setSuccessMsg(''); setError(''); }, 3000);
     } catch (err) {
       console.error(err);
-      setError('Không thể test kết nối.');
+      setError(t('landing.metaIntegration.errors.testFailed'));
       setTimeout(() => setError(''), 3000);
     } finally {
       setActionLoading(false);
@@ -147,7 +149,7 @@ export default function MetaIntegrationPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <Link href="/dashboard/sources" className="inline-flex items-center text-sm font-medium text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại Quản lý Nguồn
+        <ArrowLeft className="w-4 h-4 mr-2" /> {t('landing.metaIntegration.backToSources')}
       </Link>
 
       <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
@@ -161,10 +163,11 @@ export default function MetaIntegrationPage() {
               <Instagram className="w-8 h-8 text-fuchsia-400" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Kết nối Facebook & Instagram</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">{t('landing.metaIntegration.title')}</h1>
           <p className="text-slate-700 dark:text-gray-300 max-w-2xl leading-relaxed">
-            Nope360 sử dụng Meta OAuth chính thức để kết nối Facebook Page và Instagram Business/Creator. 
-            Hệ thống <strong>không yêu cầu mật khẩu</strong> và chỉ thu thập dữ liệu trong phạm vi quyền bạn cấp.
+            {t('landing.metaIntegration.introBefore')}{' '}
+            <strong>{t('landing.metaIntegration.introStrong')}</strong>{' '}
+            {t('landing.metaIntegration.introAfter')}
           </p>
         </div>
 
@@ -193,7 +196,7 @@ export default function MetaIntegrationPage() {
               <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Trạng thái kết nối</h2>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">{t('landing.metaIntegration.connectionStatus')}</h2>
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                         metaStatus.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -213,14 +216,14 @@ export default function MetaIntegrationPage() {
                           disabled={actionLoading}
                           className="flex-1 sm:flex-none px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
                         >
-                          Kiểm tra kết nối
+                          {t('landing.metaIntegration.testConnection')}
                         </button>
                         <button 
                           onClick={handleDisconnect}
                           disabled={actionLoading}
                           className="flex-1 sm:flex-none px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          <LogOut className="w-4 h-4" /> Ngắt kết nối
+                          <LogOut className="w-4 h-4" /> {t('landing.metaIntegration.disconnect')}
                         </button>
                       </>
                     ) : (
@@ -230,7 +233,7 @@ export default function MetaIntegrationPage() {
                         className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
-                        Connect Facebook / Instagram
+                        {t('landing.metaIntegration.connectCta')}
                       </button>
                     )}
                   </div>
@@ -245,7 +248,7 @@ export default function MetaIntegrationPage() {
               {/* Permissions Section */}
               {(metaStatus.status === 'active' || metaStatus.status === 'limited') && (
                 <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quyền truy cập đã cấp (Scopes)</h2>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('landing.metaIntegration.grantedScopes')}</h2>
                   
                   <div className="flex flex-wrap gap-2 mb-4">
                     {metaStatus.granted_scopes.map((scope, idx) => (
@@ -255,13 +258,13 @@ export default function MetaIntegrationPage() {
                     ))}
                     {metaStatus.missing_scopes.map((scope, idx) => (
                       <span key={idx} className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-lg flex items-center gap-1.5">
-                        <XCircle className="w-3.5 h-3.5" /> {scope} (thiếu)
+                        <XCircle className="w-3.5 h-3.5" /> {scope} {t('landing.metaIntegration.missingScopeSuffix')}
                       </span>
                     ))}
                   </div>
                   {metaStatus.missing_scopes.length > 0 && (
                     <p className="text-xs text-amber-400/80 mt-2">
-                      ⚠️ Bạn đã từ chối một số quyền. Hệ thống sẽ không thể thu thập đủ dữ liệu. Vui lòng kết nối lại và cấp đủ quyền.
+                      ⚠️ {t('landing.metaIntegration.missingScopesWarning')}
                     </p>
                   )}
                 </div>
@@ -271,13 +274,13 @@ export default function MetaIntegrationPage() {
               {(metaStatus.status === 'active' || metaStatus.status === 'limited') && (
                 <div className="bg-[#050A15] border border-white/10 rounded-2xl p-6 shadow-inner">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Tài khoản & Trang (Pages)</h2>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">Chọn nguồn để thu thập</span>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('landing.metaIntegration.accountsAndPages')}</h2>
+                    <span className="text-xs text-slate-500 dark:text-gray-400">{t('landing.metaIntegration.selectSourcesHint')}</span>
                   </div>
                   
                   {metaStatus.accounts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm bg-white/5 rounded-xl border border-white/5">
-                      Không tìm thấy Page hoặc tài khoản Instagram Business nào.
+                      {t('landing.metaIntegration.noAccounts')}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

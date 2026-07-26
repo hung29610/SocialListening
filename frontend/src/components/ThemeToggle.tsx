@@ -3,8 +3,10 @@
 import * as React from 'react';
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function ThemeToggle() {
+  const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -44,7 +46,7 @@ export function ThemeToggle() {
   }
 
   const currentIcon = theme === 'dark' ? <Moon className="w-4 h-4" /> : theme === 'light' ? <Sun className="w-4 h-4" /> : <Monitor className="w-4 h-4" />;
-  const label = theme === 'dark' ? 'Dark theme' : theme === 'light' ? 'Light theme' : 'System theme';
+  const label = theme === 'dark' ? t('misc.theme.darkLabel') : theme === 'light' ? t('misc.theme.lightLabel') : t('misc.theme.systemLabel');
 
   const handleSelect = (selectedTheme: string) => {
     setTheme(selectedTheme);
@@ -69,7 +71,7 @@ export function ThemeToggle() {
       {isOpen && (
         <div
           role="listbox"
-          aria-label="Theme options"
+          aria-label={t('misc.theme.options')}
           className="absolute right-0 top-full mt-2 w-32 bg-popover border border-border rounded-lg shadow-lg z-50 py-1"
         >
           <button
@@ -81,7 +83,7 @@ export function ThemeToggle() {
               theme === 'light' ? 'bg-accent text-accent-foreground' : 'text-popover-foreground hover:bg-accent/50'
             }`}
           >
-            <Sun className="w-4 h-4" /> Light
+            <Sun className="w-4 h-4" /> {t('misc.theme.light')}
           </button>
           <button
             type="button"
@@ -92,7 +94,7 @@ export function ThemeToggle() {
               theme === 'dark' ? 'bg-accent text-accent-foreground' : 'text-popover-foreground hover:bg-accent/50'
             }`}
           >
-            <Moon className="w-4 h-4" /> Dark
+            <Moon className="w-4 h-4" /> {t('misc.theme.dark')}
           </button>
           <button
             type="button"
@@ -103,7 +105,7 @@ export function ThemeToggle() {
               theme === 'system' ? 'bg-accent text-accent-foreground' : 'text-popover-foreground hover:bg-accent/50'
             }`}
           >
-            <Monitor className="w-4 h-4" /> System
+            <Monitor className="w-4 h-4" /> {t('misc.theme.system')}
           </button>
         </div>
       )}

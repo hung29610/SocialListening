@@ -4,6 +4,7 @@ import { SeverityBadge } from './Badges';
 import DashboardQuickActionButton from './DashboardQuickActionButton';
 import { alerts } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AlertCardProps {
   alert: any;
@@ -12,6 +13,7 @@ interface AlertCardProps {
 }
 
 export default function AlertCard({ alert, onActionComplete, userRole }: AlertCardProps) {
+  const { t } = useLanguage();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const canAcknowledge = ['analyst', 'manager', 'admin', 'super_admin'].includes(userRole || '');
@@ -24,7 +26,7 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
       toast.success(successMsg);
       onActionComplete();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Có lỗi xảy ra');
+      toast.error(error?.response?.data?.detail || t('reputationPage.alertCard.genericError'));
     } finally {
       setLoadingAction(null);
     }
@@ -58,7 +60,7 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
           </div>
           
           <p className="mt-1.5 text-sm text-slate-500 dark:text-gray-400 line-clamp-2">
-            {alert.message || alert.reason || 'Không có mô tả'}
+            {alert.message || alert.reason || t('reputationPage.alertCard.noDescription')}
           </p>
           
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-medium text-gray-500">
@@ -77,7 +79,7 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
               <>
                 <span className="text-gray-700">•</span>
                 <a href={`/dashboard/mentions/${alert.mention_id}`} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center transition-colors">
-                  Xem mention <Info className="w-3 h-3 ml-1" />
+                  {t('reputationPage.alertCard.viewMention')} <Info className="w-3 h-3 ml-1" />
                 </a>
               </>
             )}
@@ -87,9 +89,9 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
             <div className="mt-4 pt-4 border-t border-gray-800/80 flex flex-wrap gap-3">
               {alert.status === 'new' && canAcknowledge && (
                 <DashboardQuickActionButton
-                  label="Đã tiếp nhận"
+                  label={t('reputationPage.alertCard.acknowledge')}
                   icon={CheckCircle}
-                  onClick={() => handleAction('ack', () => alerts.acknowledge(alert.id), 'Đã tiếp nhận cảnh báo')}
+                  onClick={() => handleAction('ack', () => alerts.acknowledge(alert.id), t('reputationPage.alertCard.acknowledged'))}
                   isLoading={loadingAction === 'ack'}
                   variant="primary"
                 />
@@ -97,9 +99,9 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
               
               {canEscalate && (
                 <DashboardQuickActionButton
-                  label="Tạo sự cố"
+                  label={t('reputationPage.incidents.create')}
                   icon={ShieldAlert}
-                  onClick={() => handleAction('incident', () => alerts.createIncident(alert.id), 'Đã chuyển thành sự cố')}
+                  onClick={() => handleAction('incident', () => alerts.createIncident(alert.id), t('reputationPage.alertCard.incidentCreated'))}
                   isLoading={loadingAction === 'incident'}
                   variant="danger"
                 />
@@ -107,9 +109,9 @@ export default function AlertCard({ alert, onActionComplete, userRole }: AlertCa
               
               {canEscalate && (
                 <DashboardQuickActionButton
-                  label="Bỏ qua"
+                  label={t('reputationPage.alertCard.ignore')}
                   icon={XCircle}
-                  onClick={() => handleAction('ignore', () => alerts.ignore(alert.id), 'Đã bỏ qua cảnh báo')}
+                  onClick={() => handleAction('ignore', () => alerts.ignore(alert.id), t('reputationPage.alertCard.ignored'))}
                   isLoading={loadingAction === 'ignore'}
                   variant="ghost"
                 />

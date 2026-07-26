@@ -40,8 +40,8 @@ export default function ComparisonPage() {
     }
   };
 
-  const nameA = projects.find(p => p.id === projectA)?.name || 'Project A';
-  const nameB = projects.find(p => p.id === projectB)?.name || 'Project B';
+  const nameA = projects.find(p => p.id === projectA)?.name || t('comparison.page.labelProjectA');
+  const nameB = projects.find(p => p.id === projectB)?.name || t('comparison.page.labelProjectB');
 
   const renderBar = (valA: number, valB: number, label: string) => {
     const max = Math.max(valA, valB, 1);
@@ -86,7 +86,7 @@ export default function ComparisonPage() {
         ) : (
           <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">Project A</label>
+            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">{t('comparison.page.labelProjectA')}</label>
             <div className="relative">
               <select
                 value={projectA || ''}
@@ -106,7 +106,7 @@ export default function ComparisonPage() {
             </div>
           </div>
           <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">Project B</label>
+            <label className="text-sm font-medium text-gray-600 dark:text-slate-500 dark:text-gray-400">{t('comparison.page.labelProjectB')}</label>
             <div className="relative">
               <select
                 value={projectB || ''}

@@ -1,12 +1,29 @@
 """
 Run schedule migration via API endpoint
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 import json
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+BASE_URL = backend_url()
+ADMIN_EMAIL = admin_email()
+ADMIN_PASSWORD = admin_password()
 
 print("="*60)
 print("  🔧 RUN SCHEDULE MIGRATION")

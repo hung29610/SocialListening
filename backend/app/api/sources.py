@@ -1,10 +1,12 @@
 import traceback
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import List, Optional
 
+from app.core.api_errors import api_error
 from app.core.database import get_db
 from app.core.tenant import apply_tenant_filter
 from app.core.security import get_current_active_user
@@ -94,7 +96,7 @@ def list_source_groups(
         return response
     except Exception as e:
         logger.error(f"Error listing source groups: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tải nhóm nguồn: {str(e)}")
+        raise api_error("source_list_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi tải nhóm nguồn")
 
 
 @router.post("/groups", response_model=SourceGroupResponse, status_code=status.HTTP_201_CREATED)
@@ -123,7 +125,7 @@ def create_source_group(
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating source group: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo nhóm nguồn: {str(e)}")
+        raise api_error("source_create_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi tạo nhóm nguồn")
 
 
 @router.get("/groups/{group_id}", response_model=SourceGroupResponse)
@@ -134,7 +136,7 @@ def get_source_group(
 ):
     group = db.execute(apply_tenant_filter(select(SourceGroup), SourceGroup, current_user).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
-        raise HTTPException(status_code=404, detail="Source group not found")
+        raise api_error("source_group_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nhóm nguồn")
     sources_in_group = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.group_id == group_id)).scalars().all()
     return SourceGroupResponse(
         id=group.id,
@@ -156,7 +158,7 @@ def update_source_group(
 ):
     group = db.execute(apply_tenant_filter(select(SourceGroup), SourceGroup, current_user).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
-        raise HTTPException(status_code=404, detail="Source group not found")
+        raise api_error("source_group_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nhóm nguồn")
     for field, value in group_data.dict(exclude_unset=True).items():
         setattr(group, field, value)
     db.commit()
@@ -181,7 +183,7 @@ def delete_source_group(
 ):
     group = db.execute(apply_tenant_filter(select(SourceGroup), SourceGroup, current_user).where(SourceGroup.id == group_id)).scalar_one_or_none()
     if not group:
-        raise HTTPException(status_code=404, detail="Source group not found")
+        raise api_error("source_group_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nhóm nguồn")
     db.delete(group)
     db.commit()
 
@@ -212,7 +214,7 @@ def list_sources(
         return [_source_to_response(s) for s in sources]
     except Exception as e:
         logger.error(f"Error listing sources: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tải danh sách nguồn: {str(e)}")
+        raise api_error("source_list_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách nguồn")
 
 
 @router.post("", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
@@ -226,7 +228,7 @@ def create_source(
         if source_data.group_id:
             group = db.execute(apply_tenant_filter(select(SourceGroup), SourceGroup, current_user).where(SourceGroup.id == source_data.group_id)).scalar_one_or_none()
             if not group:
-                raise HTTPException(status_code=404, detail="Source group not found")
+                raise api_error("source_group_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nhóm nguồn")
 
         data = source_data.dict()
         data['user_id'] = current_user.id
@@ -255,16 +257,24 @@ def create_source(
         # Check for duplicate URL
         existing = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.url == data['url'])).scalars().first()
         if existing:
-            raise HTTPException(status_code=409, detail="Nguồn với URL này đã tồn tại")
+            raise api_error("source_duplicate_url", status.HTTP_409_CONFLICT, "Nguồn với URL này đã tồn tại")
+
+        # Every source URL must be a safe, externally reachable http(s) target,
+        # regardless of source type.
+        from app.services.feed_fetcher import validate_feed_url
+        is_url_safe, url_error_code, url_error_msg = validate_feed_url(data['url'])
+        if not is_url_safe:
+            raise api_error(url_error_code or "invalid_url", status.HTTP_400_BAD_REQUEST, url_error_msg)
 
         # Validate if RSS
         if data.get('source_type') == 'rss':
             from app.services.crawl_service import validate_rss_feed
             is_rss_valid, error_code, error_msg = validate_rss_feed(data['url'])
             if not is_rss_valid:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="URL này không phải RSS feed hợp lệ. Hãy đổi loại nguồn sang Website hoặc nhập link RSS hợp lệ."
+                raise api_error(
+                    error_code or "source_invalid_feed",
+                    status.HTTP_400_BAD_REQUEST,
+                    error_msg or "URL này không phải RSS feed hợp lệ. Hãy đổi loại nguồn sang Website hoặc nhập link RSS hợp lệ.",
                 )
 
         source = Source(**data)
@@ -277,7 +287,192 @@ def create_source(
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating source: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo nguồn: {str(e)}")
+        raise api_error("source_create_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi tạo nguồn")
+
+
+# ─── Feed discovery and OPML import ───────────────────────────────────────────
+#
+# These routes are declared before "/{source_id}" so their literal paths are not
+# captured by the integer path parameter.
+
+
+class FeedDiscoveryRequest(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+
+
+class FeedToImport(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+    name: Optional[str] = Field(None, max_length=500)
+    kind: Optional[str] = Field(None, max_length=16)
+
+
+class ImportFeedsRequest(BaseModel):
+    feeds: List[FeedToImport] = Field(..., min_items=1, max_items=200)
+    group_id: Optional[int] = None
+    # Feeds are created disabled by default so nothing collects before the user
+    # has reviewed them.
+    activate: bool = False
+
+
+MAX_OPML_UPLOAD_BYTES = 2 * 1024 * 1024
+
+
+@router.post("/discover-feeds")
+def discover_feeds_endpoint(
+    payload: FeedDiscoveryRequest,
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Inspect a public website URL and return the RSS/Atom feeds it advertises.
+
+    Nothing is created or activated: the response is a list of candidates for the
+    user to choose from. An empty `feeds` list with `ok: true` is an honest
+    "no feed advertised" answer, not an error.
+    """
+    from app.services.feed_discovery import discover_feeds
+
+    result = discover_feeds(payload.url)
+    return result.to_dict()
+
+
+@router.post("/opml/preview")
+async def preview_opml_endpoint(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Parse an uploaded OPML file and return its feeds with per-feed validation
+    status. Nothing is persisted; the user confirms with /import-feeds.
+    """
+    from app.services.opml_import import MAX_OPML_BYTES, message_for as opml_message, parse_opml
+
+    filename = (file.filename or "").lower()
+    if filename and not filename.endswith((".opml", ".xml")):
+        raise api_error("opml_bad_extension", status.HTTP_400_BAD_REQUEST, "Chỉ hỗ trợ tệp .opml hoặc .xml")
+
+    # Read with a hard ceiling so a large upload cannot exhaust memory.
+    content = await file.read(MAX_OPML_UPLOAD_BYTES + 1)
+    if content and len(content) > MAX_OPML_BYTES:
+        raise api_error("opml_too_large", status.HTTP_400_BAD_REQUEST, opml_message("too_large"))
+
+    result = parse_opml(content)
+    payload = result.to_dict()
+    if not result.ok:
+        raise api_error(f"opml_{result.error_code}", status.HTTP_400_BAD_REQUEST, payload["error_message"])
+    return payload
+
+
+@router.post("/import-feeds")
+def import_feeds_endpoint(
+    payload: ImportFeedsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Create RSS sources from an explicitly confirmed list of feeds.
+
+    Each feed is validated on its own and reported with an honest per-feed status:
+      created   - validated and stored
+      duplicate - the same URL already exists for this tenant
+      blocked   - rejected by the URL guards (internal address, bad scheme, port)
+      invalid   - reachable but not a valid RSS/Atom document
+      failed    - fetch/validation failed for another reason (timeout, HTTP error)
+
+    One failing feed never aborts the rest of the import.
+    """
+    from app.services.crawl_service import validate_rss_feed
+    from app.services.feed_fetcher import validate_feed_url
+
+    group_id = payload.group_id
+    if group_id is not None:
+        group = db.execute(
+            apply_tenant_filter(select(SourceGroup), SourceGroup, current_user).where(SourceGroup.id == group_id)
+        ).scalar_one_or_none()
+        if not group:
+            raise api_error("source_group_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nhóm nguồn")
+
+    results = []
+    created_count = 0
+    seen_in_request = set()
+
+    for item in payload.feeds:
+        url = (item.url or "").strip()
+        entry = {"url": url, "name": item.name, "status": "failed", "error_code": "", "error_message": "", "source_id": None}
+
+        if not url:
+            entry.update(status="invalid", error_code="invalid_url", error_message="URL không hợp lệ.")
+            results.append(entry)
+            continue
+
+        if url in seen_in_request:
+            entry.update(status="duplicate", error_message="Feed bị lặp trong danh sách gửi lên.")
+            results.append(entry)
+            continue
+        seen_in_request.add(url)
+
+        is_url_safe, url_code, url_message = validate_feed_url(url)
+        if not is_url_safe:
+            entry.update(status="blocked", error_code=url_code, error_message=url_message)
+            results.append(entry)
+            continue
+
+        existing = db.execute(
+            apply_tenant_filter(select(Source), Source, current_user).where(Source.url == url)
+        ).scalars().first()
+        if existing:
+            entry.update(status="duplicate", source_id=existing.id, error_message="Nguồn với URL này đã tồn tại.")
+            results.append(entry)
+            continue
+
+        is_feed_valid, feed_code, feed_message = validate_rss_feed(url)
+        if not is_feed_valid:
+            # Distinguish "not a feed" from "could not reach it".
+            blocked_codes = ("blocked_target", "unsupported_scheme", "credentials_in_url", "blocked_port")
+            invalid_codes = ("invalid_xml", "invalid_rss_feed", "parse_failed")
+            if feed_code in blocked_codes:
+                entry.update(status="blocked", error_code=feed_code, error_message=feed_message)
+            elif feed_code in invalid_codes:
+                entry.update(status="invalid", error_code=feed_code, error_message=feed_message)
+            else:
+                entry.update(status="failed", error_code=feed_code, error_message=feed_message)
+            results.append(entry)
+            continue
+
+        try:
+            source = Source(
+                user_id=current_user.id,
+                group_id=group_id,
+                name=(item.name or url)[:500],
+                source_type=SourceType.RSS,
+                url=url,
+                platform="web",
+                # Never report a feed as connected before it has collected once;
+                # activation is the user's explicit choice.
+                is_active=bool(payload.activate),
+                crawl_frequency=CrawlFrequency.DAILY,
+            )
+            source.next_crawl_at = calculate_next_crawl_time(frequency=CrawlFrequency.DAILY, crawl_time=None)
+            db.add(source)
+            db.commit()
+            db.refresh(source)
+            entry.update(status="created", source_id=source.id, error_code="", error_message="")
+            created_count += 1
+        except Exception as exc:
+            db.rollback()
+            logger.error("Failed to create source from imported feed: %s", exc)
+            entry.update(status="failed", error_code="create_failed", error_message="Không tạo được nguồn.")
+
+        results.append(entry)
+
+    summary = {
+        "created": created_count,
+        "duplicate": sum(1 for r in results if r["status"] == "duplicate"),
+        "blocked": sum(1 for r in results if r["status"] == "blocked"),
+        "invalid": sum(1 for r in results if r["status"] == "invalid"),
+        "failed": sum(1 for r in results if r["status"] == "failed"),
+        "total": len(results),
+    }
+    return {"summary": summary, "results": results}
 
 
 @router.get("/{source_id}", response_model=SourceResponse)
@@ -288,7 +483,7 @@ def get_source(
 ):
     source = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise api_error("source_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nguồn")
     return _source_to_response(source)
 
 
@@ -301,7 +496,7 @@ def update_source(
 ):
     source = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise api_error("source_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nguồn")
 
     try:
         update_dict = source_data.dict(exclude_unset=True)
@@ -318,13 +513,20 @@ def update_source(
         if 'url' in update_dict or 'source_type' in update_dict:
             final_type = update_dict.get('source_type', source.source_type)
             final_url = update_dict.get('url', source.url)
+
+            from app.services.feed_fetcher import validate_feed_url
+            is_url_safe, url_error_code, url_error_msg = validate_feed_url(final_url)
+            if not is_url_safe:
+                raise api_error(url_error_code or "invalid_url", status.HTTP_400_BAD_REQUEST, url_error_msg)
+
             if final_type == 'rss':
                 from app.services.crawl_service import validate_rss_feed
                 is_rss_valid, error_code, error_msg = validate_rss_feed(final_url)
                 if not is_rss_valid:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="URL này không phải RSS feed hợp lệ. Hãy đổi loại nguồn sang Website hoặc nhập link RSS hợp lệ."
+                    raise api_error(
+                        error_code or "source_invalid_feed",
+                        status.HTTP_400_BAD_REQUEST,
+                        error_msg or "URL này không phải RSS feed hợp lệ. Hãy đổi loại nguồn sang Website hoặc nhập link RSS hợp lệ.",
                     )
             # Clear error when URL or source type changes and passes validation
             source.last_error = None
@@ -347,10 +549,15 @@ def update_source(
         db.commit()
         db.refresh(source)
         return _source_to_response(source)
+    except HTTPException:
+        # Validation failures must keep their own status code; the generic
+        # handler below previously turned every 400 into a 500.
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating source: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Lỗi khi cập nhật nguồn: {str(e)}")
+        raise api_error("source_update_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi cập nhật nguồn")
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -361,7 +568,7 @@ def delete_source(
 ):
     source = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise api_error("source_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nguồn")
     db.delete(source)
     db.commit()
 
@@ -372,16 +579,34 @@ def test_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Test if a source URL is reachable."""
-    import httpx
+    """
+    Test if a source URL is reachable.
+
+    Goes through the guarded fetcher so a stored URL cannot be used to probe
+    internal addresses, and so raw network errors are not echoed back.
+    """
+    from app.services.feed_fetcher import fetch_url
+
     source = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
-    try:
-        resp = httpx.get(source.url, timeout=10, follow_redirects=True)
-        return {"success": True, "status_code": resp.status_code, "reachable": resp.status_code < 400, "url": source.url}
-    except Exception as e:
-        return {"success": False, "reachable": False, "error": str(e), "url": source.url}
+        raise api_error("source_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nguồn")
+
+    result = fetch_url(source.url)
+    if result.ok:
+        return {
+            "success": True,
+            "status_code": result.status_code,
+            "reachable": True,
+            "url": source.url,
+        }
+    return {
+        "success": False,
+        "reachable": False,
+        "status_code": result.status_code,
+        "error": result.error_message,
+        "error_code": result.error_code,
+        "url": source.url,
+    }
 
 
 @router.post("/{source_id}/scan")
@@ -393,7 +618,7 @@ def scan_source(
     """Trigger a manual scan on a specific source."""
     source = db.execute(apply_tenant_filter(select(Source), Source, current_user).where(Source.id == source_id)).scalar_one_or_none()
     if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise api_error("source_not_found", status.HTTP_404_NOT_FOUND, "Không tìm thấy nguồn")
 
     from app.models.keyword import Keyword
     from app.models.mention import Mention
@@ -440,4 +665,4 @@ def scan_source(
         source.last_error = str(e)
         source.error_count = (source.error_count or 0) + 1
         db.commit()
-        raise HTTPException(status_code=500, detail=f"Lỗi quét nguồn: {str(e)}")
+        raise api_error("source_update_failed", status.HTTP_500_INTERNAL_SERVER_ERROR, "Lỗi khi quét nguồn")

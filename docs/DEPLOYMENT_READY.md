@@ -200,7 +200,7 @@ npm run dev
 
 ### Default Credentials
 - Email: `admin@example.com`
-- Password: `admin123`
+- Password: `<redacted>`
 
 ---
 

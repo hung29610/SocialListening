@@ -206,9 +206,25 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
     # Temporarily expose full detail in production for debugging
     if exc.status_code >= 500:
         logger.error(f"HTTPException 500 on {request.method} {request.url}: {exc.detail}")
+
+    # Mirror the machine-readable error code into the body and keep the header,
+    # so the frontend can show a message in the user's selected language instead
+    # of matching on Vietnamese sentences. `detail` is unchanged for old callers.
+    from app.core.api_errors import ERROR_CODE_HEADER, code_for_status
+
+    headers = dict(exc.headers or {})
+    error_code = headers.get(ERROR_CODE_HEADER) or code_for_status(exc.status_code)
+    headers[ERROR_CODE_HEADER] = error_code
+
+    content = {"detail": exc.detail, "error_code": error_code}
+    if isinstance(exc.detail, dict) and "error_code" in exc.detail:
+        content["error_code"] = exc.detail["error_code"]
+        headers[ERROR_CODE_HEADER] = str(exc.detail["error_code"])
+
     response = JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content=content,
+        headers=headers,
     )
     return _add_cors_headers(request, response)
 

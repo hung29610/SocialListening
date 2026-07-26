@@ -1,11 +1,28 @@
 """
 Run migration 014 to create user_notification_settings, user_preferences, user_sessions tables
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+BACKEND_URL = backend_url()
+ADMIN_EMAIL = admin_email()
+ADMIN_PASSWORD = admin_password()
 
 def login():
     """Login and return token"""

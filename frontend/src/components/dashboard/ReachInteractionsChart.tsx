@@ -3,6 +3,7 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type Point = {
   time: string;
@@ -17,10 +18,12 @@ export default function ReachInteractionsChart({
   data: Point[];
   isLoading?: boolean;
 }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
-        Đang tải...
+        {t('common.loading')}
       </div>
     );
   }
@@ -33,7 +36,7 @@ export default function ReachInteractionsChart({
   if (!chartData.length) {
     return (
       <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
-        Chưa có dữ liệu reach / tương tác
+        {t('crisis.charts.noReachData')}
       </div>
     );
   }
@@ -52,8 +55,8 @@ export default function ReachInteractionsChart({
           }}
         />
         <Legend />
-        <Bar dataKey="reach" name="Reach" fill="#1E3A8A" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="interactions" name="Tương tác" fill="#10B981" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="reach" name={t('dashboard.metrics.reach')} fill="#1E3A8A" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="interactions" name={t('dashboard.metrics.interactions')} fill="#10B981" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

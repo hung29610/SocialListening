@@ -3,6 +3,7 @@
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type VolumePoint = {
   time: string;
@@ -16,10 +17,12 @@ export default function RealtimeVolumeChart({
   data: VolumePoint[];
   isLoading?: boolean;
 }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
-        Đang tải...
+        {t('common.loading')}
       </div>
     );
   }
@@ -32,7 +35,7 @@ export default function RealtimeVolumeChart({
   if (!chartData.length) {
     return (
       <div className="h-[220px] flex items-center justify-center text-zinc-500 text-sm">
-        Chưa có dữ liệu volume
+        {t('crisis.charts.noVolumeData')}
       </div>
     );
   }

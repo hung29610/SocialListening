@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw, Search, ChevronLeft, ChevronRight, X, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
@@ -19,6 +20,7 @@ interface DeliveryLog {
 }
 
 export default function NotificationDeliveries() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<DeliveryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -44,7 +46,7 @@ export default function NotificationDeliveries() {
       setTotalPages(data.total_pages);
     } catch (error) {
       console.error(error);
-      toast.error('Không thể kết nối máy chủ');
+      toast.error(t('settingsPage.deliveries.errors.connectFailed'));
     } finally {
       setLoading(false);
     }
@@ -58,11 +60,11 @@ export default function NotificationDeliveries() {
     setRetryingId(logId);
     try {
       await api.post(`/api/admin/settings/notifications/deliveries/${logId}/retry`);
-      toast.success('Đã xếp hàng thử lại');
+      toast.success(t('settingsPage.deliveries.retryQueued'));
       fetchLogs();
     } catch (error: any) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi thử lại');
+      toast.error(error.response?.data?.detail || t('settingsPage.deliveries.errors.retryFailed'));
     } finally {
       setRetryingId(null);
     }
@@ -71,13 +73,13 @@ export default function NotificationDeliveries() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'sent':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">Sent</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">{t('settingsPage.deliveries.status.sent')}</span>;
       case 'failed':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">Failed</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">{t('settingsPage.deliveries.status.failed')}</span>;
       case 'retrying':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">Retrying</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">{t('settingsPage.deliveries.status.retrying')}</span>;
       case 'skipped':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">Skipped</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">{t('settingsPage.deliveries.status.skipped')}</span>;
       default:
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{status}</span>;
     }
@@ -87,8 +89,8 @@ export default function NotificationDeliveries() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Lịch sử thông báo</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Lịch sử gửi email và webhook</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.deliveryLogsDesc')}</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.deliveries.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <select 
@@ -96,18 +98,18 @@ export default function NotificationDeliveries() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg text-sm"
           >
-            <option value="">Tất cả trạng thái</option>
-            <option value="sent">Sent</option>
-            <option value="failed">Failed</option>
-            <option value="retrying">Retrying</option>
+            <option value="">{t('settingsPage.deliveries.filters.allStatuses')}</option>
+            <option value="sent">{t('settingsPage.deliveries.status.sent')}</option>
+            <option value="failed">{t('settingsPage.deliveries.status.failed')}</option>
+            <option value="retrying">{t('settingsPage.deliveries.status.retrying')}</option>
           </select>
           <select 
             value={channelFilter}
             onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
             className="px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg text-sm"
           >
-            <option value="">Tất cả kênh</option>
-            <option value="email">Email</option>
+            <option value="">{t('settingsPage.deliveries.filters.allChannels')}</option>
+            <option value="email">{t('auth.emailLabel')}</option>
             <option value="webhook">Webhook</option>
           </select>
           <button onClick={fetchLogs} className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition">
@@ -121,20 +123,20 @@ export default function NotificationDeliveries() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 dark:text-gray-400 uppercase bg-slate-50 dark:bg-gray-800/50 border-b border-slate-200 dark:border-gray-800">
               <tr>
-                <th className="px-6 py-4">Thời gian</th>
-                <th className="px-6 py-4">Loại sự kiện</th>
-                <th className="px-6 py-4">Kênh</th>
-                <th className="px-6 py-4">Đích đến</th>
-                <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4">Số lần</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.time')}</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.eventType')}</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.channel')}</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.destination')}</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.status')}</th>
+                <th className="px-6 py-4">{t('settingsPage.deliveries.table.attempts')}</th>
+                <th className="px-6 py-4 text-right">{t('settingsPage.deliveries.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={7} className="px-6 py-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div></td></tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">Không có dữ liệu</td></tr>
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">{t('common.noData')}</td></tr>
               ) : (
                 logs.map(log => (
                   <tr key={log.id} className="border-b border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800/30">
@@ -149,7 +151,7 @@ export default function NotificationDeliveries() {
                         onClick={() => setSelectedLog(log)}
                         className="text-xs text-indigo-500 hover:text-indigo-400 font-medium"
                       >
-                        Chi tiết
+                        {t('settingsPage.deliveries.actions.detail')}
                       </button>
                       {log.status === 'failed' && (
                         <button 
@@ -157,7 +159,7 @@ export default function NotificationDeliveries() {
                           disabled={retryingId === log.id}
                           className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
                         >
-                          {retryingId === log.id ? 'Đang gửi...' : 'Thử lại'}
+                          {retryingId === log.id ? t('settingsPage.deliveries.actions.sending') : t('reports.retry')}
                         </button>
                       )}
                     </td>
@@ -170,7 +172,7 @@ export default function NotificationDeliveries() {
         
         {/* Pagination */}
         <div className="px-6 py-4 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between">
-          <span className="text-sm text-slate-500 dark:text-gray-400">Trang {page} / {totalPages}</span>
+          <span className="text-sm text-slate-500 dark:text-gray-400">{t('settingsPage.deliveries.pagination', { page, total: totalPages })}</span>
           <div className="flex gap-2">
             <button 
               disabled={page <= 1} 
@@ -196,7 +198,7 @@ export default function NotificationDeliveries() {
           <div className="bg-white dark:bg-[#111827] border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-gray-800">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                Chi tiết gửi <span className="text-sm font-normal text-gray-400">#{selectedLog.id}</span>
+                {t('settingsPage.deliveries.detail.title')} <span className="text-sm font-normal text-gray-400">#{selectedLog.id}</span>
               </h3>
               <button onClick={() => setSelectedLog(null)} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -204,10 +206,10 @@ export default function NotificationDeliveries() {
             </div>
             <div className="p-6 overflow-y-auto space-y-4 text-sm flex-1">
               <div className="grid grid-cols-2 gap-4">
-                <div><span className="text-gray-400">Kênh:</span> <span className="text-white font-medium ml-2">{selectedLog.channel}</span></div>
-                <div><span className="text-gray-400">Đích đến:</span> <span className="text-white font-medium ml-2">{selectedLog.destination}</span></div>
-                <div><span className="text-gray-400">Trạng thái:</span> <div className="inline-block ml-2">{getStatusBadge(selectedLog.status)}</div></div>
-                <div><span className="text-gray-400">Số lần thử:</span> <span className="text-white font-medium ml-2">{selectedLog.attempt_count}</span></div>
+                <div><span className="text-gray-400">{t('settingsPage.deliveries.table.channel')}:</span> <span className="text-white font-medium ml-2">{selectedLog.channel}</span></div>
+                <div><span className="text-gray-400">{t('settingsPage.deliveries.table.destination')}:</span> <span className="text-white font-medium ml-2">{selectedLog.destination}</span></div>
+                <div><span className="text-gray-400">{t('settingsPage.deliveries.table.status')}:</span> <div className="inline-block ml-2">{getStatusBadge(selectedLog.status)}</div></div>
+                <div><span className="text-gray-400">{t('settingsPage.deliveries.detail.attempts')}:</span> <span className="text-white font-medium ml-2">{selectedLog.attempt_count}</span></div>
               </div>
               
               {selectedLog.last_error && (
@@ -219,7 +221,7 @@ export default function NotificationDeliveries() {
 
               {selectedLog.payload && (
                 <div>
-                  <h4 className="text-gray-400 mb-2 font-medium">Payload / Data:</h4>
+                  <h4 className="text-gray-400 mb-2 font-medium">{t('settingsPage.deliveries.detail.payload')}</h4>
                   <div className="bg-[#0B1120] border border-gray-800 p-4 rounded-xl overflow-x-auto">
                     <pre className="text-gray-300 font-mono text-xs">{JSON.stringify(JSON.parse(selectedLog.payload), null, 2)}</pre>
                   </div>

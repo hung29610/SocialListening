@@ -6,22 +6,24 @@ import { alerts as alertsApi, getErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import { useProject } from '@/contexts/ProjectContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const SEVERITIES = [
-  { value: 'low', label: 'Thấp' },
-  { value: 'medium', label: 'Trung bình' },
-  { value: 'high', label: 'Cao' },
-  { value: 'critical', label: 'Nghiêm trọng' },
+  { value: 'low', key: 'low' },
+  { value: 'medium', key: 'medium' },
+  { value: 'high', key: 'high' },
+  { value: 'critical', key: 'critical' },
 ];
 
 const RULE_TYPES = [
-  { value: 'mention_spike', label: 'Mention Spike', description: 'Alert when mentions exceed threshold' },
-  { value: 'negative_spike', label: 'Negative Spike', description: 'Alert when negative sentiment exceeds threshold' },
-  { value: 'high_risk', label: 'High Risk', description: 'Alert when risk score exceeds threshold' },
+  { value: 'mention_spike', key: 'mentionSpike' },
+  { value: 'negative_spike', key: 'negativeSpike' },
+  { value: 'high_risk', key: 'highRisk' },
 ];
 
 export default function AlertsPage() {
   const { activeProject } = useProject();
+  const { t } = useLanguage();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -56,7 +58,7 @@ export default function AlertsPage() {
       setAlerts(data.items || []);
     } catch (error: any) {
       console.error('Error fetching alerts:', error);
-      toast.error(getErrorMessage(error) || 'Lỗi khi tải danh sách cảnh báo');
+      toast.error(getErrorMessage(error) || t('reputationPage.alerts.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function AlertsPage() {
 
   const handleCreate = async () => {
     if (!form.title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề cảnh báo');
+      toast.error(t('reputationPage.alerts.errors.titleRequired'));
       return;
     }
     setSubmitting(true);
@@ -75,13 +77,13 @@ export default function AlertsPage() {
         message: form.message || undefined,
         mention_id: form.mention_id ? parseInt(form.mention_id) : undefined,
       });
-      toast.success('Tạo cảnh báo thành công!');
+      toast.success(t('reputationPage.alerts.createSuccess'));
       setShowCreate(false);
       setForm({ title: '', severity: 'high', message: '', mention_id: '' });
       fetchAlerts();
     } catch (error: any) {
       console.error('Error creating alert:', error);
-      toast.error(getErrorMessage(error) || 'Lỗi khi tạo cảnh báo');
+      toast.error(getErrorMessage(error) || t('reputationPage.alerts.errors.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -90,20 +92,20 @@ export default function AlertsPage() {
   const handleAcknowledge = async (id: number) => {
     try {
       await alertsApi.acknowledge(id);
-      toast.success('Đã xác nhận cảnh báo');
+      toast.success(t('reputationPage.alerts.acknowledgeSuccess'));
       fetchAlerts();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi xác nhận cảnh báo');
+      toast.error(getErrorMessage(error) || t('reputationPage.alerts.errors.acknowledgeFailed'));
     }
   };
 
   const handleResolve = async (id: number) => {
     try {
       await alertsApi.resolve(id);
-      toast.success('Đã giải quyết cảnh báo');
+      toast.success(t('reputationPage.alerts.resolveSuccess'));
       fetchAlerts();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi giải quyết cảnh báo');
+      toast.error(getErrorMessage(error) || t('reputationPage.alerts.errors.resolveFailed'));
     }
   };
 
@@ -118,10 +120,10 @@ export default function AlertsPage() {
         window_hours: ruleForm.window_hours,
         is_active: ruleForm.is_active,
       });
-      toast.success(`Đã kiểm tra rules. Tạo ${result.alerts_created || 0} cảnh báo mới.`);
+      toast.success(t('reputationPage.alerts.ruleCheckSuccess', { count: result.alerts_created || 0 }));
       fetchAlerts();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi kiểm tra rules');
+      toast.error(getErrorMessage(error) || t('reputationPage.alerts.errors.ruleCheckFailed'));
     } finally {
       setCheckingRules(false);
     }
@@ -141,13 +143,15 @@ export default function AlertsPage() {
     return 'border-l-indigo-500';
   };
 
-  const getSeverityLabel = (s: string) =>
-    SEVERITIES.find((x) => x.value === s)?.label || s;
+  const getSeverityLabel = (s: string) => {
+    const found = SEVERITIES.find((x) => x.value === s);
+    return found ? t(`reputationPage.alerts.severity.${found.key}`) : s;
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
@@ -159,8 +163,8 @@ export default function AlertsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Cảnh Báo</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý các cảnh báo từ hệ thống</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('reputationPage.alerts.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('reputationPage.alerts.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -168,14 +172,14 @@ export default function AlertsPage() {
             className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-500/20 font-medium"
           >
             <Play className="w-4 h-4" />
-            <span>Manual Check</span>
+            <span>{t('reputationPage.alerts.manualCheck')}</span>
           </button>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
           >
             <Plus className="w-4 h-4" />
-            <span>Tạo cảnh báo</span>
+            <span>{t('reputationPage.alerts.create')}</span>
           </button>
         </div>
       </div>
@@ -192,7 +196,7 @@ export default function AlertsPage() {
                 : 'bg-white dark:bg-[#111827] text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-800 hover:text-white hover:bg-white dark:bg-[#1E293B]'
             }`}
           >
-            {f === 'all' ? 'Tất cả' : f === 'new' ? 'Mới' : f === 'acknowledged' ? 'Đã xác nhận' : 'Đã giải quyết'}
+            {f === 'all' ? t('common.all') : t(`reputationPage.alerts.status.${f}`)}
           </button>
         ))}
       </div>
@@ -204,7 +208,7 @@ export default function AlertsPage() {
             <div className="w-16 h-16 rounded-xl bg-white dark:bg-[#1E293B] flex items-center justify-center mx-auto mb-4 border border-slate-200 dark:border-gray-800 shadow-sm">
               <AlertTriangle className="w-8 h-8 text-gray-500" />
             </div>
-            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">Không có cảnh báo nào</p>
+            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('reputationPage.alerts.empty')}</p>
           </div>
         ) : (
           alerts.map((alert) => (
@@ -233,7 +237,7 @@ export default function AlertsPage() {
                         className="inline-flex items-center text-xs font-semibold tracking-wide text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-colors"
                       >
                         <FileText className="w-3.5 h-3.5 mr-1.5" />
-                        Xem Mention Gốc (#{alert.mention_id})
+                        {t('reputationPage.viewSourceMention', { id: alert.mention_id })}
                       </Link>
                     </div>
                   )}
@@ -246,20 +250,20 @@ export default function AlertsPage() {
                     <button
                       onClick={() => handleAcknowledge(alert.id)}
                       className="flex items-center justify-center px-3 py-1.5 text-sm font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition-colors"
-                      title="Xác nhận"
+                      title={t('reputationPage.alerts.acknowledge')}
                     >
                       <Check className="w-4 h-4 mr-1.5" />
-                      Xác nhận
+                      {t('reputationPage.alerts.acknowledge')}
                     </button>
                   )}
                   {alert.status !== 'resolved' && (
                     <button
                       onClick={() => handleResolve(alert.id)}
                       className="flex items-center justify-center px-3 py-1.5 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors"
-                      title="Giải quyết"
+                      title={t('reputationPage.alerts.resolve')}
                     >
                       <Check className="w-4 h-4 mr-1.5" />
-                      Giải quyết
+                      {t('reputationPage.alerts.resolve')}
                     </button>
                   )}
                 </div>
@@ -276,7 +280,7 @@ export default function AlertsPage() {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all overflow-hidden">
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-[#1E293B]/30">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Tạo Cảnh Báo</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('reputationPage.alerts.create')}</h2>
                 <button onClick={() => setShowCreate(false)} className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors">
                   <X className="w-6 h-6" />
                 </button>
@@ -285,20 +289,20 @@ export default function AlertsPage() {
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Tiêu đề <span className="text-rose-500">*</span>
+                    {t('reputationPage.fields.title')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="Nhập tiêu đề cảnh báo..."
+                    placeholder={t('reputationPage.alerts.form.titlePlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                   />
                 </div>
                 {/* Severity */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Mức độ <span className="text-rose-500">*</span>
+                    {t('reputationPage.alerts.form.severityLabel')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={form.severity}
@@ -306,33 +310,33 @@ export default function AlertsPage() {
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                   >
                     {SEVERITIES.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
+                      <option key={s.value} value={s.value}>{t(`reputationPage.alerts.severity.${s.key}`)}</option>
                     ))}
                   </select>
                 </div>
                 {/* Message */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Nội dung
+                    {t('reputationPage.alerts.form.messageLabel')}
                   </label>
                   <textarea
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     rows={4}
-                    placeholder="Mô tả chi tiết cảnh báo..."
+                    placeholder={t('reputationPage.alerts.form.messagePlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
                 {/* Mention ID (optional) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    ID Mention (tùy chọn)
+                    {t('reputationPage.alerts.form.mentionIdLabel')}
                   </label>
                   <input
                     type="number"
                     value={form.mention_id}
                     onChange={(e) => setForm({ ...form, mention_id: e.target.value })}
-                    placeholder="Nhập ID mention liên quan..."
+                    placeholder={t('reputationPage.alerts.form.mentionIdPlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                   />
                 </div>
@@ -342,14 +346,14 @@ export default function AlertsPage() {
                   onClick={() => setShowCreate(false)}
                   className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={submitting || !form.title.trim()}
                   className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all shadow-sm shadow-indigo-500/20 font-medium"
                 >
-                  {submitting ? 'Đang tạo...' : 'Tạo cảnh báo'}
+                  {submitting ? t('reputationPage.creating') : t('reputationPage.alerts.create')}
                 </button>
               </div>
             </div>
@@ -366,7 +370,7 @@ export default function AlertsPage() {
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-[#1E293B]/30">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Play className="w-5 h-5 text-emerald-400" />
-                  Manual Rule Check
+                  {t('reputationPage.alerts.ruleCheckTitle')}
                 </h2>
                 <button onClick={() => setShowRuleCheck(false)} className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors">
                   <X className="w-6 h-6" />
@@ -374,12 +378,12 @@ export default function AlertsPage() {
               </div>
               <div className="p-6 space-y-5">
                 <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">
-                  Kiểm tra thủ công các rules để tạo cảnh báo dựa trên ngưỡng đã cấu hình.
+                  {t('reputationPage.alerts.ruleCheckDesc')}
                 </p>
                 {/* Rule Type */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Loại Rule
+                    {t('reputationPage.alerts.form.ruleTypeLabel')}
                   </label>
                   <select
                     value={ruleForm.rule_type}
@@ -387,15 +391,15 @@ export default function AlertsPage() {
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                   >
                     {RULE_TYPES.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
+                      <option key={r.value} value={r.value}>{t(`reputationPage.alerts.ruleType.${r.key}.label`)}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">{RULE_TYPES.find(r => r.value === ruleForm.rule_type)?.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t(`reputationPage.alerts.ruleType.${RULE_TYPES.find(r => r.value === ruleForm.rule_type)?.key ?? 'mentionSpike'}.description`)}</p>
                 </div>
                 {/* Threshold */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Ngưỡng (Threshold)
+                    {t('reputationPage.alerts.form.thresholdLabel')}
                   </label>
                   <input
                     type="number"
@@ -407,7 +411,7 @@ export default function AlertsPage() {
                 {/* Window Hours */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Khoảng thời gian (giờ)
+                    {t('reputationPage.alerts.form.windowHoursLabel')}
                   </label>
                   <input
                     type="number"
@@ -419,7 +423,7 @@ export default function AlertsPage() {
                 {/* Active Toggle */}
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-slate-700 dark:text-gray-300">
-                    Kích hoạt rule
+                    {t('reputationPage.alerts.form.activateRule')}
                   </label>
                   <button
                     onClick={() => setRuleForm({ ...ruleForm, is_active: !ruleForm.is_active })}
@@ -438,7 +442,7 @@ export default function AlertsPage() {
                   onClick={() => setShowRuleCheck(false)}
                   className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleCheckRules}
@@ -448,12 +452,12 @@ export default function AlertsPage() {
                   {checkingRules ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      Đang kiểm tra...
+                      {t('reputationPage.alerts.checking')}
                     </>
                   ) : (
                     <>
                       <Play className="w-4 h-4" />
-                      Chạy Kiểm Tra
+                      {t('reputationPage.alerts.runCheck')}
                     </>
                   )}
                 </button>

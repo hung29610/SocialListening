@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { languageNames } from '@/i18n';
 import { Palette, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
@@ -36,7 +37,7 @@ export default function AppearanceSettings() {
       applyTheme(data.theme);
     } catch (error) {
       console.error('Failed to load preferences:', error);
-      toast.error('Không thể tải cài đặt giao diện');
+      toast.error(t('settingsPage.appearance.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -77,10 +78,10 @@ export default function AppearanceSettings() {
       console.log('✅ [AppearanceSettings] Success:', data);
       // Apply theme immediately
       applyTheme(settings.theme);
-      toast.success('✅ Đã lưu cài đặt giao diện');
+      toast.success(`✅ ${t('settingsPage.appearance.saveSuccess')}`);
     } catch (error: any) {
       console.error('❌ [AppearanceSettings] Exception:', error);
-      toast.error(error.response?.data?.detail || 'Không thể lưu cài đặt giao diện');
+      toast.error(error.response?.data?.detail || t('settingsPage.appearance.errors.saveFailed'));
     } finally {
       setSaving(false);
       console.log('🔵 [AppearanceSettings] handleSave finished');
@@ -99,8 +100,8 @@ export default function AppearanceSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Giao diện</h2>
-        <p className="text-sm text-gray-600 mt-1">Tùy chỉnh giao diện ứng dụng</p>
+        <h2 className="text-xl font-semibold text-gray-900">{t('settingsPage.appearance.title')}</h2>
+        <p className="text-sm text-gray-600 mt-1">{t('settingsPage.appearance.subtitle')}</p>
       </div>
 
       {/* Appearance Settings */}
@@ -108,13 +109,13 @@ export default function AppearanceSettings() {
         {/* Theme */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-3">
-            Chủ đề
+            {t('settingsPage.appearance.theme')}
           </label>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { value: 'light', label: 'Sáng', icon: '☀️' },
-              { value: 'dark', label: 'Tối', icon: '🌙' },
-              { value: 'system', label: 'Hệ thống', icon: '💻' }
+              { value: 'light', label: t('settingsPage.appearance.themeLight'), icon: '☀️' },
+              { value: 'dark', label: t('settingsPage.appearance.themeDark'), icon: '🌙' },
+              { value: 'system', label: t('settingsPage.appearance.themeSystem'), icon: '💻' }
             ].map((theme) => (
               <button
                 key={theme.value}
@@ -141,22 +142,22 @@ export default function AppearanceSettings() {
         {/* Language */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
-            Ngôn ngữ
+            {t('settingsPage.appearance.language')}
           </label>
           <select
             value={settings.language}
             onChange={(e) => setSettings({ ...settings, language: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
+            <option value="vi">{languageNames.vi}</option>
+            <option value="en">{languageNames.en}</option>
           </select>
         </div>
 
         {/* Items per page */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
-            Số mục mỗi trang
+            {t('settingsPage.appearance.itemsPerPage')}
           </label>
           <select
             value={settings.itemsPerPage}
@@ -173,8 +174,8 @@ export default function AppearanceSettings() {
         {/* Sidebar Collapsed */}
         <div className="flex items-center justify-between py-3 border-t border-gray-100">
           <div>
-            <p className="text-sm font-medium text-gray-900">Thu gọn sidebar</p>
-            <p className="text-xs text-gray-500 mt-1">Sidebar sẽ thu gọn mặc định</p>
+            <p className="text-sm font-medium text-gray-900">{t('settingsPage.appearance.collapseSidebar')}</p>
+            <p className="text-xs text-gray-500 mt-1">{t('settingsPage.appearance.collapseSidebarHint')}</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input

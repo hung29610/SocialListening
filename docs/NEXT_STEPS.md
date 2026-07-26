@@ -64,10 +64,10 @@ alembic upgrade head
 # Chạy script này
 python -c "
 import requests
-token = requests.post('https://social-listening-backend.onrender.com/api/auth/login', 
-                      data={'username': 'admin@sociallistening.com', 'password': 'Admin@123456'}).json()['access_token']
+token = requests.post('https://sociallistening-9fvs.onrender.com/api/auth/login',
+                      data={'username': '<redacted-email>', 'password': '<redacted>'}).json()['access_token']
 headers = {'Authorization': f'Bearer {token}'}
-response = requests.post('https://social-listening-backend.onrender.com/api/admin/run-migrations', headers=headers)
+response = requests.post('https://sociallistening-9fvs.onrender.com/api/admin/run-migrations', headers=headers)
 print(response.json())
 "
 ```
@@ -177,7 +177,7 @@ headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json
 
 # Create category
 response = requests.post(
-    "https://social-listening-backend.onrender.com/api/services/categories",
+    "https://sociallistening-9fvs.onrender.com/api/services/categories",
     headers=headers,
     json={
         "name": "Community Response Planning",

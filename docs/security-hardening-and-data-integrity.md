@@ -24,7 +24,7 @@ No other behaviour changed. The endpoint is still useful for emergency manual mi
 
 **Files:** `backend/app/main.py`, `backend/app/core/config.py`
 
-A literal Gmail address (`honguyenhung2010@gmail.com`) was hard-coded in the server startup lifespan and ran an unconditional `UPDATE users SET is_superuser = true ...` on every cold start and every Render deploy restart. This:
+A literal Gmail address (`<redacted-email>`) was hard-coded in the server startup lifespan and ran an unconditional `UPDATE users SET is_superuser = true ...` on every cold start and every Render deploy restart. This:
 
 - Embedded a personal email address in public source code.
 - Prevented clean account deactivation (the role would be restored on next restart).

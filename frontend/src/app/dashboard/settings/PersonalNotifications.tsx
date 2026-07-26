@@ -35,7 +35,7 @@ export default function PersonalNotifications() {
       });
     } catch (error) {
       console.error('Failed to load notification settings:', error);
-      toast.error('Không thể tải cài đặt thông báo');
+      toast.error(t('settingsPage.personalNotifications.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -59,10 +59,10 @@ export default function PersonalNotifications() {
       const response = await api.put('/api/auth/me/notification-settings', payload);
       const data = response.data;
       console.log('✅ [PersonalNotifications] Success:', data);
-      toast.success('✅ Đã lưu cài đặt thông báo');
+      toast.success(`✅ ${t('settingsPage.personalNotifications.saved')}`);
     } catch (error: any) {
       console.error('❌ [PersonalNotifications] Exception:', error);
-      toast.error(error.response?.data?.detail || 'Không thể lưu cài đặt thông báo');
+      toast.error(error.response?.data?.detail || t('settingsPage.personalNotifications.errors.saveFailed'));
     } finally {
       setSaving(false);
       console.log('🔵 [PersonalNotifications] handleSave finished');
@@ -81,19 +81,39 @@ export default function PersonalNotifications() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Thông báo cá nhân</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý thông báo bạn nhận được</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.personalNotificationsDesc')}</h2>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.personalNotifications.subtitle')}</p>
       </div>
 
       {/* Notification Settings */}
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-4">
         <div className="space-y-4">
           {[
-            { key: 'emailNotifications', label: 'Email notifications', description: 'Nhận thông báo qua email' },
-            { key: 'inAppNotifications', label: 'In-app notifications', description: 'Hiển thị thông báo trong ứng dụng' },
-            { key: 'alertNotifications', label: 'Cảnh báo', description: 'Thông báo khi có cảnh báo mới' },
-            { key: 'incidentNotifications', label: 'Sự cố', description: 'Thông báo khi được gán sự cố' },
-            { key: 'reportNotifications', label: 'Báo cáo', description: 'Nhận báo cáo định kỳ' }
+            {
+              key: 'emailNotifications',
+              label: t('settingsPage.personalNotifications.items.email.label'),
+              description: t('settingsPage.personalNotifications.items.email.desc')
+            },
+            {
+              key: 'inAppNotifications',
+              label: t('settingsPage.personalNotifications.items.inApp.label'),
+              description: t('settingsPage.personalNotifications.items.inApp.desc')
+            },
+            {
+              key: 'alertNotifications',
+              label: t('settingsPage.personalNotifications.items.alerts.label'),
+              description: t('settingsPage.personalNotifications.items.alerts.desc')
+            },
+            {
+              key: 'incidentNotifications',
+              label: t('settingsPage.personalNotifications.items.incidents.label'),
+              description: t('settingsPage.personalNotifications.items.incidents.desc')
+            },
+            {
+              key: 'reportNotifications',
+              label: t('settingsPage.personalNotifications.items.reports.label'),
+              description: t('settingsPage.personalNotifications.items.reports.desc')
+            }
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between py-3 border-b border-slate-200 dark:border-gray-800 last:border-0">
               <div className="flex-1">

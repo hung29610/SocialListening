@@ -3,13 +3,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Globe } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Language, languageNames } from '@/i18n';
+import { Language, SUPPORTED_LANGUAGES, languageNames } from '@/i18n';
 
 export function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const label = language === 'vi' ? 'Đổi ngôn ngữ' : 'Change language';
+  const label = t('common.changeLanguage');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -33,10 +33,17 @@ export function LanguageSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1E293B] rounded-xl shadow-lg border border-gray-100 dark:border-white/10 py-1.5 z-50">
-          {(Object.keys(languageNames) as Language[]).map((lang) => (
+        <div
+          className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1E293B] rounded-xl shadow-lg border border-gray-100 dark:border-white/10 py-1.5 z-50"
+          role="menu"
+          aria-label={label}
+        >
+          {SUPPORTED_LANGUAGES.map((lang: Language) => (
             <button
               key={lang}
+              role="menuitemradio"
+              aria-checked={language === lang}
+              lang={lang}
               onClick={() => {
                 setLanguage(lang);
                 setIsOpen(false);

@@ -56,7 +56,7 @@ export default function BrandingSettings() {
       });
     } catch (error) {
       console.error('Error loading branding settings:', error);
-      toast.error('Không thể tải cài đặt branding');
+      toast.error(t('settingsPage.branding.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -70,10 +70,10 @@ export default function BrandingSettings() {
       const response = await api.put('/api/branding/', formData);
       const data = response.data;
       setSettings(data);
-      toast.success('Lưu cài đặt branding thành công');
+      toast.success(t('settingsPage.branding.saveSuccess'));
     } catch (error) {
       console.error('Error saving branding settings:', error);
-      toast.error('Không thể lưu cài đặt branding');
+      toast.error(t('settingsPage.branding.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -81,8 +81,8 @@ export default function BrandingSettings() {
 
   const handleReset = async () => {
     const ok = await confirm({
-      title: 'Khôi phục cài đặt',
-      message: 'Bạn có chắc muốn khôi phục cài đặt mặc định?',
+      title: t('settingsPage.branding.resetConfirmTitle'),
+      message: t('settingsPage.branding.resetConfirmMessage'),
       variant: 'warning'
     });
     if (!ok) return;
@@ -100,15 +100,15 @@ export default function BrandingSettings() {
         login_background_url: data.login_background_url || '',
         custom_css: data.custom_css || ''
       });
-      toast.success('Khôi phục cài đặt mặc định thành công');
+      toast.success(t('settingsPage.branding.resetSuccess'));
     } catch (error) {
       console.error('Error resetting branding settings:', error);
-      toast.error('Không thể khôi phục cài đặt mặc định');
+      toast.error(t('settingsPage.branding.errors.resetFailed'));
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Đang tải...</div>;
+    return <div className="text-center py-8">{t('common.loading')}</div>;
   }
 
   return (
@@ -116,15 +116,15 @@ export default function BrandingSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Giao diện hệ thống</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Tùy chỉnh logo, màu sắc và giao diện toàn hệ thống</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.branding')}</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.branding.subtitle')}</p>
         </div>
         <button
           onClick={handleReset}
           className="flex items-center px-4 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium shadow-sm"
         >
           <RotateCcw className="w-4 h-4 mr-2" />
-          Khôi phục mặc định
+          {t('settingsPage.branding.resetDefaults')}
         </button>
       </div>
 
@@ -133,13 +133,13 @@ export default function BrandingSettings() {
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
             <Palette className="w-5 h-5 mr-2 text-indigo-400" />
-            Màu sắc
+            {t('settingsPage.branding.colors')}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Màu chính (Primary)
+                {t('settingsPage.branding.primaryColor')}
               </label>
               <div className="flex items-center space-x-3">
                 <div className="relative overflow-hidden rounded-lg w-12 h-10 border border-slate-300 dark:border-gray-700 shrink-0">
@@ -163,7 +163,7 @@ export default function BrandingSettings() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Màu phụ (Secondary)
+                {t('settingsPage.branding.secondaryColor')}
               </label>
               <div className="flex items-center space-x-3">
                 <div className="relative overflow-hidden rounded-lg w-12 h-10 border border-slate-300 dark:border-gray-700 shrink-0">
@@ -189,12 +189,12 @@ export default function BrandingSettings() {
 
         {/* Logo & Images */}
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Logo & Hình ảnh</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{t('settingsPage.branding.logoAndImages')}</h3>
 
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Logo (Light Mode)
+                {t('settingsPage.branding.logoLight')}
               </label>
               <input
                 type="url"
@@ -203,12 +203,12 @@ export default function BrandingSettings() {
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                 placeholder="https://example.com/logo-light.png"
               />
-              <p className="text-xs text-gray-500 mt-1.5 font-medium">URL của logo hiển thị ở chế độ sáng</p>
+              <p className="text-xs text-gray-500 mt-1.5 font-medium">{t('settingsPage.branding.logoLightHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Logo (Dark Mode)
+                {t('settingsPage.branding.logoDark')}
               </label>
               <input
                 type="url"
@@ -217,12 +217,12 @@ export default function BrandingSettings() {
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                 placeholder="https://example.com/logo-dark.png"
               />
-              <p className="text-xs text-gray-500 mt-1.5 font-medium">URL của logo hiển thị ở chế độ tối</p>
+              <p className="text-xs text-gray-500 mt-1.5 font-medium">{t('settingsPage.branding.logoDarkHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Favicon
+                {t('settingsPage.branding.favicon')}
               </label>
               <input
                 type="url"
@@ -231,12 +231,12 @@ export default function BrandingSettings() {
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                 placeholder="https://example.com/favicon.ico"
               />
-              <p className="text-xs text-gray-500 mt-1.5 font-medium">Icon hiển thị trên tab trình duyệt</p>
+              <p className="text-xs text-gray-500 mt-1.5 font-medium">{t('settingsPage.branding.faviconHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Ảnh nền trang đăng nhập
+                {t('settingsPage.branding.loginBackground')}
               </label>
               <input
                 type="url"
@@ -245,18 +245,18 @@ export default function BrandingSettings() {
                 className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                 placeholder="https://example.com/login-bg.jpg"
               />
-              <p className="text-xs text-gray-500 mt-1.5 font-medium">Ảnh nền cho trang đăng nhập</p>
+              <p className="text-xs text-gray-500 mt-1.5 font-medium">{t('settingsPage.branding.loginBackgroundHint')}</p>
             </div>
           </div>
         </div>
 
         {/* Custom CSS */}
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Custom CSS</h3>
-          
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{t('settingsPage.branding.customCssTitle')}</h3>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              CSS tùy chỉnh (nâng cao)
+              {t('settingsPage.branding.customCssLabel')}
             </label>
             <textarea
               value={formData.custom_css}
@@ -266,7 +266,7 @@ export default function BrandingSettings() {
               placeholder=".custom-class { color: red; }"
             />
             <p className="text-xs text-gray-500 mt-2 font-medium">
-              CSS này sẽ được áp dụng toàn hệ thống. Sử dụng cẩn thận.
+              {t('settingsPage.branding.customCssHint')}
             </p>
           </div>
         </div>
@@ -287,8 +287,7 @@ export default function BrandingSettings() {
       {/* Info Box */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Thay đổi branding sẽ ảnh hưởng đến toàn bộ hệ thống. 
-          Hãy đảm bảo logo và màu sắc phù hợp với thương hiệu của bạn.
+          <strong className="text-indigo-300">{t('settingsPage.branding.noteLabel')}</strong> {t('settingsPage.branding.noteBody')}
         </p>
       </div>
     </div>

@@ -239,13 +239,14 @@ export default function SettingsPage() {
 }
 
 function ComingSoon({ title }: { title: string }) {
+  const { t } = useLanguage();
   return (
     <div className="text-center py-12 bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-xl">
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-800 border border-slate-300 dark:border-gray-700 mb-4">
         <FileText className="w-8 h-8 text-slate-500 dark:text-gray-400" />
       </div>
       <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">{title}</h3>
-      <p className="text-slate-500 dark:text-gray-400">Tính năng này đang được phát triển</p>
+      <p className="text-slate-500 dark:text-gray-400">{t('settingsPage.comingSoon.description')}</p>
     </div>
   );
 }

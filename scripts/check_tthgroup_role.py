@@ -1,9 +1,26 @@
 """
-Check role of tthgroup@gmail.com account
+Check role of <redacted-email> account
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
+BACKEND_URL = backend_url()
 
 # Try to login with tthgroup account
 print("=" * 60)
@@ -13,8 +30,8 @@ print("=" * 60)
 # We don't have the password, so let's check all users
 print("\nAttempting to login as admin to check all users...")
 
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+ADMIN_EMAIL = admin_email()
+ADMIN_PASSWORD = admin_password()
 
 login_response = requests.post(
     f"{BACKEND_URL}/api/auth/login",

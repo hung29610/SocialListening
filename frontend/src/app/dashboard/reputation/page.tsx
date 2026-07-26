@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import { reputation } from '@/lib/api';
 import { toast } from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ReputationPage() {
+  const { t } = useLanguage();
   const [cases, setCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -17,10 +19,10 @@ export default function ReputationPage() {
   
   // Stats
   const stats = [
-    { label: 'Hồ sơ đang xử lý', value: cases.filter(c => c.status !== 'closed' && c.status !== 'resolved').length, icon: ShieldAlert, color: 'text-amber-500' },
-    { label: 'Rủi ro cao', value: cases.filter(c => c.risk_level === 'high' || c.risk_level === 'critical').length, icon: AlertTriangle, color: 'text-red-500' },
-    { label: 'Chờ phê duyệt', value: cases.filter(c => c.status === 'waiting_approval').length, icon: FileSearch, color: 'text-blue-500' },
-    { label: 'Đã giải quyết', value: cases.filter(c => c.status === 'resolved').length, icon: ShieldCheck, color: 'text-emerald-500' },
+    { label: t('reputationPage.stats.openCases'), value: cases.filter(c => c.status !== 'closed' && c.status !== 'resolved').length, icon: ShieldAlert, color: 'text-amber-500' },
+    { label: t('reputationPage.stats.highRisk'), value: cases.filter(c => c.risk_level === 'high' || c.risk_level === 'critical').length, icon: AlertTriangle, color: 'text-red-500' },
+    { label: t('reputationPage.stats.waitingApproval'), value: cases.filter(c => c.status === 'waiting_approval').length, icon: FileSearch, color: 'text-blue-500' },
+    { label: t('reputationPage.stats.resolved'), value: cases.filter(c => c.status === 'resolved').length, icon: ShieldCheck, color: 'text-emerald-500' },
   ];
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function ReputationPage() {
       const data = await reputation.listCases();
       setCases(data);
     } catch (error) {
-      toast.error('Lỗi khi tải danh sách hồ sơ');
+      toast.error(t('reputationPage.errors.loadCasesFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +59,7 @@ export default function ReputationPage() {
       const data = await reputation.getCase(id);
       setSelectedCase(data);
     } catch (error) {
-      toast.error('Lỗi khi tải chi tiết hồ sơ');
+      toast.error(t('reputationPage.errors.loadCaseFailed'));
     }
   };
 
@@ -70,17 +72,17 @@ export default function ReputationPage() {
   }, [selectedCaseId]);
 
   const handleDraftAction = async (caseId: number, type: string) => {
-    const toastId = toast.loading('AI đang phân tích và dự thảo...');
+    const toastId = toast.loading(t('reputationPage.draftLoading'));
     try {
       if (type === 'response') await reputation.draftResponse(caseId);
       else if (type === 'correction') await reputation.draftCorrection(caseId);
       else if (type === 'report') await reputation.draftPlatformReport(caseId);
       else if (type === 'brief') await reputation.draftExecutiveBrief(caseId);
       
-      toast.success('Dự thảo đã được tạo thành công!', { id: toastId });
+      toast.success(t('reputationPage.draftSuccess'), { id: toastId });
       fetchCaseDetail(caseId);
     } catch (error) {
-      toast.error('Lỗi khi tạo dự thảo', { id: toastId });
+      toast.error(t('reputationPage.errors.draftFailed'), { id: toastId });
     }
   };
 
@@ -90,10 +92,10 @@ export default function ReputationPage() {
         <div>
           <h1 className="text-3xl font-bold font-display tracking-tight text-slate-900 dark:text-white mb-2 flex items-center gap-2">
             <Scale className="w-8 h-8 text-indigo-400" />
-            Xử lý danh tiếng
+            {t('reputationPage.title')}
           </h1>
           <p className="text-zinc-400">
-            Quản lý và xử lý các sự cố truyền thông, bôi nhọ danh dự và khủng hoảng thương hiệu.
+            {t('reputationPage.subtitle')}
           </p>
         </div>
       </div>
@@ -101,10 +103,9 @@ export default function ReputationPage() {
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-4 items-start">
         <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
         <div className="text-sm text-amber-200">
-          <p className="font-semibold mb-1">Tuân thủ pháp lý & Đạo đức AI</p>
+          <p className="font-semibold mb-1">{t('reputationPage.compliance.title')}</p>
           <p className="text-amber-200/80">
-            Tất cả các hành động phản hồi, báo cáo hoặc yêu cầu đính chính đều phải được con người phê duyệt trước khi thực thi. 
-            Nền tảng tuyệt đối không cung cấp các công cụ tấn công mạng (DDoS, report rác) hay thao túng danh tiếng bất hợp pháp.
+            {t('reputationPage.compliance.body')}
           </p>
         </div>
       </div>
@@ -132,31 +133,31 @@ export default function ReputationPage() {
                 activeTab === 'overview' ? 'bg-indigo-500 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Danh sách hồ sơ
+              {t('reputationPage.tabs.cases')}
             </button>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <div className="text-center py-12 text-zinc-500">Đang tải dữ liệu...</div>
+            <div className="text-center py-12 text-zinc-500">{t('common.loadingData')}</div>
           ) : cases.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShieldCheck className="w-8 h-8 text-zinc-500" />
               </div>
-              <p className="text-zinc-400">Chưa có hồ sơ xử lý nào</p>
+              <p className="text-zinc-400">{t('reputationPage.emptyCases')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">Tiêu đề</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">Loại sự cố</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">Mức rủi ro</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">Trạng thái</th>
-                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase text-right">Thao tác</th>
+                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.fields.title')}</th>
+                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.table.caseType')}</th>
+                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.table.riskLevel')}</th>
+                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase">{t('reputationPage.fields.status')}</th>
+                    <th className="py-3 px-4 text-xs font-medium text-zinc-500 uppercase text-right">{t('reputationPage.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -223,12 +224,12 @@ export default function ReputationPage() {
 
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-semibold text-zinc-300 mb-2">Thông tin ban đầu</h3>
+                    <h3 className="text-sm font-semibold text-zinc-300 mb-2">{t('reputationPage.detail.initialInfo')}</h3>
                     <div className="bg-white/5 p-4 rounded-xl text-sm text-zinc-400">
-                      <p>{selectedCase.description || 'Không có mô tả chi tiết.'}</p>
+                      <p>{selectedCase.description || t('reputationPage.detail.noDescription')}</p>
                       {selectedCase.source_url && (
                         <a href={selectedCase.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 mt-4 text-indigo-400 hover:text-indigo-300">
-                          <ExternalLink className="w-4 h-4" /> Nguồn phát sinh
+                          <ExternalLink className="w-4 h-4" /> {t('reputationPage.detail.sourceLink')}
                         </a>
                       )}
                     </div>
@@ -236,7 +237,7 @@ export default function ReputationPage() {
 
                   <div>
                     <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex justify-between items-center">
-                      AI Trợ lý pháp lý & Phản hồi
+                      {t('reputationPage.detail.aiAssistant')}
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       <button 
@@ -244,41 +245,41 @@ export default function ReputationPage() {
                         className="flex flex-col items-center justify-center p-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl transition-colors text-indigo-300 group"
                       >
                         <Bot className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-sm font-medium">Dự thảo phản hồi</span>
+                        <span className="text-sm font-medium">{t('reputationPage.actions.draftResponse')}</span>
                       </button>
                       <button 
                         onClick={() => handleDraftAction(selectedCase.id, 'correction')}
                         className="flex flex-col items-center justify-center p-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl transition-colors text-amber-300 group"
                       >
                         <FileText className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-sm font-medium">Yêu cầu đính chính</span>
+                        <span className="text-sm font-medium">{t('reputationPage.actions.draftCorrection')}</span>
                       </button>
                       <button 
                         onClick={() => handleDraftAction(selectedCase.id, 'report')}
                         className="flex flex-col items-center justify-center p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors text-red-300 group"
                       >
                         <ShieldAlert className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-sm font-medium">Báo cáo nền tảng</span>
+                        <span className="text-sm font-medium">{t('reputationPage.actions.draftPlatformReport')}</span>
                       </button>
                       <button 
                         onClick={() => handleDraftAction(selectedCase.id, 'brief')}
                         className="flex flex-col items-center justify-center p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-colors text-emerald-300 group"
                       >
                         <FileSearch className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-sm font-medium">Báo cáo lãnh đạo</span>
+                        <span className="text-sm font-medium">{t('reputationPage.actions.draftExecutiveBrief')}</span>
                       </button>
                     </div>
                   </div>
 
                   {selectedCase.actions && selectedCase.actions.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 uppercase tracking-widest border-b border-white/10 pb-2">Bản nháp & Hành động</h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 uppercase tracking-widest border-b border-white/10 pb-2">{t('reputationPage.detail.draftsAndActions')}</h3>
                       <div className="space-y-4">
                         {selectedCase.actions.map((action: any) => {
                           const isZalo = action.type === 'executive_brief' || action.title?.toLowerCase().includes('lãnh đạo');
                           return (
                           <div key={action.id} className={`bg-white/5 border ${isZalo ? 'border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'border-white/10'} rounded-2xl p-5 relative`}>
-                            {isZalo && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-black uppercase px-2 py-1 rounded-bl-lg rounded-tr-xl">Zalo UI Mockup</div>}
+                            {isZalo && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-black uppercase px-2 py-1 rounded-bl-lg rounded-tr-xl">{t('reputationPage.detail.zaloMockup')}</div>}
                             <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
                               <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 {isZalo && <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-[10px]">Z</div>}
@@ -296,11 +297,11 @@ export default function ReputationPage() {
                                 <button 
                                   onClick={(e) => {
                                     navigator.clipboard.writeText(action.content);
-                                    toast.success('Đã copy nội dung Zalo!');
+                                    toast.success(t('reputationPage.detail.zaloCopied'));
                                   }}
                                   className="mt-3 text-xs bg-white text-blue-600 font-bold px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors flex items-center gap-1 w-fit"
                                 >
-                                  Copy gửi Zalo
+                                  {t('reputationPage.detail.copyForZalo')}
                                 </button>
                               </div>
                             ) : (
@@ -314,21 +315,21 @@ export default function ReputationPage() {
                                   onClick={async () => {
                                     try {
                                       await reputation.updateAction(action.id, { status: 'pending_approval' });
-                                      toast.success('Đã trình phê duyệt thành công');
+                                      toast.success(t('reputationPage.actions.submitApprovalSuccess'));
                                       fetchCaseDetail(selectedCase.id);
                                     } catch (e) {
-                                      toast.error('Lỗi khi trình phê duyệt');
+                                      toast.error(t('reputationPage.errors.submitApprovalFailed'));
                                     }
                                   }}
                                   className="px-3 py-1.5 bg-indigo-500 text-white text-xs font-medium rounded-lg hover:bg-indigo-600">
-                                  Trình phê duyệt
+                                  {t('reputationPage.actions.submitForApproval')}
                                 </button>
                               </div>
                             )}
                             {action.status === 'pending_approval' && (
                               <div className="mt-4 flex gap-2 items-center">
                                 <span className="px-3 py-1.5 bg-amber-500/20 text-amber-300 text-xs font-medium rounded-lg border border-amber-500/20">
-                                  Đang chờ phê duyệt
+                                  {t('reputationPage.status.pendingApproval')}
                                 </span>
                                 {(userRole === 'admin' || userRole === 'super_admin') && (
                                   <>
@@ -336,27 +337,27 @@ export default function ReputationPage() {
                                       onClick={async () => {
                                         try {
                                           await reputation.updateAction(action.id, { status: 'approved' });
-                                          toast.success('Đã phê duyệt hành động');
+                                          toast.success(t('reputationPage.actions.approveSuccess'));
                                           fetchCaseDetail(selectedCase.id);
                                         } catch (e) {
-                                          toast.error('Lỗi khi phê duyệt');
+                                          toast.error(t('reputationPage.errors.approveFailed'));
                                         }
                                       }}
                                       className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-medium rounded-lg hover:bg-emerald-600">
-                                      Phê duyệt
+                                      {t('reputationPage.actions.approve')}
                                     </button>
                                     <button 
                                       onClick={async () => {
                                         try {
                                           await reputation.updateAction(action.id, { status: 'rejected' });
-                                          toast.success('Đã từ chối hành động');
+                                          toast.success(t('reputationPage.actions.rejectSuccess'));
                                           fetchCaseDetail(selectedCase.id);
                                         } catch (e) {
-                                          toast.error('Lỗi khi từ chối');
+                                          toast.error(t('reputationPage.errors.rejectFailed'));
                                         }
                                       }}
                                       className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600">
-                                      Từ chối
+                                      {t('reputationPage.actions.reject')}
                                     </button>
                                   </>
                                 )}
@@ -365,14 +366,14 @@ export default function ReputationPage() {
                             {action.status === 'approved' && (
                               <div className="mt-4 flex gap-2">
                                 <span className="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 text-xs font-medium rounded-lg border border-emerald-500/20">
-                                  Đã phê duyệt
+                                  {t('reputationPage.status.approved')}
                                 </span>
                               </div>
                             )}
                             {action.status === 'rejected' && (
                               <div className="mt-4 flex gap-2">
                                 <span className="px-3 py-1.5 bg-red-500/20 text-red-300 text-xs font-medium rounded-lg border border-red-500/20">
-                                  Đã từ chối
+                                  {t('reputationPage.status.rejected')}
                                 </span>
                               </div>
                             )}
@@ -384,7 +385,7 @@ export default function ReputationPage() {
 
                   {selectedCase.evidence && selectedCase.evidence.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 uppercase tracking-widest border-b border-white/10 pb-2">Bằng chứng đã lưu (Blockchain Verified)</h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 uppercase tracking-widest border-b border-white/10 pb-2">{t('reputationPage.evidence.title')}</h3>
                       <div className="space-y-3">
                         {selectedCase.evidence.map((ev: any) => (
                           <div key={ev.id} className="bg-gradient-to-r from-emerald-900/20 to-black/40 border border-emerald-500/30 p-4 rounded-2xl flex items-start gap-4 relative overflow-hidden group">
@@ -394,11 +395,11 @@ export default function ReputationPage() {
                             </div>
                             <div className="flex-1 min-w-0 relative z-10">
                               <div className="flex justify-between items-start mb-2">
-                                <p className="font-bold text-emerald-100 text-sm">Bằng chứng nội dung</p>
-                                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-bold tracking-widest">Verified</span>
+                                <p className="font-bold text-emerald-100 text-sm">{t('reputationPage.evidence.contentEvidence')}</p>
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-bold tracking-widest">{t('reputationPage.evidence.verified')}</span>
                               </div>
                               <div className="bg-black/60 p-3 rounded-lg border border-white/5 mb-3">
-                                <p className="text-sm text-zinc-300 line-clamp-3 italic">"{ev.captured_text}"</p>
+                                <p className="text-sm text-zinc-300 line-clamp-3 italic">&ldquo;{ev.captured_text}&rdquo;</p>
                               </div>
                               <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-black/40 p-2 rounded-lg border border-white/5">
                                 <div>
@@ -420,7 +421,7 @@ export default function ReputationPage() {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-zinc-500">
-                Đang tải chi tiết...
+                {t('reputationPage.loadingDetail')}
               </div>
             )}
           </div>

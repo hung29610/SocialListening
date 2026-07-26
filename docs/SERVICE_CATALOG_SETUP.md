@@ -69,12 +69,12 @@ Sử dụng admin endpoint để tạo tables:
 
 ```bash
 # Login để lấy token
-curl -X POST "https://social-listening-backend.onrender.com/api/auth/login" \
+curl -X POST "https://sociallistening-9fvs.onrender.com/api/auth/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin@sociallistening.com&password=Admin@123456"
+  -d "username=<redacted-email>&password=<redacted>"
 
 # Chạy migration
-curl -X POST "https://social-listening-backend.onrender.com/api/admin/run-migrations" \
+curl -X POST "https://sociallistening-9fvs.onrender.com/api/admin/run-migrations" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -87,13 +87,13 @@ python test_admin_endpoints.py
 Sau khi migration thành công, seed dữ liệu mẫu:
 
 ```bash
-curl -X POST "https://social-listening-backend.onrender.com/api/admin/seed-services" \
+curl -X POST "https://sociallistening-9fvs.onrender.com/api/admin/seed-services" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Bước 4: Kiểm tra Status
 ```bash
-curl -X GET "https://social-listening-backend.onrender.com/api/admin/service-catalog-status" \
+curl -X GET "https://sociallistening-9fvs.onrender.com/api/admin/service-catalog-status" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -220,16 +220,16 @@ python test_admin_endpoints.py
 ### Test Services API
 ```bash
 # Login
-TOKEN=$(curl -X POST "https://social-listening-backend.onrender.com/api/auth/login" \
+TOKEN=$(curl -X POST "https://sociallistening-9fvs.onrender.com/api/auth/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin@sociallistening.com&password=Admin@123456" | jq -r '.access_token')
+  -d "username=<redacted-email>&password=<redacted>" | jq -r '.access_token')
 
 # List services
-curl -X GET "https://social-listening-backend.onrender.com/api/services" \
+curl -X GET "https://sociallistening-9fvs.onrender.com/api/services" \
   -H "Authorization: Bearer $TOKEN"
 
 # Get dashboard summary
-curl -X GET "https://social-listening-backend.onrender.com/api/services/dashboard-summary" \
+curl -X GET "https://sociallistening-9fvs.onrender.com/api/services/dashboard-summary" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -267,4 +267,4 @@ Nếu gặp vấn đề, kiểm tra:
 1. Backend logs: https://dashboard.render.com
 2. Frontend logs: https://vercel.com/dashboard
 3. Database: Render PostgreSQL dashboard
-4. API docs: https://social-listening-backend.onrender.com/docs
+4. API docs: https://sociallistening-9fvs.onrender.com/docs

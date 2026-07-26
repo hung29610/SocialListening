@@ -67,16 +67,21 @@ export default function KeywordsPage() {
   });
 
   const KEYWORD_TYPES = [
-    { value: 'general', label: 'Chung' },
-    { value: 'brand', label: 'Thương hiệu' },
-    { value: 'competitor', label: 'Đối thủ' },
-    { value: 'person', label: 'Cá nhân' },
-    { value: 'service', label: 'Dịch vụ' },
-    { value: 'location', label: 'Địa điểm' },
-    { value: 'hashtag', label: 'Hashtag' },
-    { value: 'negative_phrase', label: 'Cụm tiêu cực' },
-    { value: 'positive_phrase', label: 'Cụm tích cực' },
+    { value: 'general', labelKey: 'keywordsPage.type.general' },
+    { value: 'brand', labelKey: 'keywordsPage.type.brand' },
+    { value: 'competitor', labelKey: 'keywordsPage.type.competitor' },
+    { value: 'person', labelKey: 'keywordsPage.type.person' },
+    { value: 'service', labelKey: 'keywordsPage.type.service' },
+    { value: 'location', labelKey: 'keywordsPage.type.location' },
+    { value: 'hashtag', labelKey: 'keywordsPage.type.hashtag' },
+    { value: 'negative_phrase', labelKey: 'keywordsPage.type.negativePhrase' },
+    { value: 'positive_phrase', labelKey: 'keywordsPage.type.positivePhrase' },
   ];
+
+  const keywordTypeLabel = (value: string) => {
+    const match = KEYWORD_TYPES.find((kt) => kt.value === value);
+    return match ? t(match.labelKey) : value;
+  };
 
   useEffect(() => {
     fetchGroups();
@@ -95,7 +100,7 @@ export default function KeywordsPage() {
       });
     } catch (error: any) {
       console.error('Error fetching groups:', error);
-      toast.error('Lỗi khi tải danh sách nhóm từ khóa');
+      toast.error(t('keywordsPage.errors.loadGroupsFailed'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +112,7 @@ export default function KeywordsPage() {
       setGroupKeywords(prev => ({ ...prev, [groupId]: data }));
     } catch (error: any) {
       console.error('Error fetching keywords:', error);
-      toast.error('Lỗi khi tải từ khóa');
+      toast.error(t('keywordsPage.errors.loadKeywordsFailed'));
     }
   };
 
@@ -126,7 +131,7 @@ export default function KeywordsPage() {
 
   const handleAddGroup = async () => {
     if (!newGroup.name.trim()) {
-      toast.error('Vui lòng nhập tên nhóm');
+      toast.error(t('keywordsPage.errors.groupNameRequired'));
       return;
     }
 
@@ -144,13 +149,13 @@ export default function KeywordsPage() {
       fetchGroups();
     } catch (error: any) {
       console.error('Error adding group:', error);
-      toast.error('Lỗi khi thêm nhóm');
+      toast.error(t('keywordsPage.errors.addGroupFailed'));
     }
   };
 
   const handleAddKeyword = async () => {
     if (!newKeyword.keyword.trim() || !selectedGroupId) {
-      toast.error('Vui lòng nhập từ khóa');
+      toast.error(t('keywordsPage.errors.keywordRequired'));
       return;
     }
 
@@ -171,21 +176,21 @@ export default function KeywordsPage() {
     } catch (error: any) {
       console.error('Error adding keyword:', error);
       if (error.response?.status === 409) {
-        toast('Từ khóa đã tồn tại trong nhóm này', { icon: 'ℹ️' });
+        toast(t('keywordsPage.errors.duplicateKeyword'), { icon: 'ℹ️' });
       } else {
-        toast.error(error.response?.data?.detail || 'Lỗi khi thêm từ khóa');
+        toast.error(error.response?.data?.detail || t('keywordsPage.errors.addKeywordFailed'));
       }
     }
   };
 
   const handleAddBulkKeyword = async () => {
     if (!bulkKeyword.keywords_text.trim() || !selectedGroupId) {
-      toast.error('Vui lòng nhập từ khóa');
+      toast.error(t('keywordsPage.errors.keywordRequired'));
       return;
     }
     const lines = bulkKeyword.keywords_text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) {
-      toast.error('Vui lòng nhập ít nhất 1 từ khóa');
+      toast.error(t('keywordsPage.errors.atLeastOneKeyword'));
       return;
     }
 
@@ -199,19 +204,19 @@ export default function KeywordsPage() {
       
       setShowBulkKeywordModal(false);
       setBulkKeyword({ keywords_text: '', keyword_type: 'general' });
-      toast.success(`Đã thêm ${result.created_count} từ khóa, bỏ qua ${result.skipped_count} từ khóa trùng`);
+      toast.success(t('keywordsPage.bulkAdded', { added: result.created_count, skipped: result.skipped_count }));
       
       await fetchKeywordsInGroup(selectedGroupId);
       fetchGroups();
     } catch (error: any) {
       console.error('Error adding bulk keywords:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi thêm từ khóa hàng loạt');
+      toast.error(error.response?.data?.detail || t('keywordsPage.errors.addBulkFailed'));
     }
   };
 
   const handleEditKeyword = async () => {
     if (!selectedKeyword || !selectedKeyword.keyword.trim()) {
-      toast.error('Vui lòng nhập từ khóa');
+      toast.error(t('keywordsPage.errors.keywordRequired'));
       return;
     }
 
@@ -224,13 +229,13 @@ export default function KeywordsPage() {
       
       setShowEditKeywordModal(false);
       setSelectedKeyword(null);
-      toast.success('Cập nhật từ khóa thành công!');
-      
+      toast.success(t('keywordsPage.updateKeywordOk'));
+
       await fetchKeywordsInGroup(selectedKeyword.group_id);
       fetchGroups();
     } catch (error: any) {
       console.error('Error updating keyword:', error);
-      toast.error('Lỗi khi cập nhật từ khóa');
+      toast.error(t('keywordsPage.errors.updateKeywordFailed'));
     }
   };
 
@@ -250,7 +255,7 @@ export default function KeywordsPage() {
       fetchGroups();
     } catch (error: any) {
       console.error('Error deleting keyword:', error);
-      toast.error('Lỗi khi xóa từ khóa');
+      toast.error(t('keywordsPage.errors.deleteKeywordFailed'));
     }
   };
 
@@ -263,7 +268,7 @@ export default function KeywordsPage() {
       await fetchKeywordsInGroup(keyword.group_id);
     } catch (error: any) {
       console.error('Error toggling keyword:', error);
-      toast.error('Lỗi khi cập nhật từ khóa');
+      toast.error(t('keywordsPage.errors.updateKeywordFailed'));
     }
   };
 
@@ -276,7 +281,7 @@ export default function KeywordsPage() {
       fetchGroups();
     } catch (error: any) {
       console.error('Error deleting group:', error);
-      toast.error('Lỗi khi xóa nhóm');
+      toast.error(t('keywordsPage.errors.deleteGroupFailed'));
     }
   };
 
@@ -306,15 +311,15 @@ export default function KeywordsPage() {
   };
 
   const getPriorityText = (priority: number) => {
-    if (priority >= 4) return 'Cao';
-    if (priority >= 3) return 'Trung bình';
-    return 'Thấp';
+    if (priority >= 4) return t('keywordsPage.priority.high');
+    if (priority >= 3) return t('keywordsPage.priority.medium');
+    return t('keywordsPage.priority.low');
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
@@ -326,9 +331,9 @@ export default function KeywordsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Quản lý từ khóa</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('keywordsPage.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-            Quản lý các nhóm từ khóa và từ khóa để giám sát
+            {t('keywordsPage.subtitle')}
           </p>
         </div>
         <button
@@ -336,7 +341,7 @@ export default function KeywordsPage() {
           className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm shadow-indigo-500/20 font-medium"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Thêm nhóm
+          {t('keywordsPage.addGroup')}
         </button>
       </div>
 
@@ -359,7 +364,7 @@ export default function KeywordsPage() {
             <div className="w-16 h-16 rounded-xl bg-white dark:bg-[#1E293B] flex items-center justify-center mx-auto mb-4 border border-slate-200 dark:border-gray-800 shadow-sm">
               <Search className="w-8 h-8 text-gray-500" />
             </div>
-            {searchTerm ? 'Không tìm thấy kết quả phù hợp.' : 'Không có nhóm từ khóa nào. Hãy tạo nhóm đầu tiên!'}
+            {searchTerm ? t('keywordsPage.noSearchResults') : t('keywordsPage.emptyGroups')}
           </div>
         ) : (
           filteredGroups.map((group) => (
@@ -391,7 +396,7 @@ export default function KeywordsPage() {
                       <span className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md border ${
                         group.is_active ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'
                       }`}>
-                        {group.is_active ? 'Hoạt động' : 'Đang tắt'}
+                        {group.is_active ? t('common.active') : t('keywordsPage.inactive')}
                       </span>
                     </div>
                     {group.description && (
@@ -401,7 +406,7 @@ export default function KeywordsPage() {
                   
                   <div className="hidden sm:flex flex-col items-end text-sm text-slate-500 dark:text-gray-400">
                     <div className="font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#1E293B] px-3 py-1 rounded-lg border border-slate-200 dark:border-gray-800 shadow-sm">
-                      {group.keyword_count} <span className="font-normal text-slate-500 dark:text-gray-400 ml-1">từ khóa</span>
+                      {group.keyword_count} <span className="font-normal text-slate-500 dark:text-gray-400 ml-1">{t('keywordsPage.keywordsUnit')}</span>
                     </div>
                   </div>
                 </div>
@@ -412,14 +417,14 @@ export default function KeywordsPage() {
                     className="flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-lg hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors whitespace-nowrap"
                   >
                     <Plus className="w-3.5 h-3.5 inline mr-1" />
-                    Thêm nhiều
+                    {t('keywordsPage.addMany')}
                   </button>
                   <button
                     onClick={() => openAddKeywordModal(group.id)}
                     className="flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
                   >
                     <Plus className="w-3.5 h-3.5 inline mr-1" />
-                    Thêm 1
+                    {t('keywordsPage.addOne')}
                   </button>
                   <button
                     onClick={() => setDeleteGroupConfirm({ isOpen: true, groupId: group.id, groupName: group.name })}
@@ -435,10 +440,10 @@ export default function KeywordsPage() {
               {expandedGroups.has(group.id) && (
                 <div className="p-0 sm:p-2 bg-slate-50 dark:bg-[#0B1220]">
                   {!groupKeywords[group.id] ? (
-                    <div className="text-center text-gray-500 py-8 text-sm">Đang tải từ khóa...</div>
+                    <div className="text-center text-gray-500 py-8 text-sm">{t('keywordsPage.loadingKeywords')}</div>
                   ) : groupKeywords[group.id].length === 0 ? (
                     <div className="text-center text-gray-500 py-8 text-sm">
-                      Chưa có từ khóa nào trong nhóm này.
+                      {t('keywordsPage.emptyKeywords')}
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-800">
@@ -450,7 +455,7 @@ export default function KeywordsPage() {
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="font-medium text-gray-200">{keyword.keyword}</span>
                             <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-gray-400 px-2 py-0.5 bg-white dark:bg-[#111827] shadow-sm rounded-md border border-slate-200 dark:border-gray-800">
-                              {KEYWORD_TYPES.find(t => t.value === keyword.keyword_type)?.label || keyword.keyword_type}
+                              {keywordTypeLabel(keyword.keyword_type)}
                             </span>
                             {keyword.created_at && (
                               <span className="text-xs text-gray-500 font-medium hidden sm:inline-block">
@@ -501,40 +506,40 @@ export default function KeywordsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm nhóm từ khóa mới</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('keywordsPage.addGroupModal.title')}</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Tên nhóm *
+                  {t('keywordsPage.addGroupModal.nameLabel')}
                 </label>
                 <input
                   type="text"
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-                  placeholder="Ví dụ: Chất lượng sản phẩm"
+                  placeholder={t('keywordsPage.addGroupModal.namePlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Mô tả
+                  {t('keywordsPage.addGroupModal.descriptionLabel')}
                 </label>
                 <textarea
                   value={newGroup.description}
                   onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-                  placeholder="Mô tả về nhóm từ khóa này..."
+                  placeholder={t('keywordsPage.addGroupModal.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Độ ưu tiên (1-5)
+                  {t('keywordsPage.addGroupModal.priorityLabel')}
                 </label>
                 <input
                   type="number"
@@ -552,13 +557,13 @@ export default function KeywordsPage() {
                 onClick={() => setShowAddGroupModal(false)}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
               >
-                Hủy
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddGroup}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
               >
-                Thêm Nhóm
+                {t('keywordsPage.addGroupModal.submit')}
               </button>
             </div>
           </div>
@@ -571,7 +576,7 @@ export default function KeywordsPage() {
         onClose={() => setDeleteGroupConfirm({ isOpen: false, groupId: null, groupName: '' })}
         onConfirm={handleDeleteGroup}
         title={t('keywords.deleteGroupTitle')}
-        message={`Bạn có chắc muốn xóa nhóm "${deleteGroupConfirm.groupName}"? Tất cả từ khóa trong nhóm cũng sẽ bị xóa.`}
+        message={t('keywordsPage.deleteGroupMessage', { name: deleteGroupConfirm.groupName })}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         type="danger"
@@ -583,7 +588,7 @@ export default function KeywordsPage() {
         onClose={() => setDeleteKeywordConfirm({ isOpen: false, keywordId: null, keyword: '', groupId: null })}
         onConfirm={handleDeleteKeyword}
         title={t('common.delete')}
-        message={`Bạn có chắc muốn xóa từ khóa "${deleteKeywordConfirm.keyword}"?`}
+        message={t('keywordsPage.deleteKeywordMessage', { keyword: deleteKeywordConfirm.keyword })}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         type="danger"
@@ -594,36 +599,36 @@ export default function KeywordsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm từ khóa mới</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('keywordsPage.addKeywordModal.title')}</h2>
             </div>
             
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Từ khóa *
+                  {t('keywordsPage.keywordLabel')}
                 </label>
                 <input
                   type="text"
                   value={newKeyword.keyword}
                   onChange={(e) => setNewKeyword({ ...newKeyword, keyword: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-                  placeholder="Nhập từ khóa..."
+                  placeholder={t('keywordsPage.keywordPlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Loại từ khóa
+                  {t('keywordsPage.keywordTypeLabel')}
                 </label>
                 <select
                   value={newKeyword.keyword_type}
                   onChange={(e) => setNewKeyword({ ...newKeyword, keyword_type: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
-                  {KEYWORD_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                  <option value="" disabled className="text-gray-500">{t('keywordsPage.selectType')}</option>
+                  {KEYWORD_TYPES.map(kt => (
+                    <option key={kt.value} value={kt.value}>{t(kt.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -634,13 +639,13 @@ export default function KeywordsPage() {
                 onClick={() => setShowAddKeywordModal(false)}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
               >
-                Hủy
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddKeyword}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
               >
-                Thêm
+                {t('common.add')}
               </button>
             </div>
           </div>
@@ -652,19 +657,19 @@ export default function KeywordsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm nhiều từ khóa</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('keywordsPage.bulkModal.title')}</h2>
             </div>
             
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Danh sách từ khóa (mỗi dòng một từ khóa) *
+                  {t('keywordsPage.bulkModal.listLabel')}
                 </label>
                 <textarea
                   value={bulkKeyword.keywords_text}
                   onChange={(e) => setBulkKeyword({ ...bulkKeyword, keywords_text: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 custom-scrollbar"
-                  placeholder="Ví dụ:&#10;TTH&#10;TTH Group&#10;Bệnh viện TTH"
+                  placeholder={t('keywordsPage.bulkModal.listPlaceholder')}
                   rows={6}
                   autoFocus
                 />
@@ -672,16 +677,16 @@ export default function KeywordsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Loại từ khóa chung
+                  {t('keywordsPage.bulkModal.sharedTypeLabel')}
                 </label>
                 <select
                   value={bulkKeyword.keyword_type}
                   onChange={(e) => setBulkKeyword({ ...bulkKeyword, keyword_type: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
-                  {KEYWORD_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                  <option value="" disabled className="text-gray-500">{t('keywordsPage.selectType')}</option>
+                  {KEYWORD_TYPES.map(kt => (
+                    <option key={kt.value} value={kt.value}>{t(kt.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -692,13 +697,13 @@ export default function KeywordsPage() {
                 onClick={() => setShowBulkKeywordModal(false)}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
               >
-                Hủy
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddBulkKeyword}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
               >
-                Thêm Hàng Loạt
+                {t('keywordsPage.bulkModal.submit')}
               </button>
             </div>
           </div>
@@ -710,36 +715,36 @@ export default function KeywordsPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Sửa từ khóa</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('keywordsPage.editKeywordModal.title')}</h2>
             </div>
             
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Từ khóa *
+                  {t('keywordsPage.keywordLabel')}
                 </label>
                 <input
                   type="text"
                   value={selectedKeyword.keyword}
                   onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-                  placeholder="Nhập từ khóa..."
+                  placeholder={t('keywordsPage.keywordPlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Loại từ khóa
+                  {t('keywordsPage.keywordTypeLabel')}
                 </label>
                 <select
                   value={selectedKeyword.keyword_type}
                   onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword_type: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
-                  {KEYWORD_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                  <option value="" disabled className="text-gray-500">{t('keywordsPage.selectType')}</option>
+                  {KEYWORD_TYPES.map(kt => (
+                    <option key={kt.value} value={kt.value}>{t(kt.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -753,7 +758,7 @@ export default function KeywordsPage() {
                   className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
                 />
                 <label htmlFor="edit_is_active" className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 cursor-pointer select-none">
-                  Kích hoạt từ khóa
+                  {t('keywordsPage.editKeywordModal.activeLabel')}
                 </label>
               </div>
             </div>
@@ -766,13 +771,13 @@ export default function KeywordsPage() {
                 }}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
               >
-                Hủy
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleEditKeyword}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
               >
-                Cập nhật
+                {t('common.update')}
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MessageSquare, ThumbsUp, ThumbsDown, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TimelineItem {
   time: string;
@@ -33,6 +34,7 @@ const COLORS = {
 };
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +43,7 @@ export default function DashboardPage() {
       const res = await api.get('/api/echomind/analytics/summary');
       setAnalytics(res.data);
     } catch (error) {
-      toast.error('Failed to load analytics');
+      toast.error(t('echomind.dashboard.errors.analyticsLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading && !analytics) {
-    return <div className="text-slate-400 p-8 text-center">Loading dashboard...</div>;
+    return <div className="text-slate-400 p-8 text-center">{t('echomind.dashboard.loading')}</div>;
   }
 
   if (!analytics) return null;
@@ -72,22 +74,22 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-white">Dashboard</h2>
-        <p className="text-slate-400 mt-1">Overview of your brand&apos;s social listening performance.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-white">{t('dashboard.title')}</h2>
+        <p className="text-slate-400 mt-1">{t('echomind.dashboard.subtitle')}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Mentions" value={analytics.total_mentions} icon={MessageSquare} colorClass="bg-blue-500 text-blue-500" />
-        <StatCard title="Positive Mentions" value={analytics.positive_mentions} icon={ThumbsUp} colorClass="bg-emerald-500 text-emerald-500" />
-        <StatCard title="Negative Mentions" value={analytics.negative_mentions} icon={ThumbsDown} colorClass="bg-red-500 text-red-500" />
-        <StatCard title="Avg Sentiment" value={analytics.avg_sentiment_score.toFixed(2)} icon={Activity} colorClass="bg-purple-500 text-purple-500" />
+        <StatCard title={t('dashboard.metrics.totalMentions')} value={analytics.total_mentions} icon={MessageSquare} colorClass="bg-blue-500 text-blue-500" />
+        <StatCard title={t('echomind.dashboard.stats.positiveMentions')} value={analytics.positive_mentions} icon={ThumbsUp} colorClass="bg-emerald-500 text-emerald-500" />
+        <StatCard title={t('echomind.dashboard.stats.negativeMentions')} value={analytics.negative_mentions} icon={ThumbsDown} colorClass="bg-red-500 text-red-500" />
+        <StatCard title={t('echomind.dashboard.stats.avgSentiment')} value={analytics.avg_sentiment_score.toFixed(2)} icon={Activity} colorClass="bg-purple-500 text-purple-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Line Chart */}
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Mention Volume Over Time</h3>
+          <h3 className="text-lg font-semibold text-white mb-6">{t('echomind.dashboard.charts.mentionVolume')}</h3>
           <div className="h-72">
             {analytics.timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -103,14 +105,14 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">No timeline data available</div>
+              <div className="flex h-full items-center justify-center text-slate-500">{t('echomind.dashboard.charts.noTimelineData')}</div>
             )}
           </div>
         </div>
 
         {/* Pie Chart */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Sentiment Distribution</h3>
+          <h3 className="text-lg font-semibold text-white mb-6">{t('dashboard.charts.sentimentBreakdown')}</h3>
           <div className="h-72">
             {analytics.total_mentions > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -135,7 +137,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">No sentiment data available</div>
+              <div className="flex h-full items-center justify-center text-slate-500">{t('dashboard.charts.noSentimentData')}</div>
             )}
           </div>
           {analytics.total_mentions > 0 && (

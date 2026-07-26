@@ -38,7 +38,7 @@ SocialListening/
 ## 🌐 Live URLs
 
 - **Frontend:** https://social-listening-azure.vercel.app
-- **Backend:** https://social-listening-backend.onrender.com
+- **Backend:** https://sociallistening-9fvs.onrender.com
 - **GitHub:** https://github.com/hung29610/SocialListening
 
 ## 📚 Documentation

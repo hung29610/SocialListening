@@ -1,8 +1,13 @@
+'use client';
+
 import Link from 'next/link';
 import { LayoutDashboard, MessageSquare, Key } from 'lucide-react';
 import { ReactNode } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function EchoMindLayout({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
+
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100">
       {/* Sidebar */}
@@ -13,19 +18,19 @@ export default function EchoMindLayout({ children }: { children: ReactNode }) {
           </div>
           <h1 className="text-xl font-bold tracking-tight">EchoMind</h1>
         </div>
-        
-        <nav className="flex flex-col gap-2 mt-4">
+
+        <nav className="flex flex-col gap-2 mt-4" aria-label={t('echomind.navLabel')}>
           <Link href="/echomind/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white">
             <LayoutDashboard size={20} />
-            <span className="font-medium">Dashboard</span>
+            <span className="font-medium">{t('nav.dashboard')}</span>
           </Link>
           <Link href="/echomind/mentions" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white">
             <MessageSquare size={20} />
-            <span className="font-medium">Mentions Feed</span>
+            <span className="font-medium">{t('echomind.mentionsFeed')}</span>
           </Link>
           <Link href="/echomind/keywords" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white">
             <Key size={20} />
-            <span className="font-medium">Keywords</span>
+            <span className="font-medium">{t('nav.keywords')}</span>
           </Link>
         </nav>
       </aside>

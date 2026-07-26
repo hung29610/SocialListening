@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Users, TrendingUp, Search, RefreshCcw, Award, Star, Activity } from 'lucide-react';
 import { influencers } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 export default function InfluencersPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -20,7 +22,7 @@ export default function InfluencersPage() {
       const res = await influencers.leaderboard();
       setData(res);
     } catch (error) {
-      toast.error('Lỗi tải dữ liệu influencers');
+      toast.error(t('misc.influencers.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -33,7 +35,7 @@ export default function InfluencersPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-slate-500 dark:text-gray-400 font-medium tracking-wide flex items-center">
           <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-indigo-400" />
-          Đang tổng hợp dữ liệu Influencers...
+          {t('misc.influencers.loading')}
         </div>
       </div>
     );
@@ -44,8 +46,8 @@ export default function InfluencersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Influencers Leaderboard</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Danh sách những người có sức ảnh hưởng và lượng thảo luận cao nhất.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('misc.influencers.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('misc.influencers.subtitle')}</p>
         </div>
       </div>
 
@@ -70,18 +72,18 @@ export default function InfluencersPage() {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">{inf.author}</h3>
                     <div className="flex items-center text-xs text-slate-500 dark:text-gray-400 mt-1">
                       <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                      Điểm ảnh hưởng: <span className="font-bold text-slate-900 dark:text-white ml-1">{inf.influence_score}</span>
+                      {t('misc.influencers.influenceScoreLabel')} <span className="font-bold text-slate-900 dark:text-white ml-1">{inf.influence_score}</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
                 <div className="bg-slate-50 dark:bg-[#0B1220]/50 rounded-xl p-3 border border-gray-800/50">
-                  <div className="text-xs text-gray-500 mb-1">Mentions</div>
+                  <div className="text-xs text-gray-500 mb-1">{t('misc.influencers.mentionsLabel')}</div>
                   <div className="font-bold text-slate-900 dark:text-white">{inf.mentions_count.toLocaleString()}</div>
                 </div>
                 <div className="bg-slate-50 dark:bg-[#0B1220]/50 rounded-xl p-3 border border-gray-800/50">
-                  <div className="text-xs text-gray-500 mb-1">Reach (Est)</div>
+                  <div className="text-xs text-gray-500 mb-1">{t('misc.influencers.reachEstimate')}</div>
                   <div className="font-bold text-indigo-400">{inf.reach.toLocaleString()}</div>
                 </div>
               </div>
@@ -93,12 +95,12 @@ export default function InfluencersPage() {
       {/* Main Table */}
       <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[600px]">
         <div className="p-4 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/50 backdrop-blur-md flex items-center justify-between shrink-0">
-          <h3 className="font-bold text-slate-900 dark:text-white">Toàn bộ Influencers ({filteredItems.length})</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white">{t('misc.influencers.allTitle', { count: filteredItems.length })}</h3>
           <div className="relative">
             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm kiếm tác giả..."
+              placeholder={t('misc.influencers.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-300 dark:border-gray-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 w-64 transition-colors"
@@ -110,12 +112,12 @@ export default function InfluencersPage() {
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-slate-50 dark:bg-[#0F172A] z-10">
               <tr className="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-800">
-                <th className="px-6 py-4 font-medium">Hạng</th>
-                <th className="px-6 py-4 font-medium">Tác giả / Kênh</th>
-                <th className="px-6 py-4 font-medium">Nền tảng</th>
-                <th className="px-6 py-4 font-medium">Lượng Mentions</th>
-                <th className="px-6 py-4 font-medium">Reach Ước tính</th>
-                <th className="px-6 py-4 font-medium text-right">Influence Score</th>
+                <th className="px-6 py-4 font-medium">{t('misc.influencers.table.rank')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.influencers.table.author')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.influencers.table.platform')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.influencers.table.mentions')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.influencers.table.estimatedReach')}</th>
+                <th className="px-6 py-4 font-medium text-right">{t('misc.influencers.table.influenceScore')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
@@ -149,7 +151,7 @@ export default function InfluencersPage() {
               {filteredItems.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    Không tìm thấy dữ liệu.
+                    {t('misc.influencers.noResults')}
                   </td>
                 </tr>
               )}

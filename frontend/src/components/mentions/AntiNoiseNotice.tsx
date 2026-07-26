@@ -29,15 +29,15 @@ export function AntiNoiseNotice() {
              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('mentions.advancedFiltering')}</span>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title="Tính năng backend đang phát triển">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title={t('mentionsPage.antiNoise.backendPending')}>
               <span>{t('mentions.requiredWords')}</span>
               <span className="bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-[10px] font-medium">{t('mentions.comingSoon')}</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title="Tính năng backend đang phát triển">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title={t('mentionsPage.antiNoise.backendPending')}>
               <span>{t('mentions.excludedWords')}</span>
               <span className="bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-[10px] font-medium">{t('mentions.comingSoon')}</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title="Tính năng backend đang phát triển">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 cursor-not-allowed" title={t('mentionsPage.antiNoise.backendPending')}>
               <span>{t('mentions.booleanLogic')}</span>
               <span className="bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-[10px] font-medium">{t('mentions.comingSoon')}</span>
             </div>

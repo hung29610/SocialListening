@@ -82,7 +82,7 @@ function WorkerStatusBadge() {
   
   if (!isEnabled) {
     return (
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] font-bold rounded-full border border-gray-200 dark:border-slate-300 dark:border-gray-700" title="Worker is disabled">
+      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] font-bold rounded-full border border-gray-200 dark:border-slate-300 dark:border-gray-700" title={t('misc.layout.workerDisabledHint')}>
         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
         {t('header.workerOff')}
       </div>
@@ -92,7 +92,9 @@ function WorkerStatusBadge() {
   return (
     <div 
       className={`hidden sm:flex items-center gap-1.5 px-3 py-1 ${isRunning ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50'} text-[10px] font-bold rounded-full cursor-help transition-colors`}
-      title={isRunning ? `Worker Online. Running Jobs: ${status.running_jobs}. Due: ${status.due_sources}` : `Worker Offline! ${status.last_error || ''}`}
+      title={isRunning
+        ? t('misc.layout.workerOnlineHint', { jobs: status.running_jobs, due: status.due_sources })
+        : t('misc.layout.workerOfflineHint', { error: status.last_error || '' })}
     >
       <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
       {isRunning ? t('header.workerOnline') : t('header.workerOffline')}
@@ -236,7 +238,7 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
           {!sidebarCollapsed && (
             <div className="flex items-center justify-between px-2 mb-1">
               <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('nav.projectsTitle')}</span>
-              <Link href="/dashboard/projects/new" title="New Project" className="text-zinc-400 hover:text-emerald-400 transition-colors" prefetch={false}>
+              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className="text-zinc-400 hover:text-emerald-400 transition-colors" prefetch={false}>
                 <Plus className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -245,7 +247,7 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
           {sidebarCollapsed ? (
             /* Collapsed project: avatar only */
             <div className="flex flex-col items-center gap-2 mt-1">
-              <Link href="/dashboard/projects/new" title="New Project" className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:text-emerald-400 hover:bg-white/5 transition-colors" prefetch={false}>
+              <Link href="/dashboard/projects/new" title={t('mentions.page.newProject')} className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:text-emerald-400 hover:bg-white/5 transition-colors" prefetch={false}>
                 <Plus className="w-4 h-4" />
               </Link>
               <button
@@ -477,14 +479,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
           <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-4">
             <WorkerStatusBadge />
-            <button onClick={() => toast('Billing/Upgrade coming soon', { icon: '⏳' })} className="hidden sm:flex items-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors tracking-wide shadow-sm">
+            <button onClick={() => toast(t('misc.layout.billingComingSoon'), { icon: '⏳' })} className="hidden sm:flex items-center px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors tracking-wide shadow-sm">
               {t('header.upgrade')}
             </button>
             <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
-            <button onClick={() => toast.success('Vui lòng gửi email hỗ trợ đến support@nope.com')} title="Help Center" className="text-slate-500 dark:text-gray-400 hover:text-gray-600">
+            <button onClick={() => toast.success(t('misc.layout.supportEmailHint'))} title={t('header.helpCenter')} className="text-slate-500 dark:text-gray-400 hover:text-gray-600">
               <HelpCircle className="w-5 h-5" />
             </button>
-            <button disabled title="Quick Actions (Coming soon)" className="text-slate-500 dark:text-gray-400 opacity-50 cursor-not-allowed hidden sm:block">
+            <button disabled title={t('misc.layout.quickActionsComingSoon')} className="text-slate-500 dark:text-gray-400 opacity-50 cursor-not-allowed hidden sm:block">
               <Zap className="w-5 h-5" />
             </button>
             <LanguageSwitcher />

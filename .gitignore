@@ -70,9 +70,12 @@ logs/
 !runtime.txt
 !installed_packages.txt
 
-# Temporary test files
+# Temporary test files (ad-hoc scripts dropped at a project root).
+# The real suites live in backend/tests/ and must stay tracked, otherwise new
+# tests are silently ignored and never committed.
 test_*.py
 quick_*.py
+!backend/tests/test_*.py
 
 *.tsbuildinfo
 

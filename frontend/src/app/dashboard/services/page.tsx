@@ -5,6 +5,7 @@ import { Plus, Search, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTria
 import { services as servicesApi, serviceRequests as serviceRequestsApi, getErrorMessage } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ServiceCategory {
   id: number;
@@ -61,6 +62,7 @@ interface DashboardSummary {
 
 export default function ServicesPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'requests'>('overview');
   const [services, setServices] = useState<Service[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
@@ -72,7 +74,7 @@ export default function ServicesPage() {
   const [showServiceDetail, setShowServiceDetail] = useState(false);
   const [showRequestDetail, setShowRequestDetail] = useState(false);
   const [showCreateRequest, setShowCreateRequest] = useState(false);
-  
+
   // Form state for creating service request
   const [requestForm, setRequestForm] = useState({
     service_id: 0,
@@ -96,13 +98,13 @@ export default function ServicesPage() {
         serviceRequestsApi.list({ limit: 50 }),
         servicesApi.getDashboardSummary()
       ]);
-      
+
       if (servicesData.status === 'fulfilled') setServices(servicesData.value);
       if (requestsData.status === 'fulfilled') setServiceRequests(requestsData.value);
       if (summaryData.status === 'fulfilled') setDashboardSummary(summaryData.value);
     } catch (error: any) {
       console.error('Error fetching data:', error);
-      toast.error('Lỗi khi tải dữ liệu dịch vụ');
+      toast.error(t('servicesPage.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -130,20 +132,20 @@ export default function ServicesPage() {
     });
     setShowCreateRequest(true);
   };
-  
+
   const handleSubmitRequest = async () => {
     if (!requestForm.request_reason || !requestForm.desired_outcome) {
-      toast.error('Vui lòng điền đầy đủ lý do và kết quả mong muốn');
+      toast.error(t('servicesPage.errors.missingFields'));
       return;
     }
     try {
       await serviceRequestsApi.create(requestForm);
-      toast.success('Tạo yêu cầu dịch vụ thành công!');
+      toast.success(t('servicesPage.requestCreated'));
       setShowCreateRequest(false);
       fetchData();
     } catch (error: any) {
       console.error('Error creating request:', error);
-      toast.error(getErrorMessage(error) || 'Lỗi khi tạo yêu cầu dịch vụ');
+      toast.error(getErrorMessage(error) || t('servicesPage.errors.createRequestFailed'));
     }
   };
 
@@ -209,7 +211,7 @@ export default function ServicesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Đang tải...</div>
+        <div className="text-lg text-gray-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -217,12 +219,12 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Dịch Vụ</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('servicesPage.title')}</h1>
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-          Quản lý các gói dịch vụ bảo vệ danh tiếng và xử lý khủng hoảng
+          {t('servicesPage.subtitle')}
         </p>
       </div>
 
@@ -231,9 +233,7 @@ export default function ServicesPage() {
         <div className="flex items-start space-x-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
           <div className="text-sm text-amber-900 dark:text-amber-200">
-            <strong className="text-amber-900 dark:text-amber-400">Lưu ý tuân thủ:</strong> Tất cả quy trình dịch vụ trong hệ thống được thiết kế cho việc bảo vệ danh tiếng hợp pháp, 
-            thu thập bằng chứng, soạn thảo phản hồi chính thức, báo cáo chính sách nền tảng và chuẩn bị yêu cầu gỡ bỏ/sửa chữa hợp pháp. 
-            Hệ thống không hỗ trợ hack, DDoS, spam report, truy cập trái phép, chiếm đoạt tài khoản, scraping riêng tư hoặc thao túng nền tảng.
+            <strong className="text-amber-900 dark:text-amber-400">{t('servicesPage.compliance.label')}</strong> {t('servicesPage.compliance.body')}
           </div>
         </div>
       </div>
@@ -242,9 +242,9 @@ export default function ServicesPage() {
       <div className="border-b border-slate-200 dark:border-gray-800">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {[
-            { key: 'overview', label: 'Tổng Quan', icon: DollarSign },
-            { key: 'catalog', label: 'Danh Mục Dịch Vụ', icon: FileText },
-            { key: 'requests', label: 'Yêu Cầu Dịch Vụ', icon: Clock }
+            { key: 'overview', label: t('servicesPage.tabs.overview'), icon: DollarSign },
+            { key: 'catalog', label: t('servicesPage.tabs.catalog'), icon: FileText },
+            { key: 'requests', label: t('servicesPage.tabs.requests'), icon: Clock }
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -270,7 +270,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Dịch vụ hoạt động</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.activeServices')}</p>
                   <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.total_active_services}</p>
                 </div>
                 <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-3 rounded-xl">
@@ -282,7 +282,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Yêu cầu đang mở</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.openRequests')}</p>
                   <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.open_service_requests}</p>
                 </div>
                 <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3 rounded-xl">
@@ -294,7 +294,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Chờ phê duyệt</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.pendingApprovals')}</p>
                   <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.pending_approvals}</p>
                 </div>
                 <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 p-3 rounded-xl">
@@ -306,7 +306,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Đã hoàn thành</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.completed')}</p>
                   <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.completed_requests}</p>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3 rounded-xl">
@@ -318,7 +318,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Rủi ro cao</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.highRisk')}</p>
                   <p className="text-3xl font-black text-slate-900 dark:text-white mt-2">{dashboardSummary.high_risk_requests}</p>
                 </div>
                 <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 p-3 rounded-xl">
@@ -330,7 +330,7 @@ export default function ServicesPage() {
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Chi phí tháng này</p>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('servicesPage.summary.monthlyCost')}</p>
                   <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{formatPrice(dashboardSummary.monthly_estimated_cost)}</p>
                 </div>
                 <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 p-3 rounded-xl">
@@ -350,7 +350,7 @@ export default function ServicesPage() {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
             <input
               type="text"
-              placeholder="Tìm kiếm dịch vụ..."
+              placeholder={t('servicesPage.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl text-slate-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
@@ -364,28 +364,28 @@ export default function ServicesPage() {
                 <thead className="bg-white dark:bg-[#1E293B]/50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Dịch vụ
+                      {t('servicesPage.table.service')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Danh mục
+                      {t('servicesPage.fields.category')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Nền tảng
+                      {t('servicesPage.fields.platform')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Giá cơ bản
+                      {t('servicesPage.fields.basePrice')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                       SLA
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Rủi ro
+                      {t('servicesPage.table.risk')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Phê duyệt
+                      {t('servicesPage.table.approval')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Hành động
+                      {t('servicesPage.table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -406,7 +406,7 @@ export default function ServicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          {service.base_price ? formatPrice(service.base_price) : 'Thỏa thuận'}
+                          {service.base_price ? formatPrice(service.base_price) : t('servicesPage.negotiablePrice')}
                         </span>
                         {service.unit && (
                           <span className="text-xs text-gray-500 ml-1">/{service.unit}</span>
@@ -433,14 +433,14 @@ export default function ServicesPage() {
                         <button
                           onClick={() => handleServiceClick(service)}
                           className="p-2 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
-                          title="Xem chi tiết"
+                          title={t('servicesPage.actions.viewDetail')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleCreateRequest(service)}
                           className="p-2 text-slate-500 dark:text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20"
-                          title="Tạo yêu cầu"
+                          title={t('servicesPage.actions.createRequest')}
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -467,25 +467,25 @@ export default function ServicesPage() {
                       ID
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Dịch vụ
+                      {t('servicesPage.table.service')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Trạng thái
+                      {t('servicesPage.table.status')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Ưu tiên
+                      {t('servicesPage.table.priority')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Phê duyệt
+                      {t('servicesPage.table.approval')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Giá
+                      {t('servicesPage.table.price')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Tạo lúc
+                      {t('servicesPage.table.createdAt')}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                      Hành động
+                      {t('servicesPage.table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -517,8 +517,8 @@ export default function ServicesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                        {request.final_price ? formatPrice(request.final_price) : 
-                         request.quoted_price ? formatPrice(request.quoted_price) : 'Chưa báo giá'}
+                        {request.final_price ? formatPrice(request.final_price) :
+                         request.quoted_price ? formatPrice(request.quoted_price) : t('servicesPage.notQuoted')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
                         {new Date(request.created_at).toLocaleString('vi-VN')}
@@ -527,7 +527,7 @@ export default function ServicesPage() {
                         <button
                           onClick={() => handleRequestClick(request)}
                           className="p-2 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
-                          title="Xem chi tiết"
+                          title={t('servicesPage.actions.viewDetail')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -558,30 +558,30 @@ export default function ServicesPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="p-6 space-y-6 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Thông tin cơ bản</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('servicesPage.detail.basicInfo')}</h3>
                     <div className="space-y-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mã dịch vụ</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.serviceCode')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.code}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Danh mục</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.category')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.category.name}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Loại dịch vụ</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.serviceType')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{selectedService.service_type.replace('_', ' ')}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nền tảng</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.platform')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{selectedService.platform.replace('_', ' ')}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mức rủi ro</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.riskLevel')}</span>
                         <div className="mt-1">
                           <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded ${getRiskLevelColor(selectedService.risk_level)}`}>
                             {selectedService.risk_level}
@@ -590,19 +590,19 @@ export default function ServicesPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Giá và SLA</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('servicesPage.detail.priceAndSla')}</h3>
                     <div className="space-y-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Giá cơ bản</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.basePrice')}</span>
                         <span className="text-sm font-bold text-slate-900 dark:text-white">
-                          {selectedService.base_price ? formatPrice(selectedService.base_price) : 'Thỏa thuận'}
+                          {selectedService.base_price ? formatPrice(selectedService.base_price) : t('servicesPage.negotiablePrice')}
                           {selectedService.unit && <span className="text-gray-500 ml-1 font-medium">/{selectedService.unit}</span>}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Thời gian ước tính</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.estimated_duration}</span>
                       </div>
                       <div className="flex flex-col">
@@ -610,21 +610,21 @@ export default function ServicesPage() {
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.sla_hours}h</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Số lượng tối thiểu</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.minQuantity')}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">{selectedService.min_quantity || 1} {selectedService.unit}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Yêu cầu phê duyệt</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('servicesPage.fields.requiresApproval')}</span>
                         <div className="mt-1">
                           {selectedService.requires_approval ? (
                             <span className="inline-flex items-center text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded text-xs font-medium">
                               <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                              Bắt buộc
+                              {t('servicesPage.required')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-xs font-medium">
                               <XCircle className="w-3.5 h-3.5 mr-1" />
-                              Không yêu cầu
+                              {t('servicesPage.notRequired')}
                             </span>
                           )}
                         </div>
@@ -632,15 +632,15 @@ export default function ServicesPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t border-slate-200 dark:border-gray-800">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Mô tả</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">{t('servicesPage.fields.description')}</h3>
                   <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-slate-200 dark:border-gray-800">{selectedService.description}</p>
                 </div>
-                
+
                 {selectedService.legal_basis && (
                   <div className="pt-4 border-t border-slate-200 dark:border-gray-800">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Cơ sở pháp lý</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">{t('servicesPage.fields.legalBasis')}</h3>
                     <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-slate-200 dark:border-gray-800">{selectedService.legal_basis}</p>
                   </div>
                 )}
@@ -651,7 +651,7 @@ export default function ServicesPage() {
                   onClick={() => setShowServiceDetail(false)}
                   className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
                 >
-                  Đóng
+                  {t('servicesPage.actions.close')}
                 </button>
                 <button
                   onClick={() => {
@@ -660,14 +660,14 @@ export default function ServicesPage() {
                   }}
                   className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm shadow-indigo-500/20"
                 >
-                  Tạo yêu cầu
+                  {t('servicesPage.actions.createRequest')}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      
+
 
 
       {/* Create Service Request Modal */}
@@ -679,7 +679,7 @@ export default function ServicesPage() {
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Tạo Yêu Cầu Dịch Vụ</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('servicesPage.createModal.title')}</h2>
                     <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{selectedService.name}</p>
                   </div>
                   <button
@@ -690,23 +690,23 @@ export default function ServicesPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="p-6 space-y-6 overflow-y-auto">
                 {/* Service Info */}
                 <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-5">
                   <div className="grid grid-cols-2 gap-6 text-sm">
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">Danh mục</span>
+                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.category')}</span>
                       <span className="font-medium text-slate-900 dark:text-white">{selectedService.category.name}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">Giá cơ bản</span>
+                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.basePrice')}</span>
                       <span className="font-bold text-indigo-400">
-                        {selectedService.base_price ? formatPrice(selectedService.base_price) : 'Thỏa thuận'}
+                        {selectedService.base_price ? formatPrice(selectedService.base_price) : t('servicesPage.negotiablePrice')}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">Thời gian ước tính</span>
+                      <span className="text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-1">{t('servicesPage.fields.estimatedDuration')}</span>
                       <span className="font-medium text-slate-900 dark:text-white">{selectedService.estimated_duration}</span>
                     </div>
                     <div className="flex flex-col">
@@ -719,30 +719,30 @@ export default function ServicesPage() {
                 {/* Priority */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Mức độ ưu tiên <span className="text-rose-500">*</span>
+                    {t('servicesPage.form.priority')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={requestForm.priority}
                     onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value })}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                   >
-                    <option value="low">Thấp</option>
-                    <option value="medium">Trung bình</option>
-                    <option value="high">Cao</option>
-                    <option value="urgent">Khẩn cấp</option>
+                    <option value="low">{t('servicesPage.priority.low')}</option>
+                    <option value="medium">{t('servicesPage.priority.medium')}</option>
+                    <option value="high">{t('servicesPage.priority.high')}</option>
+                    <option value="urgent">{t('servicesPage.priority.urgent')}</option>
                   </select>
                 </div>
 
                 {/* Request Reason */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Lý do yêu cầu <span className="text-rose-500">*</span>
+                    {t('servicesPage.form.requestReason')} <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     value={requestForm.request_reason}
                     onChange={(e) => setRequestForm({ ...requestForm, request_reason: e.target.value })}
                     rows={3}
-                    placeholder="Mô tả lý do cần dịch vụ này..."
+                    placeholder={t('servicesPage.form.requestReasonPlaceholder')}
                     className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
@@ -750,13 +750,13 @@ export default function ServicesPage() {
                 {/* Evidence Summary */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Tóm tắt bằng chứng
+                    {t('servicesPage.form.evidenceSummary')}
                   </label>
                   <textarea
                     value={requestForm.evidence_summary}
                     onChange={(e) => setRequestForm({ ...requestForm, evidence_summary: e.target.value })}
                     rows={3}
-                    placeholder="Tóm tắt các bằng chứng, mentions, alerts liên quan..."
+                    placeholder={t('servicesPage.form.evidenceSummaryPlaceholder')}
                     className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
@@ -764,13 +764,13 @@ export default function ServicesPage() {
                 {/* Desired Outcome */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Kết quả mong muốn <span className="text-rose-500">*</span>
+                    {t('servicesPage.form.desiredOutcome')} <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     value={requestForm.desired_outcome}
                     onChange={(e) => setRequestForm({ ...requestForm, desired_outcome: e.target.value })}
                     rows={3}
-                    placeholder="Mô tả kết quả mong muốn từ dịch vụ này..."
+                    placeholder={t('servicesPage.form.desiredOutcomePlaceholder')}
                     className="w-full px-4 py-3 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
@@ -779,7 +779,7 @@ export default function ServicesPage() {
                   {/* Quoted Price */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      Giá báo (VND)
+                      {t('servicesPage.form.quotedPrice')}
                     </label>
                     <input
                       type="number"
@@ -792,7 +792,7 @@ export default function ServicesPage() {
                   {/* Deadline */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      Thời hạn
+                      {t('servicesPage.form.deadline')}
                     </label>
                     <input
                       type="datetime-local"
@@ -808,8 +808,7 @@ export default function ServicesPage() {
                   <div className="flex items-start space-x-3">
                     <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <div className="text-sm text-amber-200/80">
-                      <strong className="text-amber-400">Lưu ý:</strong> Yêu cầu này sẽ được xem xét và phê duyệt trước khi thực hiện. 
-                      Tất cả dịch vụ phải tuân thủ pháp luật và chính sách nền tảng.
+                      <strong className="text-amber-400">{t('servicesPage.createModal.noticeLabel')}</strong> {t('servicesPage.createModal.noticeBody')}
                     </div>
                   </div>
                 </div>
@@ -820,14 +819,14 @@ export default function ServicesPage() {
                   onClick={() => setShowCreateRequest(false)}
                   className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSubmitRequest}
                   disabled={!requestForm.request_reason || !requestForm.desired_outcome}
                   className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed font-medium shadow-sm shadow-indigo-500/20"
                 >
-                  Tạo yêu cầu
+                  {t('servicesPage.actions.createRequest')}
                 </button>
               </div>
             </div>

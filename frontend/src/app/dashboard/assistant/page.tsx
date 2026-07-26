@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader2, ArrowRight, AlertTriangle, Settings, Trash2 } from 'lucide-react';
 import { aiChat } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -14,8 +15,9 @@ interface ChatConfig {
 }
 
 export default function AssistantPage() {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<{role: string, content: string}[]>([
-    { role: 'assistant', content: 'Xin chào! Tôi là AI Brand Assistant. Tôi đã được cung cấp toàn bộ dữ liệu Social Listening (Mentions, Cảnh báo, Đối thủ) của dự án. Bạn muốn phân tích điều gì hôm nay?' }
+    { role: 'assistant', content: t('misc.assistant.greeting') }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +63,7 @@ export default function AssistantPage() {
       const response = await aiChat.chat(newMessages.filter(m => m.role !== 'system'));
       setMessages([...newMessages, response]);
     } catch (error: any) {
-      const detail = error?.response?.data?.detail || 'Có lỗi xảy ra khi kết nối với AI Assistant.';
+      const detail = error?.response?.data?.detail || t('misc.assistant.errors.connectionFailed');
       toast.error(detail);
       setMessages([...newMessages, { role: 'assistant', content: `⚠️ ${detail}` }]);
     } finally {
@@ -75,15 +77,15 @@ export default function AssistantPage() {
 
   const handleClearChat = () => {
     setMessages([
-      { role: 'assistant', content: 'Xin chào! Tôi là AI Brand Assistant. Tôi đã được cung cấp toàn bộ dữ liệu Social Listening (Mentions, Cảnh báo, Đối thủ) của dự án. Bạn muốn phân tích điều gì hôm nay?' }
+      { role: 'assistant', content: t('misc.assistant.greeting') }
     ]);
   };
 
   const suggestions = [
-    "Tóm tắt tình hình thương hiệu tuần qua",
-    "Có thảo luận tiêu cực nào đáng chú ý không?",
-    "So sánh Share of Voice với đối thủ",
-    "Ai là Influencer mang lại nhiều reach nhất?"
+    t('misc.assistant.suggestions.weeklySummary'),
+    t('misc.assistant.suggestions.negativeBuzz'),
+    t('misc.assistant.suggestions.shareOfVoice'),
+    t('misc.assistant.suggestions.topInfluencer'),
   ];
 
   const providerLabel = chatConfig?.model_name
@@ -97,11 +99,11 @@ export default function AssistantPage() {
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-600/20 flex items-center justify-center mb-6 border border-purple-500/20">
           <AlertTriangle className="w-10 h-10 text-purple-400" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">AI Assistant chưa được cấu hình</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{t('misc.assistant.notConfigured.title')}</h2>
         <p className="text-slate-600 dark:text-gray-400 mb-6 leading-relaxed">
           {!chatConfig.is_configured
-            ? 'Quản trị viên cần thiết lập API key và chọn AI model trong phần Cài đặt để kích hoạt tính năng này.'
-            : 'AI Assistant hiện đang tắt. Quản trị viên có thể bật lại trong phần Cài đặt → Cấu hình AI.'
+            ? t('misc.assistant.notConfigured.needsSetup')
+            : t('misc.assistant.notConfigured.disabled')
           }
         </p>
         <Link
@@ -109,7 +111,7 @@ export default function AssistantPage() {
           className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-purple-500/20"
         >
           <Settings className="w-4 h-4" />
-          Đi tới Cài đặt
+          {t('misc.assistant.notConfigured.goToSettings')}
         </Link>
       </div>
     );
@@ -124,15 +126,15 @@ export default function AssistantPage() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">AI Brand Assistant</h1>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('misc.assistant.title')}</h1>
             <p className="text-xs text-purple-400 font-medium">
-              {configLoading ? 'Đang kết nối...' : `Powered by ${providerLabel}`}
+              {configLoading ? t('misc.assistant.connecting') : `${t('reports.poweredBy')} ${providerLabel}`}
             </p>
           </div>
         </div>
         <button
           onClick={handleClearChat}
-          title="Xóa hội thoại"
+          title={t('misc.assistant.clearChat')}
           className="p-2 text-slate-400 dark:text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
         >
           <Trash2 className="w-4 h-4" />
@@ -200,7 +202,7 @@ export default function AssistantPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Nhập câu hỏi để phân tích dữ liệu..."
+            placeholder={t('misc.assistant.inputPlaceholder')}
             className="w-full pl-5 pr-14 py-4 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-slate-900 dark:text-white placeholder-gray-500 shadow-inner"
             disabled={isLoading}
           />
@@ -213,7 +215,7 @@ export default function AssistantPage() {
           </button>
         </form>
         <div className="mt-3 text-center">
-          <p className="text-[10px] text-gray-500">AI Assistant có thể mắc sai lầm. Hãy kiểm tra lại các số liệu quan trọng.</p>
+          <p className="text-[10px] text-gray-500">{t('misc.assistant.disclaimer')}</p>
         </div>
       </div>
     </div>

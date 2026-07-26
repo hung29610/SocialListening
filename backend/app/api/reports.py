@@ -130,7 +130,10 @@ def get_reports_summary_data(
     if not current_user.is_superuser:
         incidents_query = incidents_query.where(Incident.user_id == current_user.id)
 
-    project_name = "Toàn bộ hệ thống"
+    # No project selected: return None rather than a Vietnamese label. The label
+    # is UI text, so the frontend renders it in the user's selected language.
+    # (`project_name` stays a real project name whenever one is selected.)
+    project_name = None
     if project_id:
         project = db.execute(apply_tenant_filter(select(KeywordGroup), KeywordGroup, current_user).where(KeywordGroup.id == project_id)).scalar_one_or_none()
         if project:

@@ -5,6 +5,7 @@ import { Plus, Search, Edit, Trash2, Key, Power, Crown, User as UserIcon, X } fr
 import ConfirmDialog from '@/components/ConfirmDialog';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface User {
   id: number;
@@ -25,6 +26,7 @@ interface UserStats {
 }
 
 export default function UserManagement() {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export default function UserManagement() {
       fetchStats();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi tạo người dùng');
+      toast.error(error.response?.data?.detail || t('settingsPage.userManagement.errors.createFailed'));
     }
   };
 
@@ -94,7 +96,7 @@ export default function UserManagement() {
       fetchUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi cập nhật người dùng');
+      toast.error(error.response?.data?.detail || t('settingsPage.userManagement.errors.updateFailed'));
     }
   };
 
@@ -105,7 +107,7 @@ export default function UserManagement() {
       fetchStats();
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi xóa người dùng');
+      toast.error(error.response?.data?.detail || t('settingsPage.userManagement.errors.deleteFailed'));
     }
   };
 
@@ -116,7 +118,7 @@ export default function UserManagement() {
       fetchStats();
     } catch (error: any) {
       console.error('Error toggling active:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi thay đổi trạng thái');
+      toast.error(error.response?.data?.detail || t('settingsPage.userManagement.errors.toggleFailed'));
     }
   };
 
@@ -125,10 +127,10 @@ export default function UserManagement() {
       await api.post(`/api/admin/users/${userId}/reset-password`, { new_password: newPassword });
       setShowResetPasswordModal(false);
       setSelectedUser(null);
-      toast.success('Đặt lại mật khẩu thành công');
+      toast.success(t('settingsPage.userManagement.resetPasswordSuccess'));
     } catch (error: any) {
       console.error('Error resetting password:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi đặt lại mật khẩu');
+      toast.error(error.response?.data?.detail || t('settingsPage.userManagement.errors.resetPasswordFailed'));
     }
   };
 
@@ -145,11 +147,11 @@ export default function UserManagement() {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatCard label="Tổng số" value={stats.total_users} color="blue" />
-          <StatCard label="Đang hoạt động" value={stats.active_users} color="green" />
-          <StatCard label="Vô hiệu hóa" value={stats.inactive_users} color="gray" />
-          <StatCard label="Quản trị viên" value={stats.superusers} color="purple" />
-          <StatCard label="Người dùng" value={stats.normal_users} color="indigo" />
+          <StatCard label={t('settingsPage.userManagement.stats.total')} value={stats.total_users} color="blue" />
+          <StatCard label={t('settingsPage.userManagement.stats.active')} value={stats.active_users} color="green" />
+          <StatCard label={t('settingsPage.userManagement.stats.inactive')} value={stats.inactive_users} color="gray" />
+          <StatCard label={t('settingsPage.userManagement.stats.admins')} value={stats.superusers} color="purple" />
+          <StatCard label={t('settingsPage.userManagement.stats.users')} value={stats.normal_users} color="indigo" />
         </div>
       )}
 
@@ -160,7 +162,7 @@ export default function UserManagement() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo email hoặc tên..."
+            placeholder={t('settingsPage.userManagement.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
@@ -173,9 +175,9 @@ export default function UserManagement() {
           onChange={(e) => setFilterActive(e.target.value === '' ? null : e.target.value === 'true')}
           className="px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow"
         >
-          <option value="">Tất cả trạng thái</option>
-          <option value="true">Đang hoạt động</option>
-          <option value="false">Vô hiệu hóa</option>
+          <option value="">{t('settingsPage.userManagement.filters.allStatuses')}</option>
+          <option value="true">{t('settingsPage.userManagement.stats.active')}</option>
+          <option value="false">{t('settingsPage.userManagement.stats.inactive')}</option>
         </select>
 
         <select
@@ -183,9 +185,9 @@ export default function UserManagement() {
           onChange={(e) => setFilterSuperuser(e.target.value === '' ? null : e.target.value === 'true')}
           className="px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow"
         >
-          <option value="">Tất cả quyền</option>
-          <option value="true">Quản trị viên</option>
-          <option value="false">Người dùng</option>
+          <option value="">{t('settingsPage.userManagement.filters.allRoles')}</option>
+          <option value="true">{t('settingsPage.userManagement.role.admin')}</option>
+          <option value="false">{t('settingsPage.userManagement.role.user')}</option>
         </select>
 
         {/* Create button */}
@@ -194,7 +196,7 @@ export default function UserManagement() {
           className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium whitespace-nowrap"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Thêm người dùng
+          {t('settingsPage.userManagement.addUser')}
         </button>
       </div>
 
@@ -205,19 +207,19 @@ export default function UserManagement() {
             <thead className="bg-white dark:bg-[#1E293B] border-b border-slate-200 dark:border-gray-800">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                  Người dùng
+                  {t('settingsPage.userManagement.table.user')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                  Quyền
+                  {t('settingsPage.userManagement.table.role')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                  Trạng thái
+                  {t('settingsPage.userManagement.table.status')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                  Ngày tạo
+                  {t('settingsPage.userManagement.table.createdAt')}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                  Hành động
+                  {t('settingsPage.userManagement.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -234,23 +236,23 @@ export default function UserManagement() {
                     {user.is_superuser ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                         <Crown className="w-3.5 h-3.5 mr-1" />
-                        Quản trị viên
+                        {t('settingsPage.userManagement.role.admin')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700">
                         <UserIcon className="w-3.5 h-3.5 mr-1" />
-                        Người dùng
+                        {t('settingsPage.userManagement.role.user')}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     {user.is_active ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        ✓ Hoạt động
+                        ✓ {t('common.active')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        ✗ Vô hiệu hóa
+                        ✗ {t('settingsPage.userManagement.stats.inactive')}
                       </span>
                     )}
                   </td>
@@ -264,7 +266,7 @@ export default function UserManagement() {
                         setShowEditModal(true);
                       }}
                       className="inline-flex items-center p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
-                      title="Sửa"
+                      title={t('settingsPage.userManagement.actions.edit')}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
@@ -274,21 +276,21 @@ export default function UserManagement() {
                         setShowResetPasswordModal(true);
                       }}
                       className="inline-flex items-center p-2 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
-                      title="Đặt lại mật khẩu"
+                      title={t('settingsPage.userManagement.actions.resetPassword')}
                     >
                       <Key className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setConfirmToggle({ show: true, user })}
                       className="inline-flex items-center p-2 text-slate-500 dark:text-gray-400 hover:bg-gray-800 rounded-lg transition-colors"
-                      title={user.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                      title={user.is_active ? t('settingsPage.userManagement.actions.deactivate') : t('settingsPage.userManagement.actions.activate')}
                     >
                       <Power className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setConfirmDelete({ show: true, user })}
                       className="inline-flex items-center p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                      title="Xóa"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -301,7 +303,7 @@ export default function UserManagement() {
 
         {users.length === 0 && (
           <div className="text-center py-12 text-slate-500 dark:text-gray-400">
-            Không tìm thấy người dùng nào
+            {t('settingsPage.userManagement.empty')}
           </div>
         )}
       </div>
@@ -309,7 +311,7 @@ export default function UserManagement() {
       {/* Modals */}
       {showCreateModal && (
         <UserFormModal
-          title="Thêm người dùng mới"
+          title={t('settingsPage.userManagement.createTitle')}
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateUser}
         />
@@ -317,7 +319,7 @@ export default function UserManagement() {
 
       {showEditModal && selectedUser && (
         <UserFormModal
-          title="Sửa thông tin người dùng"
+          title={t('settingsPage.userManagement.editTitle')}
           user={selectedUser}
           onClose={() => {
             setShowEditModal(false);
@@ -341,8 +343,8 @@ export default function UserManagement() {
       {/* Confirm dialogs */}
       <ConfirmDialog
         isOpen={confirmDelete.show}
-        title="Xác nhận xóa người dùng"
-        message={`Bạn có chắc chắn muốn xóa người dùng "${confirmDelete.user?.email}"? Hành động này không thể hoàn tác.`}
+        title={t('settingsPage.userManagement.deleteTitle')}
+        message={t('settingsPage.userManagement.deleteMessage', { email: confirmDelete.user?.email ?? '' })}
         type="danger"
         onConfirm={() => {
           if (confirmDelete.user) {
@@ -355,8 +357,10 @@ export default function UserManagement() {
 
       <ConfirmDialog
         isOpen={confirmToggle.show}
-        title={confirmToggle.user?.is_active ? 'Vô hiệu hóa người dùng' : 'Kích hoạt người dùng'}
-        message={`Bạn có chắc chắn muốn ${confirmToggle.user?.is_active ? 'vô hiệu hóa' : 'kích hoạt'} người dùng "${confirmToggle.user?.email}"?`}
+        title={confirmToggle.user?.is_active ? t('settingsPage.userManagement.deactivateTitle') : t('settingsPage.userManagement.activateTitle')}
+        message={confirmToggle.user?.is_active
+          ? t('settingsPage.userManagement.deactivateMessage', { email: confirmToggle.user?.email ?? '' })
+          : t('settingsPage.userManagement.activateMessage', { email: confirmToggle.user?.email ?? '' })}
         type="warning"
         onConfirm={() => {
           if (confirmToggle.user) {
@@ -398,6 +402,7 @@ function UserFormModal({
   onClose: () => void;
   onSubmit: (data: any) => void;
 }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     email: user?.email || '',
     password: '',
@@ -436,7 +441,7 @@ function UserFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Email *
+              {t('auth.emailLabel')} *
             </label>
             <input
               type="email"
@@ -450,7 +455,7 @@ function UserFormModal({
           {!user && (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                Mật khẩu *
+                {t('auth.passwordLabel')} *
               </label>
               <input
                 type="password"
@@ -464,7 +469,7 @@ function UserFormModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Họ tên
+              {t('auth.fullNameLabel')}
             </label>
             <input
               type="text"
@@ -483,7 +488,7 @@ function UserFormModal({
               className="w-4 h-4 text-indigo-600 bg-white dark:bg-[#1E293B] border-slate-300 dark:border-gray-700 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
             />
             <label htmlFor="is_superuser" className="text-sm font-medium text-slate-700 dark:text-gray-300">
-              Quản trị viên (Superuser)
+              {t('settingsPage.userManagement.form.superuser')}
             </label>
           </div>
 
@@ -496,7 +501,7 @@ function UserFormModal({
               className="w-4 h-4 text-indigo-600 bg-white dark:bg-[#1E293B] border-slate-300 dark:border-gray-700 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
             />
             <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-gray-300">
-              Kích hoạt tài khoản
+              {t('settingsPage.userManagement.form.activateAccount')}
             </label>
           </div>
 
@@ -506,13 +511,13 @@ function UserFormModal({
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-gray-700 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 rounded-xl hover:bg-gray-800 transition-colors font-medium"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm shadow-indigo-500/20"
             >
-              {user ? 'Cập nhật' : 'Tạo mới'}
+              {user ? t('common.update') : t('settingsPage.userManagement.form.create')}
             </button>
           </div>
         </form>
@@ -530,17 +535,18 @@ function ResetPasswordModal({
   onClose: () => void;
   onSubmit: (password: string) => void;
 }) {
+  const { t } = useLanguage();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp');
+      toast.error(t('auth.errorPasswordMismatch'));
       return;
     }
     if (password.length < 6) {
-      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+      toast.error(t('settingsPage.userManagement.errors.passwordTooShort'));
       return;
     }
     onSubmit(password);
@@ -550,7 +556,7 @@ function ResetPasswordModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Đặt lại mật khẩu</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('settingsPage.userManagement.actions.resetPassword')}</h3>
           <button onClick={onClose} className="text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:text-gray-300 transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -558,12 +564,12 @@ function ResetPasswordModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="text-sm text-slate-500 dark:text-gray-400 mb-6 bg-white dark:bg-[#1E293B] p-4 rounded-xl border border-slate-300 dark:border-gray-700">
-            Đặt lại mật khẩu cho: <strong className="text-slate-900 dark:text-white block mt-1">{user.email}</strong>
+            {t('settingsPage.userManagement.resetPasswordFor')} <strong className="text-slate-900 dark:text-white block mt-1">{user.email}</strong>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Mật khẩu mới *
+              {t('settingsPage.userManagement.newPassword')} *
             </label>
             <input
               type="password"
@@ -576,7 +582,7 @@ function ResetPasswordModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Xác nhận mật khẩu *
+              {t('auth.confirmPasswordLabel')} *
             </label>
             <input
               type="password"
@@ -593,13 +599,13 @@ function ResetPasswordModal({
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-gray-700 bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 rounded-xl hover:bg-gray-800 transition-colors font-medium"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-2.5 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-xl hover:bg-amber-500/30 transition-colors font-medium shadow-sm shadow-amber-500/10"
             >
-              Đặt lại mật khẩu
+              {t('settingsPage.userManagement.actions.resetPassword')}
             </button>
           </div>
         </form>

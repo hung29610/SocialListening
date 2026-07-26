@@ -16,7 +16,7 @@ from app.schemas.user_settings import (
     UserPreferencesResponse, UserPreferencesUpdate,
     SessionResponse
 )
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 
 from app.api.auth_context import setup_context_endpoint
@@ -27,7 +27,10 @@ setup_context_endpoint(router)
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    # Registration previously accepted any non-empty password while
+    # /me/change-password required 8 characters. Align the floor so a new account
+    # cannot start weaker than the rule applied to every later change.
+    password: str = Field(min_length=8)
     full_name: str | None = None
 
 

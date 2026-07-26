@@ -1,5 +1,6 @@
 import logging
 import hashlib
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 import unicodedata
@@ -15,32 +16,36 @@ from app.models.source_item import SourceItem
 from app.models.keyword import Keyword, KeywordGroup
 from app.models.mention import Mention
 from app.core.config import settings
+from app.services.feed_fetcher import fetch_url, validate_feed_url
 from app.services.url_utils import clean_final_url, domain_from_url, extract_google_news_embedded_url, is_google_news_discovery_url
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "Mozilla/5.0 (compatible; SocialListeningBot/1.0; +https://nope.com)"
+# Kept for backwards compatibility with callers/tests that import them; the
+# actual request settings now live in app.services.feed_fetcher.
+USER_AGENT = "Mozilla/5.0 (compatible; Nope360Bot/1.0; +https://nope360.com)"
 REQUEST_TIMEOUT = 15
+
+try:
+    MAX_FEED_ENTRIES = min(int(os.getenv("CRAWL_MAX_RESULTS_PER_SOURCE", "50")), 200)
+except ValueError:
+    MAX_FEED_ENTRIES = 50
+
 
 def validate_rss_feed(url: str) -> tuple[bool, str, str]:
     """
-    Validate if a URL is a valid RSS/Atom feed.
-    """
-    try:
-        response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT, allow_redirects=True)
-        response.raise_for_status()
-    except requests.exceptions.Timeout:
-        return False, "timeout", "Kết nối hết hạn."
-    except Exception as e:
-        return False, "fetch_failed", f"Lỗi lấy dữ liệu: {e}"
+    Validate if a URL is a valid, safely reachable RSS/Atom feed.
 
-    content_type = response.headers.get("content-type", "").lower()
-    
-    # Try parsing
-    feed = feedparser.parse(response.content)
+    Returns (is_valid, error_code, error_message).
+    """
+    result = fetch_url(url)
+    if not result.ok:
+        return False, result.error_code, result.error_message
+
+    feed = feedparser.parse(result.content)
     if feed.bozo and not feed.entries:
         return False, "invalid_xml", "URL không chứa XML/RSS hợp lệ."
-        
+
     return True, "", ""
 
 def normalize_url(url: str) -> str:
@@ -56,7 +61,49 @@ def clean_html(raw_html: str) -> str:
     if not raw_html: return ""
     soup = BeautifulSoup(raw_html, "html.parser")
     return soup.get_text(separator=' ', strip=True)
-    
+
+
+# Feed content is third-party HTML. We store a reduced form so that anything
+# rendering it later cannot execute scripts or load active content.
+_UNSAFE_HTML_TAGS = ("script", "style", "iframe", "object", "embed", "form", "link", "meta", "svg", "base")
+_UNSAFE_URL_PREFIXES = ("javascript:", "data:text/html", "vbscript:")
+
+
+def sanitize_feed_html(raw_html: str) -> str:
+    """
+    Strip active content from feed-provided HTML.
+
+    Removes script-like elements entirely, drops every event handler attribute
+    and neutralises javascript:/vbscript:/data:text/html URLs. Layout markup is
+    preserved so snippets stay readable.
+    """
+    if not raw_html:
+        return ""
+    try:
+        soup = BeautifulSoup(raw_html, "html.parser")
+        for tag_name in _UNSAFE_HTML_TAGS:
+            for tag in soup.find_all(tag_name):
+                tag.decompose()
+
+        for tag in soup.find_all(True):
+            for attr in list(tag.attrs):
+                lowered = attr.lower()
+                if lowered.startswith("on") or lowered in ("srcdoc", "formaction"):
+                    del tag.attrs[attr]
+                    continue
+                if lowered in ("href", "src", "action", "xlink:href"):
+                    value = tag.attrs.get(attr)
+                    if isinstance(value, str):
+                        normalized = value.strip().lower().replace("\n", "").replace("\t", "")
+                        if any(normalized.startswith(prefix) for prefix in _UNSAFE_URL_PREFIXES):
+                            del tag.attrs[attr]
+        return str(soup)
+    except Exception as exc:
+        # Never let sanitisation failure poison the pipeline; fall back to text.
+        logger.info("Feed HTML sanitisation failed, storing plain text instead: %s", exc)
+        return clean_html(raw_html)
+
+
 def strip_accents(s: str) -> str:
     if not s: return ""
     s = s.replace('đ', 'd').replace('Đ', 'D')
@@ -65,17 +112,29 @@ def strip_accents(s: str) -> str:
 def generate_content_hash(text: str) -> str:
     return hashlib.sha256(text.strip().encode('utf-8')).hexdigest()
 
-def fetch_and_parse_feed(url: str) -> Dict:
+def fetch_and_parse_feed(url: str, max_entries: int = None) -> Dict:
+    """
+    Fetch and parse an RSS/Atom feed through the guarded fetcher.
+
+    A malformed feed, an unreachable host or a blocked (internal) target is
+    reported as a failed result for this single feed; it never raises, so one bad
+    source cannot abort a collection run covering other sources.
+    """
+    limit = max_entries if max_entries is not None else MAX_FEED_ENTRIES
     try:
-        response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT, allow_redirects=True)
-        response.raise_for_status()
-        
-        feed = feedparser.parse(response.content)
+        fetched = fetch_url(url)
+        if not fetched.ok:
+            return {"success": False, "error": fetched.error_message, "error_code": fetched.error_code}
+
+        feed = feedparser.parse(fetched.content)
         if feed.bozo and not feed.entries:
-            return {"success": False, "error": f"Parse error: {getattr(feed, 'bozo_exception', 'Unknown')}"}
-            
+            # feedparser records the underlying exception; keep it out of the
+            # user-facing message and log level noise.
+            logger.info("Feed parse failed for %s: %s", url, getattr(feed, "bozo_exception", "unknown"))
+            return {"success": False, "error": "Nội dung nguồn không phải RSS/Atom hợp lệ.", "error_code": "invalid_xml"}
+
         items = []
-        for entry in feed.entries:
+        for entry in feed.entries[:limit]:
             title = entry.get('title', '').strip()
             link = entry.get('link', '').strip()
             guid = entry.get('id', '') or entry.get('guid', '') or link
@@ -139,7 +198,7 @@ def fetch_and_parse_feed(url: str) -> Dict:
                 "domain": domain_from_url(final_link),
                 "guid": guid,
                 "snippet": snippet,
-                "html_description": description,
+                "html_description": sanitize_feed_html(description),
                 "published_at": published_at,
                 "image_url": image_url,
                 "media_url": media_url,
@@ -149,7 +208,8 @@ def fetch_and_parse_feed(url: str) -> Dict:
             
         return {"success": True, "items": items}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.warning("Unexpected error while parsing feed %s: %s", url, e)
+        return {"success": False, "error": "Không xử lý được nội dung nguồn.", "error_code": "parse_failed"}
 
 def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords: List[str] = None, ad_hoc_project_id: int = None) -> Dict:
     """Run RSS collection for given sources or all active RSS sources."""
@@ -177,9 +237,18 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
         try:
             feed_data = fetch_and_parse_feed(source.url)
             if not feed_data["success"]:
-                source.last_error = feed_data["error"]
+                # Persist a stable "<code>: <message>" pair. The Sources UI keys
+                # off the code to explain the failure, and the message is already
+                # scrubbed of internal network detail by the fetcher.
+                error_code = feed_data.get("error_code") or "rss_fetch_failed"
+                error_text = feed_data["error"]
+                source.last_error = f"{error_code}: {error_text}" if error_code not in error_text else error_text
                 source.error_count = (source.error_count or 0) + 1
-                result["errors"].append({"source_id": source.id, "error": feed_data["error"]})
+                result["errors"].append({
+                    "source_id": source.id,
+                    "error": error_text,
+                    "error_code": error_code,
+                })
                 result["status"] = "PARTIAL_FAILED"
                 db.commit()
                 continue
@@ -256,17 +325,29 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                         if not project_id and ad_hoc_project_id:
                             project_id = ad_hoc_project_id
 
+                first_matched_keyword = None
                 for kw in active_keywords:
                     kw_norm = strip_accents(kw.keyword.lower())
                     if kw_norm in text_to_match:
                         matched_kws.append({"keyword": kw.keyword, "count": text_to_match.count(kw_norm)})
-                        
-                if matched_kws and not project_id:
-                    # Assign to the project of the first matched keyword
-                    first_kw = active_keywords[0]
-                    kw_group = db.query(KeywordGroup).get(first_kw.group_id)
-                    project_id = kw_group.project_id if kw_group else None
-                    
+                        if first_matched_keyword is None:
+                            first_matched_keyword = kw
+
+                if matched_kws and not project_id and first_matched_keyword is not None:
+                    # A "project" is a KeywordGroup row (see Subscription.project_id,
+                    # which is a FK to keyword_groups.id), so the owning group id IS
+                    # the project id.
+                    #
+                    # Two defects fixed here:
+                    #  1. attribution used active_keywords[0] instead of the keyword
+                    #     that actually matched, filing items under a foreign project;
+                    #  2. it then read kw_group.project_id, which does not exist on
+                    #     KeywordGroup — the AttributeError aborted the whole source,
+                    #     so keyword-matched RSS mentions were never stored.
+                    kw_group = db.get(KeywordGroup, first_matched_keyword.group_id)
+                    project_id = kw_group.id if kw_group else None
+
+
                 # Always create mention so user can search for broader keywords on the web
                 m_exists = db.execute(
                     select(Mention.id).where(

@@ -1,4 +1,22 @@
 """Production API smoke test v2 — uses existing DB user."""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import sys, os, warnings
 sys.stdout.reconfigure(encoding='utf-8')
 warnings.filterwarnings("ignore")
@@ -33,17 +51,17 @@ if not user:
     # Create user directly in DB
     from app.core.security import get_password_hash
     db = SessionLocal()
-    u = User(email="smoke@test.com", hashed_password=get_password_hash("Test1234!"), full_name="Smoke", is_active=True, role="admin")
+    u = User(email=account_email("ACCOUNT4"), hashed_password=get_password_hash(alt_password()), full_name="Smoke", is_active=True, role="admin")
     db.add(u)
     db.commit()
     db.close()
     print("Created test user")
 
 # Login
-login_resp = client.post("/api/auth/login", data={"username": user.email if user else "smoke@test.com", "password": "Test1234!"})
+login_resp = client.post("/api/auth/login", data={"username": user.email if user else account_email("ACCOUNT4"), "password": alt_password()})
 if login_resp.status_code != 200:
     # Try all possible test passwords
-    for pwd in ["Admin1234!", "admin123", "password", "test1234"]:
+    for pwd in ["Admin1234!", account_password("ACCOUNT6"), "password", "test1234"]:
         login_resp = client.post("/api/auth/login", data={"username": user.email, "password": pwd})
         if login_resp.status_code == 200:
             break
@@ -53,13 +71,13 @@ if login_resp.status_code != 200:
     from app.core.security import get_password_hash
     db = SessionLocal()
     # Check if smoke user already exists
-    existing = db.execute(select(User).where(User.email == "smoke_prod@test.com")).scalar_one_or_none()
+    existing = db.execute(select(User).where(User.email == alt_email())).scalar_one_or_none()
     if not existing:
-        u = User(email="smoke_prod@test.com", hashed_password=get_password_hash("Test1234!"), full_name="Smoke", is_active=True, role="admin")
+        u = User(email=alt_email(), hashed_password=get_password_hash(alt_password()), full_name="Smoke", is_active=True, role="admin")
         db.add(u)
         db.commit()
     db.close()
-    login_resp = client.post("/api/auth/login", data={"username": "smoke_prod@test.com", "password": "Test1234!"})
+    login_resp = client.post("/api/auth/login", data={"username": alt_email(), "password": alt_password()})
 
 if login_resp.status_code != 200:
     print(f"FATAL: Cannot login. {login_resp.status_code} {login_resp.text[:200]}")

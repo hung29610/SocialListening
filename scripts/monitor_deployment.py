@@ -4,11 +4,28 @@ Monitor Deployment Status
 Liên tục kiểm tra deployment status cho đến khi thành công
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
+
 import requests
 import time
 from datetime import datetime
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
+BACKEND_URL = backend_url()
 CHECK_INTERVAL = 30  # seconds
 MAX_ATTEMPTS = 20  # 10 minutes total
 
@@ -26,7 +43,7 @@ def test_auth_endpoint():
         # Login first
         login_response = requests.post(
             f"{BACKEND_URL}/api/auth/login",
-            data={"username": "admin@sociallistening.com", "password": "Admin@123456"},
+            data={"username": user_email(), "password": user_password()},
             timeout=10
         )
         

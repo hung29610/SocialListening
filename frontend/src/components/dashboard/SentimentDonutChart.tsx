@@ -1,5 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SentimentData {
   positive: number;
@@ -10,19 +11,21 @@ interface SentimentData {
 }
 
 export default function SentimentDonutChart({ data, isLoading }: { data: SentimentData | null; isLoading: boolean }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
-    return <div className="h-64 flex items-center justify-center text-gray-500 font-medium tracking-wide">Đang tải...</div>;
+    return <div className="h-64 flex items-center justify-center text-gray-500 font-medium tracking-wide">{t('common.loading')}</div>;
   }
 
   if (!data || data.total === 0) {
-    return <div className="h-64 flex items-center justify-center text-gray-500 font-medium tracking-wide">Chưa có dữ liệu sắc thái</div>;
+    return <div className="h-64 flex items-center justify-center text-gray-500 font-medium tracking-wide">{t('dashboard.charts.noSentimentData')}</div>;
   }
 
   const chartData = [
-    { name: 'Tích cực', value: data.positive, color: '#10B981' }, // emerald-500
-    { name: 'Trung lập', value: data.neutral, color: '#9CA3AF' }, // gray-400
-    { name: 'Tiêu cực', value: data.negative, color: '#F43F5E' }, // rose-500
-    { name: 'Chưa phân tích', value: data.unknown || 0, color: '#4B5563' }, // gray-600
+    { name: t('mentions.sentiment.positive'), value: data.positive, color: '#10B981' }, // emerald-500
+    { name: t('mentions.sentiment.neutral'), value: data.neutral, color: '#9CA3AF' }, // gray-400
+    { name: t('mentions.sentiment.negative'), value: data.negative, color: '#F43F5E' }, // rose-500
+    { name: t('crisis.sentiment.unanalyzed'), value: data.unknown || 0, color: '#4B5563' }, // gray-600
   ].filter(item => item.value > 0);
 
   return (

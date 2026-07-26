@@ -60,9 +60,22 @@ def get_integrations_capabilities(db: Session = Depends(get_db), current_user: U
     has_fb = any(acc.account_type == "page" for acc in meta_accounts)
     has_ig = any(acc.account_type == "instagram_business" for acc in meta_accounts)
     
-    # RSS
-    rss_count = db.execute(select(Source).where(Source.source_type == "rss")).scalars().all()
-    has_rss = len(rss_count) > 0
+    # RSS — the card must not claim readiness merely because a row exists.
+    # A feed counts as working only after a real successful collection; feeds that
+    # only ever errored are reported as ERROR, and freshly added feeds that have
+    # not run yet as PENDING_VALIDATION.
+    rss_sources = db.execute(
+        select(Source).where(Source.source_type == "rss", Source.is_active == True)
+    ).scalars().all()
+
+    if not rss_sources:
+        rss_status = "NO_SOURCES"
+    elif any(s.last_success_at is not None for s in rss_sources):
+        rss_status = "READY"
+    elif any(s.last_error for s in rss_sources):
+        rss_status = "ERROR"
+    else:
+        rss_status = "PENDING_VALIDATION"
     
     # Twitter
     has_twitter = bool(getattr(settings, "TWITTER_API_KEY", ""))
@@ -81,7 +94,8 @@ def get_integrations_capabilities(db: Session = Depends(get_db), current_user: U
             "status": "READY" if has_ig else "CONNECT_REQUIRED"
         },
         "rss": {
-            "status": "READY" if has_rss else "NO_SOURCES"
+            "status": rss_status,
+            "active_sources": len(rss_sources),
         },
         "tiktok": {
             "status": "CONNECTOR_REQUIRED"

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VolatilityDataPoint {
   date: string;
@@ -34,6 +35,8 @@ export default function MonitorVolatilityChart({
   data,
   isLoading,
 }: MonitorVolatilityChartProps) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -48,7 +51,7 @@ export default function MonitorVolatilityChart({
         <svg className="w-12 h-12 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
         </svg>
-        <p className="text-sm">Chưa có dữ liệu biến động</p>
+        <p className="text-sm">{t('crisis.charts.noVolatilityData')}</p>
       </div>
     );
   }
@@ -135,7 +138,7 @@ export default function MonitorVolatilityChart({
 
           <Area
             type="monotone"
-            name="Tổng"
+            name={t('crisis.charts.total')}
             dataKey="total"
             stroke="#6366F1"
             strokeWidth={2.5}
@@ -146,7 +149,7 @@ export default function MonitorVolatilityChart({
           />
           <Area
             type="monotone"
-            name="Tiêu cực"
+            name={t('mentions.sentiment.negative')}
             dataKey="negative"
             stroke="#F43F5E"
             strokeWidth={2}
@@ -157,7 +160,7 @@ export default function MonitorVolatilityChart({
           />
           <Area
             type="monotone"
-            name="Tích cực"
+            name={t('mentions.sentiment.positive')}
             dataKey="positive"
             stroke="#10B981"
             strokeWidth={2}

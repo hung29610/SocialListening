@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { keywords as keywordsApi, crawl } from '@/lib/api';
 import { useProject } from '@/contexts/ProjectContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
   ArrowRight, ArrowLeft, Loader2, Globe, FileText, 
@@ -13,6 +14,7 @@ import {
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { fetchProjects, setActiveProject } = useProject();
   
   const [step, setStep] = useState(1);
@@ -39,7 +41,7 @@ export default function NewProjectPage() {
   const handleCreate = async () => {
     try {
       setLoading(true);
-      const loadingToast = toast.loading('Đang tạo dự án và cấu hình quét...');
+      const loadingToast = toast.loading(t('keywordsPage.newProject.creating'));
 
       // 1. Create KeywordGroup (Project)
       const newGroup = await keywordsApi.createGroup({
@@ -70,7 +72,7 @@ export default function NewProjectPage() {
       await crawl.manualScan(payload);
 
       toast.dismiss(loadingToast);
-      toast.success('Dự án đã được tạo thành công! Đang thu thập dữ liệu.');
+      toast.success(t('keywordsPage.newProject.createdOk'));
       
       // Update global context
       await fetchProjects();
@@ -80,7 +82,7 @@ export default function NewProjectPage() {
       router.push('/dashboard/mentions');
       
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Có lỗi xảy ra khi tạo dự án');
+      toast.error(error.response?.data?.detail || t('keywordsPage.newProject.createFailed'));
     } finally {
       setLoading(false);
     }
@@ -97,8 +99,8 @@ export default function NewProjectPage() {
       <Toaster position="top-right" />
       
       <div className="mb-10 text-center">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Tạo Dự án Mới</h1>
-        <p className="text-slate-500 dark:text-gray-400">Thiết lập bộ từ khóa và nguồn dữ liệu để bắt đầu lắng nghe</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{t('keywordsPage.newProject.title')}</h1>
+        <p className="text-slate-500 dark:text-gray-400">{t('keywordsPage.newProject.subtitle')}</p>
       </div>
 
       {/* Progress Bar */}
@@ -127,13 +129,13 @@ export default function NewProjectPage() {
         
         {step === 1 && (
           <div className="animate-fadeIn">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Tên dự án / Thương hiệu</h2>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">Đặt tên cho dự án này (ví dụ: Tên công ty, Sản phẩm, Tên đối thủ).</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t('keywordsPage.newProject.step1Title')}</h2>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">{t('keywordsPage.newProject.step1Desc')}</p>
             <input
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="VD: Vinfast, TTH Hospital..."
+              placeholder={t('keywordsPage.newProject.namePlaceholder')}
               className="w-full px-5 py-4 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl text-slate-900 dark:text-white text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-gray-600"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && !isNextDisabled() && handleNext()}
@@ -143,12 +145,12 @@ export default function NewProjectPage() {
 
         {step === 2 && (
           <div className="animate-fadeIn">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Từ khóa chính cần theo dõi</h2>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">Hệ thống sẽ thu thập bài viết chứa ÍT NHẤT MỘT trong các từ khóa này. Phân cách bằng dấu phẩy (,).</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t('keywordsPage.newProject.step2Title')}</h2>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">{t('keywordsPage.newProject.step2Desc')}</p>
             <textarea
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
-              placeholder="VD: TTH, Bệnh viện TTH, TTH Hospital"
+              placeholder={t('keywordsPage.newProject.keywordsPlaceholder')}
               className="w-full px-5 py-4 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl text-slate-900 dark:text-white text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-gray-600 min-h-[150px]"
               autoFocus
             />
@@ -157,15 +159,15 @@ export default function NewProjectPage() {
 
         {step === 3 && (
           <div className="animate-fadeIn">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Nguồn dữ liệu</h2>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">Chọn các nền tảng bạn muốn hệ thống quét dữ liệu.</p>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t('keywordsPage.newProject.step3Title')}</h2>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">{t('keywordsPage.newProject.step3Desc')}</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${sources.web ? 'bg-indigo-500/10 border-indigo-500/50 text-white' : 'bg-white dark:bg-[#1E293B] border-slate-300 dark:border-gray-700 text-slate-500 dark:text-gray-400 hover:border-gray-600'}`}>
                 <input type="checkbox" checked={sources.web} onChange={(e) => setSources({...sources, web: e.target.checked})} className="hidden" />
                 <Globe className={`w-6 h-6 mr-3 ${sources.web ? 'text-indigo-400' : ''}`} />
                 <div className="flex-1">
-                  <p className="font-semibold text-sm">Web & Forums</p>
+                  <p className="font-semibold text-sm">{t('keywordsPage.newProject.sources.web')}</p>
                 </div>
                 {sources.web && <CheckCircle2 className="w-5 h-5 text-indigo-500" />}
               </label>
@@ -174,7 +176,7 @@ export default function NewProjectPage() {
                 <input type="checkbox" checked={sources.news} onChange={(e) => setSources({...sources, news: e.target.checked})} className="hidden" />
                 <FileText className={`w-6 h-6 mr-3 ${sources.news ? 'text-indigo-400' : ''}`} />
                 <div className="flex-1">
-                  <p className="font-semibold text-sm">Báo chí (News)</p>
+                  <p className="font-semibold text-sm">{t('keywordsPage.newProject.sources.news')}</p>
                 </div>
                 {sources.news && <CheckCircle2 className="w-5 h-5 text-indigo-500" />}
               </label>
@@ -183,7 +185,7 @@ export default function NewProjectPage() {
                 <input type="checkbox" checked={sources.blogs} onChange={(e) => setSources({...sources, blogs: e.target.checked})} className="hidden" />
                 <FileText className={`w-6 h-6 mr-3 ${sources.blogs ? 'text-indigo-400' : ''}`} />
                 <div className="flex-1">
-                  <p className="font-semibold text-sm">Blogs</p>
+                  <p className="font-semibold text-sm">{t('keywordsPage.newProject.sources.blogs')}</p>
                 </div>
                 {sources.blogs && <CheckCircle2 className="w-5 h-5 text-indigo-500" />}
               </label>
@@ -201,7 +203,7 @@ export default function NewProjectPage() {
                 <Youtube className="w-6 h-6 mr-3 text-red-500" />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">YouTube</p>
-                  <p className="text-[10px] text-gray-500">Yêu cầu cấu hình API Key</p>
+                  <p className="text-[10px] text-gray-500">{t('keywordsPage.newProject.sources.apiKeyRequired')}</p>
                 </div>
               </label>
 
@@ -209,7 +211,7 @@ export default function NewProjectPage() {
                 <Facebook className="w-6 h-6 mr-3 text-blue-500" />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">Facebook / Instagram</p>
-                  <p className="text-[10px] text-gray-500">Yêu cầu Meta OAuth</p>
+                  <p className="text-[10px] text-gray-500">{t('keywordsPage.newProject.sources.metaOauthRequired')}</p>
                 </div>
               </label>
 
@@ -217,7 +219,7 @@ export default function NewProjectPage() {
                 <Video className="w-6 h-6 mr-3 text-pink-500" />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">TikTok</p>
-                  <p className="text-[10px] text-rose-400">Connector required</p>
+                  <p className="text-[10px] text-rose-400">{t('integrations.status.connectorRequired')}</p>
                 </div>
               </label>
             </div>
@@ -235,7 +237,7 @@ export default function NewProjectPage() {
             step === 1 ? 'opacity-0 cursor-default' : 'bg-white dark:bg-[#111827] text-slate-500 dark:text-gray-400 hover:text-white border border-slate-200 dark:border-gray-800 hover:bg-gray-800'
           }`}
         >
-          <ArrowLeft className="w-5 h-5" /> Quay lại
+          <ArrowLeft className="w-5 h-5" /> {t('keywordsPage.newProject.back')}
         </button>
 
         {step < 3 ? (
@@ -244,7 +246,7 @@ export default function NewProjectPage() {
             disabled={isNextDisabled()}
             className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
           >
-            Tiếp tục <ArrowRight className="w-5 h-5" />
+            {t('keywordsPage.newProject.next')} <ArrowRight className="w-5 h-5" />
           </button>
         ) : (
           <button
@@ -253,7 +255,7 @@ export default function NewProjectPage() {
             className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldAlert className="w-5 h-5" />}
-            {loading ? 'Đang tạo dự án...' : 'Tạo Dự án & Bắt đầu quét'}
+            {loading ? t('keywordsPage.newProject.creatingShort') : t('keywordsPage.newProject.submit')}
           </button>
         )}
       </div>

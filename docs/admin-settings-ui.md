@@ -19,7 +19,7 @@ Complete the missing Admin Settings UI areas (Organization, Email, Notifications
    - `AuditLogs.tsx`
 
 2. **API Updates**:
-   - Replaced all hardcoded production URLs (`https://social-listening-backend.onrender.com/...`) with relative API endpoints (e.g., `/api/admin/settings/...`).
+   - Replaced all hardcoded production URLs (`https://sociallistening-9fvs.onrender.com/...`) with relative API endpoints (e.g., `/api/admin/settings/...`).
    - Removed manual `localStorage.getItem('access_token')` and manual `Authorization` headers.
    - Updated response handling to use `response.data` instead of `response.json()`.
    - Updated error handling to extract error details using `error.response?.data?.detail`.

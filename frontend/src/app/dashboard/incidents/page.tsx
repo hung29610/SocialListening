@@ -8,18 +8,20 @@ import Link from 'next/link';
 import EvidenceLockerModal from '@/components/dashboard/EvidenceLockerModal';
 import CrisisWarRoomModal from '@/components/dashboard/CrisisWarRoomModal';
 import { ShieldAlert } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const STATUS_OPTIONS = [
-  { value: 'new', label: 'Mới' },
-  { value: 'verifying', label: 'Đang xác minh' },
-  { value: 'responding', label: 'Đang xử lý' },
-  { value: 'waiting_legal', label: 'Chờ pháp lý' },
-  { value: 'waiting_platform', label: 'Chờ nền tảng' },
-  { value: 'resolved', label: 'Đã giải quyết' },
-  { value: 'closed', label: 'Đã đóng' },
+  { value: 'new', key: 'new' },
+  { value: 'verifying', key: 'verifying' },
+  { value: 'responding', key: 'responding' },
+  { value: 'waiting_legal', key: 'waitingLegal' },
+  { value: 'waiting_platform', key: 'waitingPlatform' },
+  { value: 'resolved', key: 'resolved' },
+  { value: 'closed', key: 'closed' },
 ];
 
 export default function IncidentsPage() {
+  const { t } = useLanguage();
   const [incidents, setIncidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -65,7 +67,7 @@ export default function IncidentsPage() {
       const data = await incidentsApi.list(params);
       setIncidents(data.items || []);
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi tải danh sách sự cố');
+      toast.error(getErrorMessage(error) || t('reputationPage.incidents.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,7 @@ export default function IncidentsPage() {
 
   const handleCreate = async () => {
     if (!createForm.title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề sự cố');
+      toast.error(t('reputationPage.incidents.errors.titleRequired'));
       return;
     }
     setSubmitting(true);
@@ -84,12 +86,12 @@ export default function IncidentsPage() {
         mention_id: createForm.mention_id ? parseInt(createForm.mention_id) : undefined,
         deadline: createForm.deadline ? new Date(createForm.deadline).toISOString() : undefined,
       });
-      toast.success('Tạo sự cố thành công!');
+      toast.success(t('reputationPage.incidents.createSuccess'));
       setShowCreate(false);
       setCreateForm({ title: '', description: '', deadline: '', mention_id: '' });
       fetchIncidents();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi tạo sự cố');
+      toast.error(getErrorMessage(error) || t('reputationPage.incidents.errors.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -108,11 +110,11 @@ export default function IncidentsPage() {
         status: updateForm.status,
         resolution_notes: updateForm.resolution_notes || undefined,
       });
-      toast.success('Cập nhật trạng thái thành công!');
+      toast.success(t('reputationPage.incidents.updateStatusSuccess'));
       setShowUpdateStatus(false);
       fetchIncidents();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi cập nhật trạng thái');
+      toast.error(getErrorMessage(error) || t('reputationPage.incidents.errors.updateStatusFailed'));
     }
   };
 
@@ -132,12 +134,12 @@ export default function IncidentsPage() {
     if (!logIncidentId || !newLog.trim()) return;
     try {
       await incidentsApi.addLog(logIncidentId, { action: 'note', notes: newLog });
-      toast.success('Đã thêm ghi chú');
+      toast.success(t('reputationPage.incidents.logAdded'));
       setNewLog('');
       const data = await incidentsApi.getLogs(logIncidentId);
       setLogs(data || []);
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi thêm ghi chú');
+      toast.error(getErrorMessage(error) || t('reputationPage.incidents.errors.addLogFailed'));
     }
   };
 
@@ -154,13 +156,15 @@ export default function IncidentsPage() {
     return map[status] || 'bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700';
   };
 
-  const getStatusLabel = (s: string) =>
-    STATUS_OPTIONS.find((x) => x.value === s)?.label || s;
+  const getStatusLabel = (s: string) => {
+    const found = STATUS_OPTIONS.find((x) => x.value === s);
+    return found ? t(`reputationPage.incidents.status.${found.key}`) : s;
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
@@ -172,15 +176,15 @@ export default function IncidentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Sự Cố</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý các sự cố cần xử lý</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('reputationPage.incidents.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('reputationPage.incidents.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 font-medium"
         >
           <Plus className="w-4 h-4" />
-          <span>Tạo sự cố</span>
+          <span>{t('reputationPage.incidents.create')}</span>
         </button>
       </div>
 
@@ -190,7 +194,7 @@ export default function IncidentsPage() {
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filter === 'all' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 border border-indigo-500/50' : 'bg-white dark:bg-[#111827] text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-800 hover:text-white hover:bg-white dark:bg-[#1E293B]'}`}
         >
-          Tất cả
+          {t('common.all')}
         </button>
         {STATUS_OPTIONS.map((s) => (
           <button
@@ -198,7 +202,7 @@ export default function IncidentsPage() {
             onClick={() => setFilter(s.value)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filter === s.value ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 border border-indigo-500/50' : 'bg-white dark:bg-[#111827] text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-800 hover:text-white hover:bg-white dark:bg-[#1E293B]'}`}
           >
-            {s.label}
+            {t(`reputationPage.incidents.status.${s.key}`)}
           </button>
         ))}
       </div>
@@ -210,7 +214,7 @@ export default function IncidentsPage() {
             <div className="w-16 h-16 rounded-xl bg-white dark:bg-[#1E293B] flex items-center justify-center mx-auto mb-4 border border-slate-200 dark:border-gray-800 shadow-sm">
               <FileText className="w-8 h-8 text-gray-500" />
             </div>
-            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">Không có sự cố nào</p>
+            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('reputationPage.incidents.empty')}</p>
           </div>
         ) : (
           incidents.map((incident) => (
@@ -225,7 +229,7 @@ export default function IncidentsPage() {
                     </span>
                     {incident.is_overdue && (
                       <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border bg-rose-500/10 text-rose-400 border-rose-500/20">
-                        Quá hạn
+                        {t('reputationPage.incidents.overdue')}
                       </span>
                     )}
                   </div>
@@ -239,14 +243,14 @@ export default function IncidentsPage() {
                           className="inline-flex items-center text-xs font-semibold tracking-wide text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           <FileText className="w-3.5 h-3.5 mr-1.5" />
-                          Xem Mention Gốc (#{incident.mention_id})
+                          {t('reputationPage.viewSourceMention', { id: incident.mention_id })}
                         </Link>
                       </div>
                     )}
                     <div className="flex items-center space-x-4 text-xs font-medium text-gray-500 mt-4">
-                    <span>Tạo: {new Date(incident.created_at).toLocaleString('vi-VN')}</span>
+                    <span>{t('reputationPage.incidents.createdAt', { date: new Date(incident.created_at).toLocaleString('vi-VN') })}</span>
                     {incident.deadline && (
-                      <span>Deadline: {new Date(incident.deadline).toLocaleString('vi-VN')}</span>
+                      <span>{t('reputationPage.incidents.deadlineAt', { date: new Date(incident.deadline).toLocaleString('vi-VN') })}</span>
                     )}
                   </div>
                 </div>
@@ -257,7 +261,7 @@ export default function IncidentsPage() {
                       setShowWarRoom(true);
                     }}
                     className="p-2 text-slate-500 dark:text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20"
-                    title="Crisis War Room"
+                    title={t('reputationPage.incidents.warRoom')}
                   >
                     <ShieldAlert className="w-5 h-5" />
                   </button>
@@ -267,21 +271,21 @@ export default function IncidentsPage() {
                       setShowEvidence(true);
                     }}
                     className="p-2 text-slate-500 dark:text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20"
-                    title="Bằng chứng (Evidence Locker)"
+                    title={t('reputationPage.incidents.evidenceLocker')}
                   >
                     <FileText className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => openLogs(incident)}
                     className="p-2 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
-                    title="Xem lịch sử"
+                    title={t('reputationPage.incidents.viewHistory')}
                   >
                     <Eye className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => openUpdateStatus(incident)}
                     className="p-2 text-slate-500 dark:text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors border border-transparent hover:border-amber-500/20"
-                    title="Cập nhật trạng thái"
+                    title={t('reputationPage.incidents.updateStatus')}
                   >
                     <Check className="w-5 h-5" />
                   </button>
@@ -299,7 +303,7 @@ export default function IncidentsPage() {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all overflow-hidden">
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-[#1E293B]/30">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Tạo Sự Cố</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('reputationPage.incidents.create')}</h2>
                 <button onClick={() => setShowCreate(false)} className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors">
                   <X className="w-6 h-6" />
                 </button>
@@ -307,28 +311,28 @@ export default function IncidentsPage() {
               <div className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Tiêu đề <span className="text-rose-500">*</span>
+                    {t('reputationPage.fields.title')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={createForm.title}
                     onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                    placeholder="Nhập tiêu đề sự cố..."
+                    placeholder={t('reputationPage.incidents.form.titlePlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Mô tả</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('reputationPage.incidents.form.descriptionLabel')}</label>
                   <textarea
                     value={createForm.description}
                     onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                     rows={4}
-                    placeholder="Mô tả chi tiết sự cố..."
+                    placeholder={t('reputationPage.incidents.form.descriptionPlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Deadline</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">{t('reputationPage.incidents.form.deadlineLabel')}</label>
                   <input
                     type="datetime-local"
                     value={createForm.deadline}
@@ -338,27 +342,27 @@ export default function IncidentsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    ID Mention liên quan (tùy chọn)
+                    {t('reputationPage.incidents.form.mentionIdLabel')}
                   </label>
                   <input
                     type="number"
                     value={createForm.mention_id}
                     onChange={(e) => setCreateForm({ ...createForm, mention_id: e.target.value })}
-                    placeholder="Nhập ID mention..."
+                    placeholder={t('reputationPage.incidents.form.mentionIdPlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
                   />
                 </div>
               </div>
               <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 flex justify-end space-x-3">
                 <button onClick={() => setShowCreate(false)} className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium">
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={submitting || !createForm.title.trim()}
                   className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-all shadow-sm shadow-indigo-500/20 font-medium"
                 >
-                  {submitting ? 'Đang tạo...' : 'Tạo sự cố'}
+                  {submitting ? t('reputationPage.creating') : t('reputationPage.incidents.create')}
                 </button>
               </div>
             </div>
@@ -373,7 +377,7 @@ export default function IncidentsPage() {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all overflow-hidden">
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-[#1E293B]/30">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Cập Nhật Trạng Thái</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('reputationPage.incidents.updateStatus')}</h2>
                 <button onClick={() => setShowUpdateStatus(false)} className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors">
                   <X className="w-6 h-6" />
                 </button>
@@ -381,7 +385,7 @@ export default function IncidentsPage() {
               <div className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Trạng thái <span className="text-rose-500">*</span>
+                    {t('reputationPage.fields.status')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={updateForm.status}
@@ -389,32 +393,32 @@ export default function IncidentsPage() {
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                   >
                     {STATUS_OPTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
+                      <option key={s.value} value={s.value}>{t(`reputationPage.incidents.status.${s.key}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Ghi chú xử lý
+                    {t('reputationPage.incidents.form.resolutionNotesLabel')}
                   </label>
                   <textarea
                     value={updateForm.resolution_notes}
                     onChange={(e) => setUpdateForm({ ...updateForm, resolution_notes: e.target.value })}
                     rows={4}
-                    placeholder="Ghi chú về cách xử lý sự cố..."
+                    placeholder={t('reputationPage.incidents.form.resolutionNotesPlaceholder')}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 resize-none"
                   />
                 </div>
               </div>
               <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/30 flex justify-end space-x-3">
                 <button onClick={() => setShowUpdateStatus(false)} className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors font-medium">
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleUpdateStatus}
                   className="px-5 py-2.5 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-500/20 font-medium"
                 >
-                  Cập nhật
+                  {t('common.update')}
                 </button>
               </div>
             </div>
@@ -430,7 +434,7 @@ export default function IncidentsPage() {
             <div className="relative bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
               <div className="p-6 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-[#1E293B]/30 shrink-0">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate pr-4">
-                  Lịch sử — {selectedIncident.title}
+                  {t('reputationPage.incidents.historyTitle', { title: selectedIncident.title })}
                 </h2>
                 <button onClick={() => setShowLogs(false)} className="text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors shrink-0">
                   <X className="w-6 h-6" />
@@ -438,7 +442,7 @@ export default function IncidentsPage() {
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {logs.length === 0 ? (
-                  <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide text-center py-4">Chưa có lịch sử</p>
+                  <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide text-center py-4">{t('reputationPage.incidents.noHistory')}</p>
                 ) : (
                   logs.map((log) => (
                     <div key={log.id} className="border-l-[3px] border-indigo-500 pl-4 py-1.5">
@@ -462,7 +466,7 @@ export default function IncidentsPage() {
                   type="text"
                   value={newLog}
                   onChange={(e) => setNewLog(e.target.value)}
-                  placeholder="Thêm ghi chú..."
+                  placeholder={t('reputationPage.incidents.addNotePlaceholder')}
                   className="flex-1 px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 text-sm"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddLog()}
                 />
@@ -471,7 +475,7 @@ export default function IncidentsPage() {
                   disabled={!newLog.trim()}
                   className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-sm font-medium transition-colors shadow-sm shadow-indigo-500/20"
                 >
-                  Thêm
+                  {t('common.add')}
                 </button>
               </div>
             </div>

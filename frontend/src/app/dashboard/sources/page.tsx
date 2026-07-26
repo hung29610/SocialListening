@@ -10,7 +10,9 @@ import { sources as sourcesApi, discoveredSources as dsApi, discovery as discove
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ScheduleSelector from '@/components/ScheduleSelector';
+import FeedDiscoveryPanel from '@/components/sources/FeedDiscoveryPanel';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type SourceTab = 'active' | 'discovered' | 'connectors';
 
@@ -34,6 +36,7 @@ interface Source {
 }
 
 export default function SourcesPage() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<SourceTab>('active');
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,15 +127,15 @@ export default function SourcesPage() {
     try {
       setDsActionLoading(id);
       switch (action) {
-        case 'approve-rss': await dsApi.approveRss(id); toast.success('Đã thêm nguồn RSS.'); break;
-        case 'approve-website': await dsApi.approveWebsite(id); toast.success('Đã thêm nguồn Website.'); break;
-        case 'reject': await dsApi.reject(id); toast.success('Đã từ chối nguồn.'); break;
-        case 'block': await dsApi.block(id); toast.success('Đã chặn domain.'); break;
+        case 'approve-rss': await dsApi.approveRss(id); toast.success(t('sourcesPage.toast.rssApproved')); break;
+        case 'approve-website': await dsApi.approveWebsite(id); toast.success(t('sourcesPage.toast.websiteApproved')); break;
+        case 'reject': await dsApi.reject(id); toast.success(t('sourcesPage.toast.sourceRejected')); break;
+        case 'block': await dsApi.block(id); toast.success(t('sourcesPage.toast.domainBlocked')); break;
       }
       fetchDiscoveredSources();
       if (action === 'approve-rss' || action === 'approve-website') fetchSources();
     } catch (error: any) {
-      if (error?.response?.status === 409) { toast('Nguồn đã tồn tại.', { icon: 'ℹ️' }); }
+      if (error?.response?.status === 409) { toast(t('sourcesPage.toast.sourceExists'), { icon: 'ℹ️' }); }
       else { toast.error(getErrorMessage(error)); }
     } finally {
       setDsActionLoading(null);
@@ -143,7 +146,7 @@ export default function SourcesPage() {
     try {
       setDsActionLoading(id);
       const result = await dsApi.refreshRss(id);
-      toast.success(result.message || 'Đã kiểm tra RSS.');
+      toast.success(result.message || t('sourcesPage.toast.rssChecked'));
       fetchDiscoveredSources();
     } catch (error: any) {
       toast.error(getErrorMessage(error));
@@ -163,7 +166,7 @@ export default function SourcesPage() {
       if (error?.response?.status !== 401) {
         toast.error(getUserFacingErrorMessage(
           error,
-          'Lỗi khi tải danh sách nguồn. Vui lòng kiểm tra backend hoặc database migration.'
+          t('sourcesPage.errors.loadFailed')
         ));
       }
     } finally {
@@ -173,13 +176,13 @@ export default function SourcesPage() {
 
   const handleAddSource = async () => {
     if (!newSource.name.trim()) {
-      toast.error('Vui lòng nhập tên nguồn');
+      toast.error(t('sourcesPage.validation.nameRequired'));
       return;
     }
 
     if (newSource.source_type === 'rss') {
       if (!newSource.rss_url?.trim()) {
-        toast.error('Vui lòng nhập RSS Feed URL');
+        toast.error(t('sourcesPage.validation.rssUrlRequired'));
         return;
       }
       const rssUrl = newSource.rss_url.trim().toLowerCase();
@@ -188,12 +191,12 @@ export default function SourcesPage() {
       const isRootDomain = rssUrl.match(/^https?:\/\/[^\/]+\/?$/);
       
       if (isHtmlPage || (!hasRssKeywords && isRootDomain)) {
-        toast.error('Đây là link trang web/bài viết, không phải RSS feed. Hãy chọn loại nguồn Website hoặc nhập link RSS hợp lệ.');
+        toast.error(t('sourcesPage.validation.notRssFeed'));
         return;
       }
     } else {
       if (!newSource.url?.trim()) {
-        toast.error('Vui lòng nhập URL');
+        toast.error(t('sourcesPage.validation.urlRequired'));
         return;
       }
     }
@@ -211,21 +214,21 @@ export default function SourcesPage() {
       if (newSource.crawl_frequency === 'daily') {
         payload.schedule_hours = newSource.schedule.hours;
         if (newSource.schedule.hours.length === 0) {
-          toast.error('Vui lòng chọn ít nhất 1 giờ quét');
+          toast.error(t('sourcesPage.validation.hoursRequired'));
           return;
         }
       } else if (newSource.crawl_frequency === 'weekly') {
         payload.schedule_days_of_week = newSource.schedule.daysOfWeek;
         payload.crawl_time = newSource.schedule.time;
         if (newSource.schedule.daysOfWeek.length === 0) {
-          toast.error('Vui lòng chọn ít nhất 1 ngày trong tuần');
+          toast.error(t('sourcesPage.validation.daysOfWeekRequired'));
           return;
         }
       } else if (newSource.crawl_frequency === 'monthly') {
         payload.schedule_days_of_month = newSource.schedule.daysOfMonth;
         payload.crawl_time = newSource.schedule.time;
         if (newSource.schedule.daysOfMonth.length === 0) {
-          toast.error('Vui lòng chọn ít nhất 1 ngày trong tháng');
+          toast.error(t('sourcesPage.validation.daysOfMonthRequired'));
           return;
         }
       } else if (newSource.crawl_frequency === 'yearly') {
@@ -233,7 +236,7 @@ export default function SourcesPage() {
         payload.schedule_days_of_month = newSource.schedule.daysOfMonth;
         payload.crawl_time = newSource.schedule.time;
         if (newSource.schedule.months.length === 0 || newSource.schedule.daysOfMonth.length === 0) {
-          toast.error('Vui lòng chọn ít nhất 1 tháng và 1 ngày');
+          toast.error(t('sourcesPage.validation.monthAndDayRequired'));
           return;
         }
       }
@@ -255,11 +258,11 @@ export default function SourcesPage() {
           time: '09:00'
         }
       });
-      toast.success('Thêm nguồn thành công!');
+      toast.success(t('sourcesPage.toast.addSuccess'));
       fetchSources();
     } catch (error: any) {
       console.error('Error adding source:', error);
-      toast.error(`Lỗi khi thêm nguồn: ${getErrorMessage(error)}`);
+      toast.error(t('sourcesPage.errors.addFailed', { message: getErrorMessage(error) }));
     }
   };
 
@@ -268,11 +271,11 @@ export default function SourcesPage() {
 
     try {
       await sourcesApi.delete(deleteConfirm.sourceId);
-      toast.success('Xóa nguồn thành công!');
+      toast.success(t('sourcesPage.toast.deleteSuccess'));
       fetchSources();
     } catch (error: any) {
       console.error('Error deleting source:', error);
-      toast.error(`Lỗi khi xóa nguồn: ${getErrorMessage(error)}`);
+      toast.error(t('sourcesPage.errors.deleteFailed', { message: getErrorMessage(error) }));
     }
   };
 
@@ -282,10 +285,10 @@ export default function SourcesPage() {
         is_active: !source.is_active
       });
       fetchSources();
-      toast.success(`Đã ${!source.is_active ? 'bật' : 'tắt'} nguồn`);
+      toast.success(t(!source.is_active ? 'sourcesPage.toast.sourceEnabled' : 'sourcesPage.toast.sourceDisabled'));
     } catch (error: any) {
       console.error('Error toggling source:', error);
-      toast.error(`Lỗi khi cập nhật nguồn: ${getErrorMessage(error)}`);
+      toast.error(t('sourcesPage.errors.updateFailed', { message: getErrorMessage(error) }));
     }
   };
 
@@ -306,65 +309,65 @@ export default function SourcesPage() {
 
   const getSourceTypeText = (type: string) => {
     const typeMap: Record<string, string> = {
-      'facebook_page': 'Facebook Page',
-      'facebook_group': 'Facebook Group',
-      'facebook_profile': 'Facebook Profile',
-      'youtube_channel': 'YouTube Channel',
-      'youtube_video': 'YouTube Video',
-      'website': 'Website',
-      'news': 'News',
-      'rss': 'RSS Feed',
-      'forum': 'Forum',
-      'manual_url': 'Manual URL'
+      'facebook_page': 'sourcesPage.sourceType.facebookPage',
+      'facebook_group': 'sourcesPage.sourceType.facebookGroup',
+      'facebook_profile': 'sourcesPage.sourceType.facebookProfile',
+      'youtube_channel': 'sourcesPage.sourceType.youtubeChannel',
+      'youtube_video': 'sourcesPage.sourceType.youtubeVideo',
+      'website': 'sourcesPage.sourceType.website',
+      'news': 'sourcesPage.sourceType.news',
+      'rss': 'sourcesPage.sourceType.rss',
+      'forum': 'sourcesPage.sourceType.forum',
+      'manual_url': 'sourcesPage.sourceType.manualUrl'
     };
-    return typeMap[type] || type;
+    return typeMap[type] ? t(typeMap[type]) : type;
   };
 
   const getFrequencyText = (frequency: string) => {
     switch (frequency) {
-      case 'daily': return 'Hằng ngày';
-      case 'weekly': return 'Hằng tuần';
-      case 'monthly': return 'Hằng tháng';
-      case 'yearly': return 'Hằng năm';
-      default: return 'Thủ công';
+      case 'daily': return t('sourcesPage.frequency.daily');
+      case 'weekly': return t('sourcesPage.frequency.weekly');
+      case 'monthly': return t('sourcesPage.frequency.monthly');
+      case 'yearly': return t('sourcesPage.frequency.yearly');
+      default: return t('sourcesPage.frequency.manual');
     }
   };
 
   const getScheduleDescription = (source: Source) => {
-    if (source.crawl_frequency === 'manual') return 'Quét thủ công';
-    
+    if (source.crawl_frequency === 'manual') return t('sourcesPage.schedule.manual');
+
     const time = source.crawl_time || '09:00';
-    
+
     if (source.crawl_frequency === 'daily') {
-      return `Hằng ngày lúc ${time}`;
+      return t('sourcesPage.schedule.daily', { time });
     } else if (source.crawl_frequency === 'weekly') {
-      const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-      const dayName = days[source.crawl_day_of_week || 0];
-      return `Hằng tuần vào ${dayName} lúc ${time}`;
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const dayName = t(`sourcesPage.weekday.${days[source.crawl_day_of_week || 0]}`);
+      return t('sourcesPage.schedule.weekly', { day: dayName, time });
     } else if (source.crawl_frequency === 'monthly') {
-      return `Hằng tháng ngày ${source.crawl_day_of_month || 1} lúc ${time}`;
+      return t('sourcesPage.schedule.monthly', { day: source.crawl_day_of_month || 1, time });
     } else if (source.crawl_frequency === 'yearly') {
-      const months = ['', 'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
-                     'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
-      const monthName = months[source.crawl_month || 1];
-      return `Hằng năm ${monthName} ngày ${source.crawl_day_of_month || 1} lúc ${time}`;
+      const months = ['', 'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+                     'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthName = t(`sourcesPage.month.${months[source.crawl_month || 1]}`);
+      return t('sourcesPage.schedule.yearly', { month: monthName, day: source.crawl_day_of_month || 1, time });
     }
-    
-    return 'Không xác định';
+
+    return t('sourcesPage.schedule.unknown');
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">{t('common.loading')}</div>
       </div>
     );
   }
 
   const tabItems: { key: SourceTab; label: string; icon: React.ReactNode }[] = [
-    { key: 'active', label: 'Nguồn đang theo dõi', icon: <Globe className="w-4 h-4" /> },
-    { key: 'discovered', label: 'Nguồn phát hiện tự động', icon: <Radar className="w-4 h-4" /> },
-    { key: 'connectors', label: 'Kết nối nền tảng', icon: <Plug className="w-4 h-4" /> },
+    { key: 'active', label: t('sourcesPage.tabs.active'), icon: <Globe className="w-4 h-4" /> },
+    { key: 'discovered', label: t('sourcesPage.tabs.discovered'), icon: <Radar className="w-4 h-4" /> },
+    { key: 'connectors', label: t('sourcesPage.tabs.connectors'), icon: <Plug className="w-4 h-4" /> },
   ];
 
   return (
@@ -374,9 +377,9 @@ export default function SourcesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Quản lý nguồn</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('sourcesPage.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-            Quản lý các nguồn dữ liệu để thu thập thông tin
+            {t('sourcesPage.subtitle')}
           </p>
         </div>
         {activeTab === 'active' && (
@@ -385,7 +388,7 @@ export default function SourcesPage() {
             className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm shadow-indigo-500/20 font-medium"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Thêm nguồn
+            {t('sourcesPage.actions.addSource')}
           </button>
         )}
       </div>
@@ -397,15 +400,15 @@ export default function SourcesPage() {
             <Globe className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-slate-900 dark:text-white font-medium">Khám phá sức mạnh của Meta</h3>
-            <p className="text-sm text-blue-200 mt-0.5">Kết nối Facebook & Instagram để thu thập thêm đề cập từ các tài khoản được cấp quyền.</p>
+            <h3 className="text-slate-900 dark:text-white font-medium">{t('sourcesPage.metaBanner.title')}</h3>
+            <p className="text-sm text-blue-200 mt-0.5">{t('sourcesPage.metaBanner.desc')}</p>
           </div>
         </div>
         <a 
           href="/dashboard/integrations/meta"
           className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-blue-600/20"
         >
-          Kết nối Meta
+          {t('sourcesPage.metaBanner.cta')}
         </a>
       </div>
 
@@ -431,15 +434,20 @@ export default function SourcesPage() {
           TAB 1: ACTIVE SOURCES
          ════════════════════════════════════════════════════════════════ */}
       {activeTab === 'active' && (<>
+      {/* Feed auto-discovery + OPML import: preview, then explicit confirmation */}
+      <div className="mb-6">
+        <FeedDiscoveryPanel onImported={fetchSources} />
+      </div>
+
       {/* Top Domains Section */}
       <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-indigo-400" />
-            Top Domains Đóng Góp Thảo Luận
+            {t('sourcesPage.topDomains.title')}
           </h2>
           <span className="text-xs font-bold tracking-wider uppercase bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-lg shadow-sm">
-            Top 10
+            {t('sourcesPage.topDomains.badge')}
           </span>
         </div>
         {topDomainsLoading ? (
@@ -459,7 +467,7 @@ export default function SourcesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white truncate group-hover:text-indigo-300 transition-colors">
-                    {domain.domain || domain.name || 'Unknown'}
+                    {domain.domain || domain.name || t('mentions.page.unknownSource')}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-gray-400">{domain.mention_count || 0} mentions</p>
                 </div>
@@ -470,7 +478,7 @@ export default function SourcesPage() {
         ) : (
           <div className="flex flex-col items-center justify-center h-32 text-zinc-400">
             <BarChart3 className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">Chưa có dữ liệu domain</p>
+            <p className="text-sm">{t('sourcesPage.topDomains.empty')}</p>
           </div>
         )}
       </div>
@@ -481,7 +489,7 @@ export default function SourcesPage() {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
-            placeholder="Tìm kiếm nguồn..."
+            placeholder={t('sourcesPage.search.placeholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 shadow-xl transition-shadow"
@@ -496,7 +504,7 @@ export default function SourcesPage() {
             className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
           />
           <label htmlFor="showTestSources" className="text-sm font-medium text-slate-700 dark:text-gray-300 cursor-pointer select-none">
-            Hiện nguồn test
+            {t('sourcesPage.filters.showTestSources')}
           </label>
         </div>
       </div>
@@ -508,7 +516,7 @@ export default function SourcesPage() {
             <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 shadow-sm">
               <Globe className="w-8 h-8 text-gray-500" />
             </div>
-            {searchTerm ? 'Không tìm thấy nguồn phù hợp.' : 'Không có nguồn nào. Hãy thêm nguồn đầu tiên!'}
+            {searchTerm ? t('sourcesPage.empty.noMatch') : t('sourcesPage.empty.noSources')}
           </div>
         ) : (
           filteredSources.map((source) => {
@@ -530,51 +538,65 @@ export default function SourcesPage() {
                           if (isUnsupported) {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
-                                Chưa hỗ trợ
+                                {t('sourcesPage.badge.unsupported')}
                               </span>
                             );
                           }
                           if (isTest) {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
-                                Nguồn test
+                                {t('sourcesPage.badge.testSource')}
                               </span>
                             );
                           }
                           const error = (source as any).last_error;
-                          const isInvalidRss = error && (error.includes('invalid_rss_feed') || 
-                                               error.includes('Feed parse error') || 
+                          const isInvalidRss = error && (error.includes('invalid_rss_feed') ||
+                                               error.includes('invalid_xml') ||
+                                               error.includes('parse_failed') ||
+                                               error.includes('Feed parse error') ||
                                                error.includes('not well-formed') ||
                                                error.includes('invalid token') ||
                                                (source.source_type === 'rss' && error.includes('not well-formed')));
+                          // Guard failures are a distinct, honest state: the URL is
+                          // structurally rejected rather than "just" bad XML.
+                          const isBlockedTarget = error && (error.includes('blocked_target') ||
+                                                  error.includes('unsupported_scheme') ||
+                                                  error.includes('credentials_in_url') ||
+                                                  error.includes('blocked_port'));
                           const isAiConfigError = error && (error.includes('ai_provider_not_configured') || 
                                                   error.includes('openai_dependency_missing') || 
                                                   error.includes('AI chưa cấu hình') ||
                                                   error.includes('thiếu package openai') ||
                                                   error.includes('openai package not installed'));
                           
-                          if (isInvalidRss) {
+                          if (isBlockedTarget) {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                                RSS không hợp lệ
+                                {t('sourcesPage.badge.blockedUrl')}
+                              </span>
+                            );
+                          } else if (isInvalidRss) {
+                            return (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                {t('sourcesPage.badge.invalidRss')}
                               </span>
                             );
                           } else if (error && !isAiConfigError) {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                                Lỗi crawl
+                                {t('sourcesPage.badge.crawlError')}
                               </span>
                             );
                           } else if (source.last_crawled_at) {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                Quét thành công
+                                {t('sourcesPage.badge.crawlSuccess')}
                               </span>
                             );
                           } else {
                             return (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
-                                Chưa crawl
+                                {t('sourcesPage.badge.notCrawled')}
                               </span>
                             );
                           }
@@ -600,13 +622,13 @@ export default function SourcesPage() {
                           if (isAiConfigError) {
                              return (
                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                 AI chưa cấu hình
+                                 {t('sourcesPage.badge.aiNotConfigured')}
                                </span>
                              );
                           } else if (source.last_crawled_at && (!error || error === '')) {
                              return (
                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                 AI đã phân tích
+                                 {t('sourcesPage.badge.aiAnalyzed')}
                                </span>
                              );
                           }
@@ -642,16 +664,16 @@ export default function SourcesPage() {
                 
                 {source.next_crawl_at && (
                   <p className="text-xs text-gray-500 px-1 truncate">
-                    <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">Tiếp theo:</span>
+                    <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">{t('sourcesPage.card.nextCrawl')}</span>
                     {new Date(source.next_crawl_at).toLocaleString('vi-VN')}
                   </p>
                 )}
                 
                 <p className="text-xs text-gray-500 px-1 truncate">
-                  <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">Gần nhất:</span>
-                  {source.last_crawled_at 
+                  <span className="font-medium mr-1 text-slate-500 dark:text-gray-400">{t('sourcesPage.card.lastCrawl')}</span>
+                  {source.last_crawled_at
                     ? new Date(source.last_crawled_at).toLocaleString('vi-VN')
-                    : 'Chưa crawl'
+                    : t('sourcesPage.badge.notCrawled')
                   }
                 </p>
                 {(() => {
@@ -669,10 +691,10 @@ export default function SourcesPage() {
                     return (
                       <div className="text-xs mt-3 p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-lg">
                         <span className="text-rose-400 opacity-90 block mb-1">
-                          URL này là trang web, không phải RSS feed.
+                          {t('sourcesPage.card.rssNotFeedTitle')}
                         </span>
                         <span className="text-gray-500 text-[11px] block leading-relaxed">
-                          Hãy đổi loại nguồn sang Website hoặc nhập RSS URL hợp lệ.
+                          {t('sourcesPage.card.rssNotFeedHint')}
                         </span>
                       </div>
                     );
@@ -689,7 +711,7 @@ export default function SourcesPage() {
                     return (
                       <div className="text-xs mt-3 p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-lg">
                         <span className="text-amber-400 opacity-90">
-                          Mention đã được thu thập, nhưng AI chưa phân tích do thiếu cấu hình hoặc package.
+                          {t('sourcesPage.card.aiConfigNote')}
                         </span>
                       </div>
                     );
@@ -707,7 +729,7 @@ export default function SourcesPage() {
                   if (isTest) {
                     return (
                       <div className="text-xs text-slate-500 dark:text-gray-400 mt-3 p-2.5 bg-gray-500/5 border border-gray-500/20 rounded-lg" title={error}>
-                        <span className="font-semibold text-gray-500 block mb-1 uppercase tracking-wider text-[10px]">Nguồn test — không tính vào vận hành</span>
+                        <span className="font-semibold text-gray-500 block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.testSourceNote')}</span>
                         <span className="opacity-90">{cleanMsg.substring(0, 100)}{cleanMsg.length > 100 ? '...' : ''}</span>
                       </div>
                     );
@@ -715,7 +737,7 @@ export default function SourcesPage() {
                   
                   return (
                     <div className="text-xs text-rose-400 mt-3 p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-lg" title={error}>
-                      <span className="font-semibold text-rose-500 block mb-1 uppercase tracking-wider text-[10px]">Lỗi crawl gần nhất</span>
+                      <span className="font-semibold text-rose-500 block mb-1 uppercase tracking-wider text-[10px]">{t('sourcesPage.card.lastCrawlError')}</span>
                       <span className="opacity-90">{cleanMsg.substring(0, 100)}{cleanMsg.length > 100 ? '...' : ''}</span>
                     </div>
                   );
@@ -726,7 +748,7 @@ export default function SourcesPage() {
                 <button
                   onClick={() => setDeleteConfirm({ isOpen: true, sourceId: source.id, sourceName: source.name })}
                   className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20"
-                  title="Xóa nguồn"
+                  title={t('sourcesPage.actions.deleteSource')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -742,10 +764,10 @@ export default function SourcesPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, sourceId: null, sourceName: '' })}
         onConfirm={handleDeleteSource}
-        title="Xóa nguồn"
-        message={`Bạn có chắc muốn xóa nguồn "${deleteConfirm.sourceName}"?`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t('sourcesPage.actions.deleteSource')}
+        message={t('sourcesPage.deleteDialog.message', { name: deleteConfirm.sourceName })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         type="danger"
       />
       </>)}
@@ -757,13 +779,13 @@ export default function SourcesPage() {
         <div className="space-y-4">
           {/* Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái:</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('sourcesPage.discovered.statusLabel')}</span>
             {[
-              { key: 'candidate', label: 'Chờ duyệt', color: 'amber' },
-              { key: 'approved', label: 'Đã duyệt', color: 'emerald' },
-              { key: 'rejected', label: 'Đã từ chối', color: 'rose' },
-              { key: 'blocked', label: 'Đã chặn', color: 'red' },
-              { key: '', label: 'Tất cả', color: 'gray' },
+              { key: 'candidate', label: t('sourcesPage.discovered.status.candidate'), color: 'amber' },
+              { key: 'approved', label: t('sourcesPage.discovered.status.approved'), color: 'emerald' },
+              { key: 'rejected', label: t('sourcesPage.discovered.filter.rejected'), color: 'rose' },
+              { key: 'blocked', label: t('sourcesPage.discovered.filter.blocked'), color: 'red' },
+              { key: '', label: t('common.all'), color: 'gray' },
             ].map((f) => (
               <button
                 key={f.key}
@@ -786,8 +808,8 @@ export default function SourcesPage() {
           ) : discoveredSources.length === 0 ? (
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 text-center">
               <Radar className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">Chưa có nguồn nào được phát hiện tự động.</p>
-              <p className="text-xs text-gray-500 mt-1">Hãy vào Trung tâm quét → "Tự động tìm nguồn" để bắt đầu.</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">{t('sourcesPage.discovered.empty.title')}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('sourcesPage.discovered.empty.hint')}</p>
             </div>
           ) : (
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
@@ -795,14 +817,14 @@ export default function SourcesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-black/30 text-left text-[10px] text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3 font-medium">Nguồn</th>
-                      <th className="px-4 py-3 font-medium hidden md:table-cell">Loại</th>
+                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.source')}</th>
+                      <th className="px-4 py-3 font-medium hidden md:table-cell">{t('sourcesPage.discovered.table.type')}</th>
                       <th className="px-4 py-3 font-medium hidden lg:table-cell">RSS</th>
-                      <th className="px-4 py-3 font-medium hidden lg:table-cell">Mentions</th>
-                      <th className="px-4 py-3 font-medium hidden xl:table-cell">Từ khóa khớp</th>
-                      <th className="px-4 py-3 font-medium">Điểm</th>
-                      <th className="px-4 py-3 font-medium">Trạng thái</th>
-                      <th className="px-4 py-3 font-medium text-right">Hành động</th>
+                      <th className="px-4 py-3 font-medium hidden lg:table-cell">{t('sourcesPage.discovered.table.mentions')}</th>
+                      <th className="px-4 py-3 font-medium hidden xl:table-cell">{t('sourcesPage.discovered.table.matchedKeywords')}</th>
+                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.score')}</th>
+                      <th className="px-4 py-3 font-medium">{t('sourcesPage.discovered.table.status')}</th>
+                      <th className="px-4 py-3 font-medium text-right">{t('sourcesPage.discovered.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -818,10 +840,10 @@ export default function SourcesPage() {
                         <td className="px-4 py-3 hidden lg:table-cell">
                           {ds.rss_valid ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                              <Rss className="w-3 h-3" /> Có RSS
+                              <Rss className="w-3 h-3" /> {t('sourcesPage.discovered.hasRss')}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-500">Không</span>
+                            <span className="text-[10px] text-gray-500">{t('sourcesPage.discovered.noRss')}</span>
                           )}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell">
@@ -852,16 +874,16 @@ export default function SourcesPage() {
                         </td>
                         <td className="px-4 py-3">
                           {ds.status === 'candidate' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">Chờ duyệt</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">{t('sourcesPage.discovered.status.candidate')}</span>
                           )}
                           {ds.status === 'approved' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Đã duyệt</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t('sourcesPage.discovered.status.approved')}</span>
                           )}
                           {ds.status === 'rejected' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">Từ chối</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">{t('sourcesPage.discovered.status.rejected')}</span>
                           )}
                           {ds.status === 'blocked' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20">Chặn</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20">{t('sourcesPage.discovered.status.blocked')}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -871,7 +893,7 @@ export default function SourcesPage() {
                                 <button
                                   onClick={() => handleDsAction(ds.id, 'approve-rss')}
                                   disabled={dsActionLoading === ds.id}
-                                  className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20" title="Duyệt RSS"
+                                  className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors border border-transparent hover:border-emerald-500/20" title={t('sourcesPage.discovered.actions.approveRss')}
                                 >
                                   {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rss className="w-3.5 h-3.5" />}
                                 </button>
@@ -879,38 +901,38 @@ export default function SourcesPage() {
                               <button
                                 onClick={() => handleDsAction(ds.id, 'approve-website')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20" title="Duyệt Website"
+                                className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20" title={t('sourcesPage.discovered.actions.approveWebsite')}
                               >
                                 {dsActionLoading === ds.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                               </button>
                               <button
                                 onClick={() => handleDsAction(ds.id, 'reject')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20" title="Từ chối"
+                                className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20" title={t('sourcesPage.discovered.actions.reject')}
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDsAction(ds.id, 'block')}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20" title="Chặn domain"
+                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20" title={t('sourcesPage.discovered.actions.block')}
                               >
                                 <Ban className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleRefreshRss(ds.id)}
                                 disabled={dsActionLoading === ds.id}
-                                className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors border border-transparent hover:border-cyan-500/20" title="Kiểm tra lại RSS"
+                                className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors border border-transparent hover:border-cyan-500/20" title={t('sourcesPage.discovered.actions.recheckRss')}
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
                           {ds.status === 'approved' && ds.approved_source_id && (
-                            <span className="text-[10px] text-emerald-400">Source #{ds.approved_source_id}</span>
+                            <span className="text-[10px] text-emerald-400">{t('sourcesPage.discovered.sourceRef', { id: ds.approved_source_id })}</span>
                           )}
                           {ds.status === 'blocked' && (
-                            <span className="text-[10px] text-gray-500 truncate max-w-[100px]" title={ds.blocked_reason}>{ds.blocked_reason || 'Đã chặn'}</span>
+                            <span className="text-[10px] text-gray-500 truncate max-w-[100px]" title={ds.blocked_reason}>{ds.blocked_reason || t('sourcesPage.discovered.filter.blocked')}</span>
                           )}
                         </td>
                       </tr>
@@ -972,12 +994,12 @@ export default function SourcesPage() {
                   <div className="mt-auto">
                     {c.status === 'oauth_required' && (
                       <a href="/dashboard/integrations/meta" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center">
-                          <Plug className="w-4 h-4 mr-2" /> Cấu hình Meta
+                          <Plug className="w-4 h-4 mr-2" /> {t('sourcesPage.connectors.configureMeta')}
                       </a>
                     )}
                     {c.status === 'limited' && (
                       <a href="/dashboard/integrations/meta" className="w-full bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 font-medium py-2 rounded-lg text-sm transition-colors block text-center">
-                          Quản lý tài khoản
+                          {t('integrations.manageAccounts')}
                       </a>
                     )}
                   </div>
@@ -994,20 +1016,20 @@ export default function SourcesPage() {
           <div className="bg-[#050A15]/90 border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar relative">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
             <div className="p-6 border-b border-white/10 bg-white/5 sticky top-0 z-10 backdrop-blur-xl">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm nguồn mới</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('sourcesPage.form.title')}</h2>
             </div>
             
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Tên nguồn *
+                  {t('sourcesPage.form.nameLabel')} *
                 </label>
                 <input
                   type="text"
                   value={newSource.name}
                   onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
-                  placeholder="Ví dụ: VnExpress"
+                  placeholder={t('sourcesPage.form.namePlaceholder')}
                   autoFocus
                 />
               </div>
@@ -1015,7 +1037,7 @@ export default function SourcesPage() {
               {newSource.source_type !== 'rss' && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    URL *
+                    {t('sourcesPage.form.urlLabel')} *
                   </label>
                   <input
                     type="url"
@@ -1030,7 +1052,7 @@ export default function SourcesPage() {
               {newSource.source_type === 'rss' && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Website gốc (tuỳ chọn)
+                    {t('sourcesPage.form.rssSiteLabel')}
                   </label>
                   <input
                     type="url"
@@ -1044,23 +1066,23 @@ export default function SourcesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Loại nguồn
+                  {t('sourcesPage.form.sourceTypeLabel')}
                 </label>
                 <select
                   value={newSource.source_type}
                   onChange={(e) => setNewSource({ ...newSource, source_type: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 >
-                  <option value="website">Website</option>
-                  <option value="facebook_page">Facebook Page</option>
-                  <option value="facebook_group">Facebook Group</option>
-                  <option value="facebook_profile">Facebook Profile</option>
-                  <option value="youtube_channel">YouTube Channel</option>
-                  <option value="youtube_video">YouTube Video</option>
-                  <option value="news">News</option>
-                  <option value="rss">RSS Feed</option>
-                  <option value="forum">Forum</option>
-                  <option value="manual_url">Manual URL</option>
+                  <option value="website">{t('sourcesPage.sourceType.website')}</option>
+                  <option value="facebook_page">{t('sourcesPage.sourceType.facebookPage')}</option>
+                  <option value="facebook_group">{t('sourcesPage.sourceType.facebookGroup')}</option>
+                  <option value="facebook_profile">{t('sourcesPage.sourceType.facebookProfile')}</option>
+                  <option value="youtube_channel">{t('sourcesPage.sourceType.youtubeChannel')}</option>
+                  <option value="youtube_video">{t('sourcesPage.sourceType.youtubeVideo')}</option>
+                  <option value="news">{t('sourcesPage.sourceType.news')}</option>
+                  <option value="rss">{t('sourcesPage.sourceType.rss')}</option>
+                  <option value="forum">{t('sourcesPage.sourceType.forum')}</option>
+                  <option value="manual_url">{t('sourcesPage.sourceType.manualUrl')}</option>
                 </select>
               </div>
 
@@ -1069,7 +1091,7 @@ export default function SourcesPage() {
               {['website', 'news', 'forum', 'manual_url'].includes(newSource.source_type) && (
                 <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
                   <p className="text-sm text-indigo-300">
-                    <strong className="text-indigo-400">Website/News/Forum:</strong> Chỉ cần nhập URL ở trên. Hệ thống sẽ tự động crawl nội dung.
+                    <strong className="text-indigo-400">{t('sourcesPage.form.webNoteLabel')}</strong> {t('sourcesPage.form.webNote')}
                   </p>
                 </div>
               )}
@@ -1078,21 +1100,21 @@ export default function SourcesPage() {
               {newSource.source_type.startsWith('facebook_') && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 space-y-4">
                   <p className="text-sm text-amber-300 font-medium">
-                    <strong className="text-amber-400">Facebook:</strong> Cần thông tin đăng nhập để truy cập nội dung
+                    <strong className="text-amber-400">{t('sourcesPage.form.facebookHeading')}</strong> {t('sourcesPage.form.facebookNote')}
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      Email/Username Facebook
+                      {t('sourcesPage.form.facebookEmailLabel')}
                     </label>
                     <input
                       type="text"
-                      placeholder="email@example.com"
+                      placeholder={t('auth.emailPlaceholder')}
                       className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      Password
+                      {t('auth.passwordLabel')}
                     </label>
                     <input
                       type="password"
@@ -1101,7 +1123,7 @@ export default function SourcesPage() {
                     />
                   </div>
                   <p className="text-xs text-slate-500 dark:text-gray-400">
-                    ⚠️ Thông tin đăng nhập được mã hóa và chỉ dùng để crawl dữ liệu
+                    ⚠️ {t('sourcesPage.form.credentialsNote')}
                   </p>
                 </div>
               )}
@@ -1110,21 +1132,21 @@ export default function SourcesPage() {
               {newSource.source_type.startsWith('youtube_') && (
                 <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 space-y-4">
                   <p className="text-sm text-rose-300 font-medium">
-                    <strong className="text-rose-400">YouTube:</strong> Chọn phương thức truy cập
+                    <strong className="text-rose-400">{t('sourcesPage.form.youtubeHeading')}</strong> {t('sourcesPage.form.youtubeNote')}
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      Phương thức
+                      {t('sourcesPage.form.accessMethodLabel')}
                     </label>
                     <select className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-900 dark:text-white">
-                      <option value="public">Public (không cần đăng nhập)</option>
-                      <option value="api_key">YouTube API Key</option>
-                      <option value="login">Đăng nhập Google</option>
+                      <option value="public">{t('sourcesPage.form.accessPublic')}</option>
+                      <option value="api_key">{t('sourcesPage.form.accessApiKey')}</option>
+                      <option value="login">{t('sourcesPage.form.accessGoogleLogin')}</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      YouTube API Key (tùy chọn)
+                      {t('sourcesPage.form.youtubeApiKeyOptional')}
                     </label>
                     <input
                       type="text"
@@ -1133,7 +1155,7 @@ export default function SourcesPage() {
                     />
                   </div>
                   <p className="text-xs text-slate-500 dark:text-gray-400">
-                    💡 API Key giúp tăng giới hạn request. Lấy tại: console.cloud.google.com
+                    💡 {t('sourcesPage.form.youtubeApiKeyNote')}
                   </p>
                 </div>
               )}
@@ -1142,11 +1164,11 @@ export default function SourcesPage() {
               {newSource.source_type === 'rss' && (
                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 space-y-4">
                   <p className="text-sm text-orange-300 font-medium">
-                    <strong className="text-orange-400">RSS Feed:</strong> Cấu hình RSS
+                    <strong className="text-orange-400">{t('sourcesPage.form.rssHeading')}</strong> {t('sourcesPage.form.rssNote')}
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      RSS Feed URL *
+                      {t('sourcesPage.form.rssUrlLabel')} *
                     </label>
                     <input
                       type="url"
@@ -1156,12 +1178,12 @@ export default function SourcesPage() {
                       className="w-full px-3 py-2 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 dark:text-white placeholder-gray-500"
                     />
                     <p className="text-xs text-orange-300/80 mt-1.5">
-                      RSS Feed URL phải là link XML/RSS thật, không phải trang chủ website.
+                      {t('sourcesPage.form.rssUrlHint')}
                     </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
-                      Số lượng items tối đa mỗi lần crawl
+                      {t('sourcesPage.form.rssMaxItemsLabel')}
                     </label>
                     <input
                       type="number"
@@ -1178,7 +1200,7 @@ export default function SourcesPage() {
                       className="w-4 h-4 text-orange-600 bg-gray-800 border-gray-600 rounded focus:ring-orange-500 focus:ring-offset-gray-900"
                     />
                     <label htmlFor="rss-full-content" className="ml-3 text-sm text-slate-700 dark:text-gray-300 cursor-pointer">
-                      Lấy full content (nếu RSS chỉ có summary)
+                      {t('sourcesPage.form.rssFullContent')}
                     </label>
                   </div>
                 </div>
@@ -1186,11 +1208,11 @@ export default function SourcesPage() {
 
               {/* Crawl Schedule */}
               <div className="border-t border-slate-200 dark:border-gray-800 pt-5 mt-2">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">Lịch Quét</h3>
-                
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">{t('sourcesPage.form.scheduleTitle')}</h3>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                    Tần suất quét
+                    {t('sourcesPage.form.frequencyLabel')}
                   </label>
                   <select
                     value={newSource.crawl_frequency}
@@ -1200,11 +1222,11 @@ export default function SourcesPage() {
                     })}
                     className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                   >
-                    <option value="manual">Thủ công (Không tự động quét)</option>
-                    <option value="daily">Hằng ngày</option>
-                    <option value="weekly">Hằng tuần</option>
-                    <option value="monthly">Hằng tháng</option>
-                    <option value="yearly">Hằng năm</option>
+                    <option value="manual">{t('sourcesPage.form.frequencyManual')}</option>
+                    <option value="daily">{t('sourcesPage.frequency.daily')}</option>
+                    <option value="weekly">{t('sourcesPage.frequency.weekly')}</option>
+                    <option value="monthly">{t('sourcesPage.frequency.monthly')}</option>
+                    <option value="yearly">{t('sourcesPage.frequency.yearly')}</option>
                   </select>
                 </div>
 
@@ -1224,13 +1246,13 @@ export default function SourcesPage() {
                 onClick={() => setShowAddModal(false)}
                 className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:text-slate-900 dark:text-white transition-colors"
               >
-                Hủy
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAddSource}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all"
               >
-                Thêm Nguồn
+                {t('sourcesPage.actions.addSource')}
               </button>
             </div>
           </div>

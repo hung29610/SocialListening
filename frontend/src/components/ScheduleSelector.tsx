@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ScheduleSelectorProps {
   frequency: 'manual' | 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -15,6 +16,7 @@ interface ScheduleSelectorProps {
 }
 
 export default function ScheduleSelector({ frequency, value, onChange }: ScheduleSelectorProps) {
+  const { t } = useLanguage();
   const [selectedHours, setSelectedHours] = useState<number[]>(value.hours || []);
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>(value.daysOfWeek || []);
   const [selectedDaysOfMonth, setSelectedDaysOfMonth] = useState<number[]>(value.daysOfMonth || []);
@@ -43,7 +45,7 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
   if (frequency === 'manual') {
     return (
       <div className="text-sm text-gray-500">
-        Quét thủ công - không cần lịch tự động
+        {t('scanPage.scheduleSelector.manual')}
       </div>
     );
   }
@@ -54,7 +56,7 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
       {frequency === 'daily' && (
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-            Chọn giờ quét (có thể chọn nhiều)
+            {t('scanPage.scheduleSelector.pickHours')}
           </label>
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {Array.from({ length: 24 }, (_, i) => i).map(hour => (
@@ -73,7 +75,7 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
             ))}
           </div>
           {selectedHours.length === 0 && (
-            <p className="text-xs text-rose-400 mt-2">Vui lòng chọn ít nhất 1 giờ</p>
+            <p className="text-xs text-rose-400 mt-2">{t('scanPage.scheduleSelector.needHour')}</p>
           )}
         </div>
       )}
@@ -83,17 +85,17 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
         <>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Chọn thứ trong tuần (có thể chọn nhiều)
+              {t('scanPage.scheduleSelector.pickWeekdays')}
             </label>
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
               {[
-                { value: 0, label: 'T2' },
-                { value: 1, label: 'T3' },
-                { value: 2, label: 'T4' },
-                { value: 3, label: 'T5' },
-                { value: 4, label: 'T6' },
-                { value: 5, label: 'T7' },
-                { value: 6, label: 'CN' }
+                { value: 0, label: t('scanPage.scheduleSelector.weekday.mon') },
+                { value: 1, label: t('scanPage.scheduleSelector.weekday.tue') },
+                { value: 2, label: t('scanPage.scheduleSelector.weekday.wed') },
+                { value: 3, label: t('scanPage.scheduleSelector.weekday.thu') },
+                { value: 4, label: t('scanPage.scheduleSelector.weekday.fri') },
+                { value: 5, label: t('scanPage.scheduleSelector.weekday.sat') },
+                { value: 6, label: t('scanPage.scheduleSelector.weekday.sun') }
               ].map(day => (
                 <button
                   key={day.value}
@@ -110,13 +112,13 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
               ))}
             </div>
             {selectedDaysOfWeek.length === 0 && (
-              <p className="text-xs text-rose-400 mt-2">Vui lòng chọn ít nhất 1 ngày</p>
+              <p className="text-xs text-rose-400 mt-2">{t('scanPage.scheduleSelector.needDay')}</p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Giờ quét
+              {t('scanPage.scheduleSelector.scanTime')}
             </label>
             <input
               type="time"
@@ -133,7 +135,7 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
         <>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Chọn ngày trong tháng (có thể chọn nhiều)
+              {t('scanPage.scheduleSelector.pickMonthDays')}
             </label>
             <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
               {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
@@ -152,13 +154,13 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
               ))}
             </div>
             {selectedDaysOfMonth.length === 0 && (
-              <p className="text-xs text-rose-400 mt-2">Vui lòng chọn ít nhất 1 ngày</p>
+              <p className="text-xs text-rose-400 mt-2">{t('scanPage.scheduleSelector.needDay')}</p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Giờ quét
+              {t('scanPage.scheduleSelector.scanTime')}
             </label>
             <input
               type="time"
@@ -175,7 +177,7 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
         <>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Chọn tháng (có thể chọn nhiều)
+              {t('scanPage.scheduleSelector.pickMonths')}
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
@@ -189,18 +191,18 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
                       : 'bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border-slate-300 dark:border-gray-700 hover:border-indigo-500/50 hover:bg-white dark:bg-[#1E293B]/80'
                   }`}
                 >
-                  T{month}
+                  {t('scanPage.scheduleSelector.monthPrefix')}{month}
                 </button>
               ))}
             </div>
             {selectedMonths.length === 0 && (
-              <p className="text-xs text-rose-400 mt-2">Vui lòng chọn ít nhất 1 tháng</p>
+              <p className="text-xs text-rose-400 mt-2">{t('scanPage.scheduleSelector.needMonth')}</p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Chọn ngày trong tháng (có thể chọn nhiều)
+              {t('scanPage.scheduleSelector.pickMonthDays')}
             </label>
             <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
               {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
@@ -219,13 +221,13 @@ export default function ScheduleSelector({ frequency, value, onChange }: Schedul
               ))}
             </div>
             {selectedDaysOfMonth.length === 0 && (
-              <p className="text-xs text-rose-400 mt-2">Vui lòng chọn ít nhất 1 ngày</p>
+              <p className="text-xs text-rose-400 mt-2">{t('scanPage.scheduleSelector.needDay')}</p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              Giờ quét
+              {t('scanPage.scheduleSelector.scanTime')}
             </label>
             <input
               type="time"

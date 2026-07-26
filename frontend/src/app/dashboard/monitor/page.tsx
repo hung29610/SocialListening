@@ -3,8 +3,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function MonitorRedirect() {
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -14,7 +16,7 @@ export default function MonitorRedirect() {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-      <p className="text-gray-500">Đang chuyển hướng đến Scan Center...</p>
+      <p className="text-gray-500">{t('misc.monitor.redirecting')}</p>
     </div>
   );
 }

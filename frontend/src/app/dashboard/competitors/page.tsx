@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart as BarChartIcon, TrendingUp, Search, RefreshCcw } from 'lucide-react';
 import { competitors } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import {
   BarChart,
@@ -17,6 +18,7 @@ import {
 } from 'recharts';
 
 export default function CompetitorsPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ export default function CompetitorsPage() {
       const res = await competitors.summary();
       setData(res);
     } catch (error) {
-      toast.error('Lỗi tải dữ liệu đối thủ');
+      toast.error(t('misc.competitors.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -41,7 +43,7 @@ export default function CompetitorsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-slate-500 dark:text-gray-400 font-medium tracking-wide flex items-center">
           <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-indigo-400" />
-          Đang phân tích dữ liệu đối thủ...
+          {t('misc.competitors.loading')}
         </div>
       </div>
     );
@@ -53,9 +55,9 @@ export default function CompetitorsPage() {
         <div className="w-24 h-24 bg-gray-800/50 rounded-full flex items-center justify-center mb-6">
           <BarChartIcon className="w-12 h-12 text-gray-500" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mb-2">Chưa cấu hình Từ Khóa Đối Thủ</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mb-2">{t('misc.competitors.emptyState.title')}</h2>
         <p className="text-slate-500 dark:text-gray-400 max-w-md">
-          Bạn cần thêm các từ khóa có loại là "Competitor" trong phần Quản lý Từ khóa để hệ thống có thể so sánh Share of Voice.
+          {t('misc.competitors.emptyState.desc')}
         </p>
       </div>
     );
@@ -66,8 +68,8 @@ export default function CompetitorsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Phân Tích Đối Thủ</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">So sánh thị phần thảo luận (Share of Voice) và cảm xúc.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">{t('misc.competitors.title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('misc.competitors.subtitle')}</p>
         </div>
       </div>
 
@@ -76,7 +78,7 @@ export default function CompetitorsPage() {
         <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-xl">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2 text-indigo-400" />
-            Share of Voice (Thị phần thảo luận)
+            {t('misc.competitors.charts.shareOfVoice')}
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -111,7 +113,7 @@ export default function CompetitorsPage() {
         <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-xl">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
             <BarChartIcon className="w-5 h-5 mr-2 text-emerald-400" />
-            Cảm xúc (Sentiment)
+            {t('misc.competitors.charts.sentiment')}
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -128,9 +130,9 @@ export default function CompetitorsPage() {
                   itemStyle={{ color: '#E2E8F0' }}
                 />
                 <Legend />
-                <Bar dataKey="sentiment.positive" name="Tích cực" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="sentiment.neutral" name="Trung lập" stackId="a" fill="#64748B" />
-                <Bar dataKey="sentiment.negative" name="Tiêu cực" stackId="a" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="sentiment.positive" name={t('summary.page.positive')} stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="sentiment.neutral" name={t('summary.page.neutral')} stackId="a" fill="#64748B" />
+                <Bar dataKey="sentiment.negative" name={t('summary.page.negative')} stackId="a" fill="#EF4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -140,17 +142,17 @@ export default function CompetitorsPage() {
       {/* Raw Data Table */}
       <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-xl mt-8">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Bảng dữ liệu chi tiết</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('misc.competitors.tableTitle')}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-[#0F172A]/50 text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-800">
-                <th className="px-6 py-4 font-medium">Thương hiệu</th>
-                <th className="px-6 py-4 font-medium">Share of Voice</th>
-                <th className="px-6 py-4 font-medium">Tổng Lượng Mentions</th>
-                <th className="px-6 py-4 font-medium">Tích cực</th>
-                <th className="px-6 py-4 font-medium">Tiêu cực</th>
+                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.brand')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.shareOfVoice')}</th>
+                <th className="px-6 py-4 font-medium">{t('misc.competitors.table.totalMentions')}</th>
+                <th className="px-6 py-4 font-medium">{t('summary.page.positive')}</th>
+                <th className="px-6 py-4 font-medium">{t('summary.page.negative')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">

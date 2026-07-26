@@ -261,7 +261,7 @@ python check_categories.py
 3. **Check API:**
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://social-listening-backend.onrender.com/api/services
+  https://sociallistening-9fvs.onrender.com/api/services
 ```
 
 ## 🎯 Next Steps

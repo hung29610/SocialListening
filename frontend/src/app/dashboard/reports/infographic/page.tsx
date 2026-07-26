@@ -66,9 +66,9 @@ export default function InfographicPage() {
   }
 
   const sentimentData = [
-    { name: 'Tích cực', value: data?.metrics?.sentiment?.positive || 0, color: '#10b981' },
-    { name: 'Tiêu cực', value: data?.metrics?.sentiment?.negative || 0, color: '#f43f5e' },
-    { name: 'Trung lập', value: data?.metrics?.sentiment?.neutral || 0, color: '#64748b' },
+    { name: t('reports.positive'), value: data?.metrics?.sentiment?.positive || 0, color: '#10b981' },
+    { name: t('reports.negative'), value: data?.metrics?.sentiment?.negative || 0, color: '#f43f5e' },
+    { name: t('reports.neutral'), value: data?.metrics?.sentiment?.neutral || 0, color: '#64748b' },
   ].filter(item => item.value > 0);
 
   const formatDate = (dateStr: string) => {

@@ -1,4 +1,22 @@
 """Production Smoke Test"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import sys
 import warnings
 import time
@@ -43,10 +61,10 @@ def run_test(endpoint_name, test_func):
         })
 
 # 1. Setup Auth
-existing = db.execute(select(User).where(User.email == "smoke_prod@test.com")).scalar_one_or_none()
+existing = db.execute(select(User).where(User.email == alt_email())).scalar_one_or_none()
 if not existing:
     from app.core.security import get_password_hash
-    u = User(email="smoke_prod@test.com", hashed_password=get_password_hash("Test1234!"), full_name="Smoke", is_active=True, role="admin")
+    u = User(email=alt_email(), hashed_password=get_password_hash(alt_password()), full_name="Smoke", is_active=True, role="admin")
     db.add(u)
     db.commit()
 
@@ -56,7 +74,7 @@ headers = {}
 def test_auth():
     global token, headers
     start = time.time()
-    resp = client.post("/api/auth/login", data={"username": "smoke_prod@test.com", "password": "Test1234!"})
+    resp = client.post("/api/auth/login", data={"username": alt_email(), "password": alt_password()})
     dur = time.time() - start
     if resp.status_code == 200:
         token = resp.json()["access_token"]

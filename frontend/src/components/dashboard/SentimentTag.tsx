@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SentimentTagProps {
   sentiment: string | null;
@@ -15,33 +16,35 @@ interface SentimentTagProps {
  * - Trung lập (neutral): Gray
  */
 
-const SENTIMENT_CONFIG: Record<string, { bg: string; text: string; label: string; dot: string }> = {
+const SENTIMENT_CONFIG: Record<string, { bg: string; text: string; labelKey: string; dot: string }> = {
   positive: {
     bg: 'bg-emerald-500/10 border-emerald-500/20',
     text: 'text-emerald-700 dark:text-emerald-400',
-    label: 'Tích cực',
+    labelKey: 'mentions.sentiment.positive',
     dot: 'bg-emerald-500',
   },
   neutral: {
     bg: 'bg-gray-500/10 border-gray-500/20',
     text: 'text-gray-600 dark:text-slate-500 dark:text-gray-400',
-    label: 'Trung lập',
+    labelKey: 'mentions.sentiment.neutral',
     dot: 'bg-gray-400',
   },
   negative: {
     bg: 'bg-red-500/10 border-red-500/20',
     text: 'text-red-600 dark:text-red-400',
-    label: 'Tiêu cực',
+    labelKey: 'mentions.sentiment.negative',
     dot: 'bg-red-500',
   },
 };
 
 export default function SentimentTag({ sentiment, size = 'sm' }: SentimentTagProps) {
+  const { t } = useLanguage();
+
   if (!sentiment) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] bg-gray-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 rounded-full border border-gray-200 dark:border-slate-300 dark:border-gray-700">
         <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-        Chưa phân tích
+        {t('crisis.sentiment.unanalyzed')}
       </span>
     );
   }
@@ -63,7 +66,7 @@ export default function SentimentTag({ sentiment, size = 'sm' }: SentimentTagPro
       `}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }

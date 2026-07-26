@@ -185,7 +185,7 @@ export default function AnalysisPage() {
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
                       <span className="text-2xl font-black text-slate-900 dark:text-white">{sentimentPct.pos}%</span>
-                      <span className="text-xs text-gray-500 uppercase">Positive</span>
+                      <span className="text-xs text-gray-500 uppercase">{t('summary.page.positive')}</span>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">

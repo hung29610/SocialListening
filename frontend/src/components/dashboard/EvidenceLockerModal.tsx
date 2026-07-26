@@ -3,6 +3,7 @@ import { X, Lock, Plus, Trash2, ExternalLink, Link2, FileText, CameraOff } from 
 import { evidence, getErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useDialog } from '@/components/ui/Dialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EvidenceLockerModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface EvidenceLockerModalProps {
 }
 
 export default function EvidenceLockerModal({ isOpen, onClose, incident }: EvidenceLockerModalProps) {
+  const { t } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +40,7 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
       const data = await evidence.list(incident.id);
       setItems(data || []);
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi tải dữ liệu bằng chứng');
+      toast.error(getErrorMessage(error) || t('crisis.evidence.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
 
   const handleSaveTextSnapshot = async () => {
     if (!url.trim()) {
-      toast.error('Vui lòng nhập URL hoặc mô tả');
+      toast.error(t('crisis.evidence.errors.urlRequired'));
       return;
     }
     setSubmitting(true);
@@ -59,13 +61,13 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
         original_url: url,
         metadata: JSON.stringify({ note })
       });
-      toast.success('Lưu bằng chứng thành công');
+      toast.success(t('crisis.evidence.saveSuccess'));
       setShowAdd(false);
       setUrl('');
       setNote('');
       fetchEvidence();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi lưu bằng chứng');
+      toast.error(getErrorMessage(error) || t('crisis.evidence.errors.saveFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -73,17 +75,17 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
 
   const handleDelete = async (id: number) => {
     const ok = await confirm({
-      title: 'Xóa bằng chứng',
-      message: 'Bạn có chắc chắn muốn xóa bằng chứng này?',
+      title: t('crisis.evidence.deleteTitle'),
+      message: t('crisis.evidence.deleteConfirm'),
       variant: 'danger',
     });
     if (!ok) return;
     try {
       await evidence.delete(id);
-      toast.success('Xóa thành công');
+      toast.success(t('crisis.evidence.deleteSuccess'));
       fetchEvidence();
     } catch (error: any) {
-      toast.error(getErrorMessage(error) || 'Lỗi khi xóa');
+      toast.error(getErrorMessage(error) || t('crisis.evidence.errors.deleteFailed'));
     }
   };
 
@@ -100,9 +102,9 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
               <Lock className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">Evidence Locker</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">{t('crisis.evidence.title')}</h2>
               <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 font-medium tracking-wide">
-                Bảo vệ bằng chứng cho sự cố #{incident?.id}
+                {t('crisis.evidence.subtitle', { id: incident?.id ?? '' })}
               </p>
             </div>
           </div>
@@ -119,22 +121,21 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
           <div className="bg-white dark:bg-[#111827] border border-indigo-500/30 rounded-xl p-4 flex items-start space-x-3">
             <CameraOff className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="text-sm font-bold text-indigo-400">Chưa tích hợp chụp ảnh màn hình tự động (Screenshot)</h4>
+              <h4 className="text-sm font-bold text-indigo-400">{t('crisis.evidence.screenshotTitle')}</h4>
               <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Trong giai đoạn MVP, tính năng lưu trữ chụp ảnh bằng chứng gốc tự động chưa được bật. 
-                Bạn có thể lưu dạng Text Snapshot (URL và ghi chú).
+                {t('crisis.evidence.screenshotBody')}
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide uppercase">Danh sách bằng chứng</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide uppercase">{t('crisis.evidence.listTitle')}</h3>
             {!showAdd && (
               <button
                 onClick={() => setShowAdd(true)}
                 className="flex items-center text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20 transition-all"
               >
-                <Plus className="w-3.5 h-3.5 mr-1.5" /> Thêm Bằng Chứng
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> {t('crisis.evidence.addButton')}
               </button>
             )}
           </div>
@@ -143,7 +144,7 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
             <div className="bg-white dark:bg-[#111827] border border-slate-300 dark:border-gray-700 p-5 rounded-xl space-y-4 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">URL Nguồn</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{t('crisis.evidence.sourceUrlLabel')}</label>
                 <input
                   type="text"
                   value={url}
@@ -153,13 +154,13 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Ghi chú (Tùy chọn)</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{t('crisis.evidence.noteLabel')}</label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={2}
                   className="w-full bg-slate-50 dark:bg-[#0B1220] border border-slate-300 dark:border-gray-700 text-slate-900 dark:text-white text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-gray-600 resize-none"
-                  placeholder="Người đăng nhắc đến..."
+                  placeholder={t('crisis.evidence.notePlaceholder')}
                 />
               </div>
               <div className="flex justify-end space-x-3 pt-2">
@@ -167,25 +168,25 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
                   onClick={() => setShowAdd(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white transition-colors"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSaveTextSnapshot}
                   disabled={submitting}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm shadow-indigo-900/20 disabled:opacity-50 transition-all"
                 >
-                  {submitting ? 'Đang lưu...' : 'Lưu Snapshot'}
+                  {submitting ? t('common.saving') : t('crisis.evidence.saveSnapshot')}
                 </button>
               </div>
             </div>
           )}
 
           {loading ? (
-            <div className="text-center py-10 text-gray-500 text-sm font-medium tracking-wide">Đang tải...</div>
+            <div className="text-center py-10 text-gray-500 text-sm font-medium tracking-wide">{t('common.loading')}</div>
           ) : items.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl border-dashed">
               <FileText className="w-8 h-8 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 font-medium tracking-wide">Chưa có bằng chứng nào được lưu</p>
+              <p className="text-sm text-gray-500 font-medium tracking-wide">{t('crisis.evidence.empty')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -219,7 +220,7 @@ export default function EvidenceLockerModal({ isOpen, onClose, incident }: Evide
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="p-1.5 text-gray-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Xóa bằng chứng"
+                    title={t('crisis.evidence.deleteTitle')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -93,21 +93,33 @@ export function canManageSettings(user: User | null | undefined): boolean {
 /**
  * Get user role display name
  */
-export function getRoleDisplayName(role: string | undefined): string {
-  if (!role) return 'Người dùng';
-  
-  const roleNames: Record<string, string> = {
-    'super_admin': 'Quản trị viên cấp cao',
-    'admin': 'Quản trị viên',
-    'manager': 'Quản lý',
-    'analyst': 'Phân tích viên',
-    'communication': 'Truyền thông',
-    'legal': 'Pháp lý',
-    'customer_care': 'Chăm sóc khách hàng',
-    'viewer': 'Người xem'
-  };
-  
-  return roleNames[role] || role;
+/** Roles that have a translated display name in the dictionaries. */
+const KNOWN_ROLES = [
+  'super_admin',
+  'admin',
+  'manager',
+  'analyst',
+  'communication',
+  'legal',
+  'customer_care',
+  'viewer',
+] as const;
+
+/**
+ * Translate a role slug into a display name.
+ *
+ * The label is user-visible UI text, so it must come from the dictionary rather
+ * than being hardcoded here — a hardcoded Vietnamese name showed up untranslated
+ * in the English UI. Pass `t` from useLanguage(); without it the raw slug is
+ * returned, which is honest rather than silently Vietnamese.
+ */
+export function getRoleDisplayName(
+  role: string | undefined,
+  t?: (key: string) => string,
+): string {
+  if (!t) return role || '';
+  if (!role) return t('roles.unknown');
+  return (KNOWN_ROLES as readonly string[]).includes(role) ? t(`roles.${role}`) : role;
 }
 
 /**

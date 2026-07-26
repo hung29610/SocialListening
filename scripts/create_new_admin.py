@@ -1,8 +1,25 @@
 """
 Create new admin user
-Email: honguyenhung2010@gmail.com
-Password: Hungnguyen@1515
+Email: <redacted-email>
+Password: <redacted>
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import os
 import sys
 from pathlib import Path
@@ -18,7 +35,7 @@ from app.core.security import get_password_hash
 # Database URL
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://social_listening_db_v2_user:6F6oJaZmFDi5xIDGd4lvALUkQIpsxVkQ@dpg-d7vfpv3rjlhs73dnrgf0-a.oregon-postgres.render.com/social_listening_db_v2"
+    "postgresql://<redacted>:<redacted-email>/social_listening_db_v2"
 )
 
 def create_admin():
@@ -35,8 +52,8 @@ def create_admin():
     
     try:
         # Admin details
-        email = "honguyenhung2010@gmail.com"
-        password = "Hungnguyen@1515"
+        email = admin_email()
+        password = admin_password()
         full_name = "Ho Nguyen Hung"
         
         print(f"\n👤 Creating admin user:")
@@ -111,9 +128,9 @@ def verify_admin():
     
     import requests
     
-    BASE_URL = "https://social-listening-backend.onrender.com"
-    email = "honguyenhung2010@gmail.com"
-    password = "Hungnguyen@1515"
+    BASE_URL = backend_url()
+    email = admin_email()
+    password = admin_password()
     
     print(f"\n🔐 Testing login...")
     print(f"   Email: {email}")
@@ -174,8 +191,8 @@ def main():
     print("✅ ADMIN CREATION COMPLETED!")
     print("=" * 80)
     print(f"\n📝 Login credentials:")
-    print(f"   Email: honguyenhung2010@gmail.com")
-    print(f"   Password: Hungnguyen@1515")
+    print(f"   Email: <redacted-email>")
+    print(f"   Password: <redacted>")
     print(f"   Is Superuser: True (Full Admin Access)")
     print(f"\n🌐 Login URL:")
     print(f"   https://social-listening-azure.vercel.app/login")

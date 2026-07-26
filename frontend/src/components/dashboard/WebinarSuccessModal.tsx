@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { X, Check } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   isOpen: boolean;
@@ -7,6 +10,8 @@ interface Props {
 }
 
 export default function WebinarSuccessModal({ isOpen, onClose }: Props) {
+  const { t } = useLanguage();
+
   if (!isOpen) return null;
 
   return (
@@ -37,21 +42,21 @@ export default function WebinarSuccessModal({ isOpen, onClose }: Props) {
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Success!
+            {t('landing.webinarSuccess.title')}
           </h2>
           <h3 className="text-xl font-medium text-gray-900 mb-6">
-            You have signed up for the webinar.
+            {t('landing.webinarSuccess.subtitle')}
           </h3>
 
           <p className="text-gray-600 mb-8">
-            Wednesday, June 10, 2026 (Asia/Bangkok). See you!
+            {t('landing.webinarSuccess.detail')}
           </p>
 
           <button 
             onClick={onClose}
             className="bg-emerald-400 hover:bg-emerald-500 text-white font-bold py-3 px-10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
           >
-            Close
+            {t('landing.webinarSuccess.close')}
           </button>
         </div>
       </div>

@@ -1,11 +1,28 @@
 """
-Change tthgroup@gmail.com role from super_admin to viewer
+Change <redacted-email> role from super_admin to viewer
 """
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _env_config import (  # noqa: E402
+    account_email,
+    account_password,
+    admin_email,
+    admin_password,
+    alt_email,
+    alt_password,
+    backend_url,
+    user_email,
+    user_password,
+)
+
 import requests
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+BACKEND_URL = backend_url()
+ADMIN_EMAIL = admin_email()
+ADMIN_PASSWORD = admin_password()
 
 print("=" * 60)
 print("CHANGE TTHGROUP ROLE TO VIEWER")
@@ -59,7 +76,7 @@ print("\n⚠️  Note: There's no API endpoint to update user role directly.")
 print("   You need to run this SQL in database:")
 print(f"\n   UPDATE users SET role = 'viewer' WHERE id = {tthgroup_user['id']};")
 print("\nOr logout and login with normal user account:")
-print("   Email: admin@sociallistening.com")
-print("   Password: Admin@123456")
+print("   Email: <redacted-email>")
+print("   Password: <redacted>")
 
 print("\n" + "=" * 60)

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Settings, Plus, Trash2, RefreshCcw, Save, Tag, Search } from 'lucide-react';
 import { keywords as keywordsApi } from '@/lib/api';
 import { useProject } from '@/contexts/ProjectContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import { useDialog } from '@/components/ui/Dialog';
 
@@ -23,6 +24,7 @@ interface Keyword {
 
 export default function ProjectSettingsPage() {
   const { activeProject, projects } = useProject();
+  const { t } = useLanguage();
   const { confirm } = useDialog();
   const [groups, setGroups] = useState<KeywordGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function ProjectSettingsPage() {
       );
       setGroups(withKeywords);
     } catch {
-      toast.error('Lỗi tải keywords');
+      toast.error(t('settingsPage.projectSettings.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -60,15 +62,15 @@ export default function ProjectSettingsPage() {
 
   const handleAddGroup = async () => {
     const name = newGroupName.trim();
-    if (!name) { toast.error('Vui lòng nhập tên nhóm'); return; }
+    if (!name) { toast.error(t('settingsPage.projectSettings.errors.groupNameRequired')); return; }
     try {
       setAddingGroup(true);
       await keywordsApi.createGroup({ name });
       setNewGroupName('');
-      toast.success(`Đã tạo nhóm "${name}"`);
+      toast.success(t('settingsPage.projectSettings.groupCreated', { name }));
       fetchGroups();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Lỗi tạo nhóm');
+      toast.error(error?.response?.data?.detail || t('settingsPage.projectSettings.errors.createGroupFailed'));
     } finally {
       setAddingGroup(false);
     }
@@ -76,27 +78,27 @@ export default function ProjectSettingsPage() {
 
   const handleDeleteGroup = async (groupId: number, groupName: string) => {
     const ok = await confirm({
-      title: 'Xóa nhóm keyword',
-      message: `Xóa nhóm "${groupName}" và tất cả keywords bên trong? Thao tác này không thể hoàn tác.`,
-      confirmText: 'Xóa nhóm',
-      cancelText: 'Hủy',
+      title: t('keywords.deleteGroupTitle'),
+      message: t('settingsPage.projectSettings.deleteGroupMessage', { name: groupName }),
+      confirmText: t('settingsPage.projectSettings.deleteGroup'),
+      cancelText: t('common.cancel'),
       variant: 'danger',
     });
     if (!ok) return;
     try {
       await keywordsApi.deleteGroup(groupId);
-      toast.success('Đã xóa nhóm');
+      toast.success(t('keywords.deleteGroupOk'));
       setGroups(groups.filter(g => g.id !== groupId));
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Lỗi xóa nhóm');
+      toast.error(error?.response?.data?.detail || t('settingsPage.projectSettings.errors.deleteGroupFailed'));
     }
   };
 
   const handleAddKeyword = async (groupId: number) => {
     const rawInput = (newKeywords[groupId] || '').trim();
-    if (!rawInput) { toast.error('Vui lòng nhập từ khóa'); return; }
+    if (!rawInput) { toast.error(t('settingsPage.projectSettings.errors.keywordRequired')); return; }
     const kwList = rawInput.split(',').map(k => k.trim()).filter(Boolean);
-    if (kwList.length === 0) { toast.error('Không có từ khóa hợp lệ'); return; }
+    if (kwList.length === 0) { toast.error(t('settingsPage.projectSettings.errors.noValidKeyword')); return; }
     try {
       if (kwList.length === 1) {
         await keywordsApi.createKeyword({ group_id: groupId, keyword: kwList[0] });
@@ -104,14 +106,14 @@ export default function ProjectSettingsPage() {
         await keywordsApi.createKeywordsBulk({ group_id: groupId, keywords: kwList });
       }
       setNewKeywords({ ...newKeywords, [groupId]: '' });
-      toast.success(`Đã thêm ${kwList.length} từ khóa`);
+      toast.success(t('settingsPage.projectSettings.keywordsAdded', { count: kwList.length }));
       fetchGroups();
     } catch (error: any) {
       const detail = error?.response?.data?.detail || '';
       if (detail.toLowerCase().includes('duplicate') || detail.toLowerCase().includes('already exists')) {
-        toast.error('Từ khóa đã tồn tại trong nhóm này');
+        toast.error(t('settingsPage.projectSettings.errors.duplicateKeyword'));
       } else {
-        toast.error(detail || 'Lỗi thêm từ khóa');
+        toast.error(detail || t('settingsPage.projectSettings.errors.addKeywordFailed'));
       }
     }
   };
@@ -119,10 +121,10 @@ export default function ProjectSettingsPage() {
   const handleDeleteKeyword = async (keywordId: number, keyword: string) => {
     try {
       await keywordsApi.deleteKeyword(keywordId);
-      toast.success(`Đã xóa "${keyword}"`);
+      toast.success(t('settingsPage.projectSettings.keywordDeleted', { keyword }));
       fetchGroups();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Lỗi xóa từ khóa');
+      toast.error(error?.response?.data?.detail || t('settingsPage.projectSettings.errors.deleteKeywordFailed'));
     }
   };
 
@@ -131,7 +133,7 @@ export default function ProjectSettingsPage() {
       await keywordsApi.updateKeyword(kw.id, { is_active: !kw.is_active });
       fetchGroups();
     } catch {
-      toast.error('Lỗi cập nhật trạng thái từ khóa');
+      toast.error(t('settingsPage.projectSettings.errors.toggleKeywordFailed'));
     }
   };
 
@@ -140,11 +142,12 @@ export default function ProjectSettingsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
           <Settings className="w-6 h-6 text-indigo-500" />
-          Project Settings
+          {t('nav.projectSettings')}
         </h1>
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-          Quản lý keyword groups, từ khóa theo dõi
-          {activeProject ? ` cho project: ${activeProject.name}` : ''}.
+          {activeProject
+            ? t('settingsPage.projectSettings.subtitleForProject', { project: activeProject.name })
+            : t('settingsPage.projectSettings.subtitle')}
         </p>
       </div>
 
@@ -153,13 +156,13 @@ export default function ProjectSettingsPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Tag className="w-4 h-4 text-indigo-500" />
-            Keyword Groups
+            {t('settingsPage.projectSettings.groupsTitle')}
           </h2>
           <button
             onClick={fetchGroups}
             disabled={loading}
             className="text-slate-500 dark:text-gray-400 hover:text-indigo-500 transition-colors"
-            title="Làm mới"
+            title={t('settingsPage.projectSettings.refresh')}
           >
             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -172,7 +175,7 @@ export default function ProjectSettingsPage() {
             value={newGroupName}
             onChange={e => setNewGroupName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAddGroup()}
-            placeholder="Tên nhóm từ khóa mới..."
+            placeholder={t('settingsPage.projectSettings.newGroupPlaceholder')}
             className="flex-1 bg-white dark:bg-[#0a0f1c] border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
@@ -181,19 +184,19 @@ export default function ProjectSettingsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
           >
             {addingGroup ? <RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            Tạo nhóm
+            {t('settingsPage.projectSettings.createGroup')}
           </button>
         </div>
 
         {loading ? (
           <div className="text-center py-8 text-slate-500 dark:text-gray-400">
             <RefreshCcw className="w-5 h-5 animate-spin mx-auto mb-2" />
-            Đang tải...
+            {t('common.loading')}
           </div>
         ) : groups.length === 0 ? (
           <div className="text-center py-8">
             <Tag className="w-10 h-10 text-slate-700 dark:text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-            <p className="text-slate-500 dark:text-gray-400 text-sm">Chưa có keyword group. Tạo nhóm đầu tiên bên trên.</p>
+            <p className="text-slate-500 dark:text-gray-400 text-sm">{t('settingsPage.projectSettings.emptyGroups')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -207,14 +210,14 @@ export default function ProjectSettingsPage() {
                     <Tag className="w-4 h-4 text-indigo-500" />
                     <span className="font-bold text-slate-900 dark:text-white">{group.name}</span>
                     <span className="text-xs text-gray-500 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full">
-                      {(group.keywords || []).length} từ khóa
+                      {t('settingsPage.projectSettings.keywordCount', { count: (group.keywords || []).length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id, group.name); }}
                       className="p-1 text-slate-500 dark:text-gray-400 hover:text-red-500 transition-colors"
-                      title="Xóa nhóm"
+                      title={t('settingsPage.projectSettings.deleteGroup')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -231,7 +234,7 @@ export default function ProjectSettingsPage() {
                         value={newKeywords[group.id] || ''}
                         onChange={e => setNewKeywords({ ...newKeywords, [group.id]: e.target.value })}
                         onKeyDown={e => e.key === 'Enter' && handleAddKeyword(group.id)}
-                        placeholder="Nhập từ khóa, cách nhau bởi dấu phẩy..."
+                        placeholder={t('settingsPage.projectSettings.keywordsPlaceholder')}
                         className="flex-1 bg-gray-50 dark:bg-[#0a0f1c] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                       <button
@@ -239,13 +242,13 @@ export default function ProjectSettingsPage() {
                         className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        Thêm
+                        {t('common.add')}
                       </button>
                     </div>
 
                     {/* Keywords list */}
                     {(group.keywords || []).length === 0 ? (
-                      <p className="text-xs text-slate-500 dark:text-gray-400 text-center py-2">Nhóm chưa có từ khóa nào</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400 text-center py-2">{t('settingsPage.projectSettings.emptyKeywords')}</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {(group.keywords || []).map((kw) => (
@@ -260,7 +263,7 @@ export default function ProjectSettingsPage() {
                             <span
                               className="cursor-pointer hover:opacity-70"
                               onClick={() => handleToggleKeyword(kw)}
-                              title={kw.is_active ? 'Click để tắt' : 'Click để bật'}
+                              title={kw.is_active ? t('settingsPage.projectSettings.clickToDisable') : t('settingsPage.projectSettings.clickToEnable')}
                             >
                               {kw.keyword}
                             </span>

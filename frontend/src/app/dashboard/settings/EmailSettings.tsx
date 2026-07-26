@@ -44,7 +44,7 @@ export default function EmailSettings() {
       setIsConfigured(data.is_configured || false);
     } catch (error) {
       console.error('Failed to load email settings:', error);
-      toast.error('Không thể tải cấu hình email');
+      toast.error(t('settingsPage.email.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function EmailSettings() {
 
   const handleSave = async () => {
     if (!settings.smtpHost || !settings.smtpUsername || !settings.fromEmail) {
-      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      toast.error(t('settingsPage.email.errors.requiredFields'));
       return;
     }
 
@@ -77,12 +77,12 @@ export default function EmailSettings() {
       const data = response.data;
       
       setIsConfigured(data.is_configured);
-      toast.success('Đã lưu cấu hình email');
+      toast.success(t('settingsPage.email.saveSuccess'));
       // Clear password field after save
       setSettings({ ...settings, smtpPassword: '' });
     } catch (error: any) {
       console.error('Failed to save email settings:', error);
-      toast.error('Không thể lưu cấu hình email');
+      toast.error(t('settingsPage.email.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -90,7 +90,7 @@ export default function EmailSettings() {
 
   const handleTest = async () => {
     if (!isConfigured) {
-      toast.error('Vui lòng lưu cấu hình trước khi test');
+      toast.error(t('settingsPage.email.errors.saveBeforeTest'));
       return;
     }
 
@@ -99,10 +99,10 @@ export default function EmailSettings() {
       const response = await api.post('/api/admin/settings/email/test');
       const data = response.data;
       
-      toast.success(data.message || 'Email test thành công');
+      toast.success(data.message || t('settingsPage.email.testSuccess'));
     } catch (error: any) {
       console.error('Failed to test email:', error);
-      toast.error('Không thể test email');
+      toast.error(t('settingsPage.email.errors.testFailed'));
     } finally {
       setTesting(false);
     }
@@ -120,15 +120,15 @@ export default function EmailSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Cấu hình Email</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Cấu hình SMTP để gửi email thông báo</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{t('settings.tabs.email')}</h2>
+        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('settingsPage.email.subtitle')}</p>
       </div>
 
       {/* Status Badge */}
       {isConfigured && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
           <p className="text-sm font-medium text-emerald-400 flex items-center">
-            <span className="mr-2">✅</span> Email đã được cấu hình. Hệ thống có thể gửi email thông báo.
+            <span className="mr-2">✅</span> {t('settingsPage.email.configuredNotice')}
           </p>
         </div>
       )}
@@ -137,13 +137,13 @@ export default function EmailSettings() {
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide flex items-center">
           <Mail className="w-5 h-5 mr-2 text-indigo-400" />
-          Cấu hình SMTP
+          {t('settingsPage.email.smtpTitle')}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              SMTP Host *
+              {t('settingsPage.email.smtpHost')} *
             </label>
             <input
               type="text"
@@ -156,7 +156,7 @@ export default function EmailSettings() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              SMTP Port *
+              {t('settingsPage.email.smtpPort')} *
             </label>
             <input
               type="number"
@@ -169,46 +169,46 @@ export default function EmailSettings() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              SMTP Username *
+              {t('settingsPage.email.smtpUsername')} *
             </label>
             <input
               type="text"
               value={settings.smtpUsername}
               onChange={(e) => setSettings({ ...settings, smtpUsername: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-              placeholder="your-email@gmail.com"
+              placeholder={t('settingsPage.email.smtpUsernamePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              SMTP Password {isConfigured && <span className="text-gray-500 font-normal">(để trống nếu không đổi)</span>}
+              {t('settingsPage.email.smtpPassword')} {isConfigured && <span className="text-gray-500 font-normal">{t('settingsPage.email.smtpPasswordUnchangedHint')}</span>}
             </label>
             <input
               type="password"
               value={settings.smtpPassword}
               onChange={(e) => setSettings({ ...settings, smtpPassword: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-              placeholder={isConfigured ? '••••••••' : 'Mật khẩu SMTP'}
+              placeholder={isConfigured ? '••••••••' : t('settingsPage.email.smtpPassword')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              From Email *
+              {t('settingsPage.email.fromEmail')} *
             </label>
             <input
               type="email"
               value={settings.fromEmail}
               onChange={(e) => setSettings({ ...settings, fromEmail: e.target.value })}
               className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
-              placeholder="noreply@company.com"
+              placeholder={t('settingsPage.email.fromEmailPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-              From Name
+              {t('settingsPage.email.fromName')}
             </label>
             <input
               type="text"
@@ -229,7 +229,7 @@ export default function EmailSettings() {
               onChange={(e) => setSettings({ ...settings, useTls: e.target.checked, useSsl: false })}
               className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900 transition-colors"
             />
-            <span className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">Use TLS (Port 587)</span>
+            <span className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">{t('settingsPage.email.useTls')}</span>
           </label>
 
           <label className="flex items-center cursor-pointer group">
@@ -239,7 +239,7 @@ export default function EmailSettings() {
               onChange={(e) => setSettings({ ...settings, useSsl: e.target.checked, useTls: false })}
               className="w-4 h-4 rounded bg-white dark:bg-[#111827] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-gray-900 transition-colors"
             />
-            <span className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">Use SSL (Port 465)</span>
+            <span className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">{t('settingsPage.email.useSsl')}</span>
           </label>
         </div>
 
@@ -251,7 +251,7 @@ export default function EmailSettings() {
             className="flex items-center px-6 py-2.5 border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             <Send className="w-4 h-4 mr-2" />
-            {testing ? 'Đang test...' : 'Test Email'}
+            {testing ? t('settingsPage.email.testing') : t('settingsPage.email.testEmail')}
           </button>
 
           <button
@@ -268,8 +268,7 @@ export default function EmailSettings() {
       {/* Info */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
         <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Mật khẩu SMTP được mã hóa trước khi lưu vào database. 
-          Nếu sử dụng Gmail, bạn cần tạo App Password thay vì dùng mật khẩu thường.
+          <strong className="text-indigo-300">{t('settingsPage.email.noteLabel')}</strong> {t('settingsPage.email.noteBody')}
         </p>
       </div>
     </div>

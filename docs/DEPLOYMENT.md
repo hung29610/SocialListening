@@ -186,7 +186,7 @@ LOG_LEVEL=INFO
 FRONTEND_URL=http://localhost:3000
 
 # Database (PostgreSQL local)
-DATABASE_URL=postgresql://postgres:123456@localhost:5432/social_listening
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/social_listening
 
 # JWT Security
 SECRET_KEY=your-very-long-random-secret-key-change-in-production
@@ -218,7 +218,7 @@ python -m app.scripts.create_admin
 
 Default credentials:
 - Email: `admin@example.com`
-- Password: `admin123`
+- Password: `<redacted>`
 
 ### 8. Start Backend Server
 
@@ -279,7 +279,7 @@ Open browser: http://localhost:3000
 
 Login:
 - Email: `admin@example.com`
-- Password: `admin123`
+- Password: `<redacted>`
 
 ---
 
@@ -536,7 +536,7 @@ Visit: `https://your-app.vercel.app`
 
 Login with:
 - Email: `admin@example.com`
-- Password: `admin123`
+- Password: `<redacted>`
 
 ---
 
@@ -549,7 +549,7 @@ Login with:
 ENVIRONMENT=development
 DEBUG=True
 FRONTEND_URL=http://localhost:3000
-DATABASE_URL=postgresql://postgres:123456@localhost:5432/social_listening
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/social_listening
 SECRET_KEY=local-dev-secret-key
 AI_PROVIDER=dummy
 ```
@@ -840,7 +840,7 @@ RUN.bat
 ### Default Credentials
 
 - Email: `admin@example.com`
-- Password: `admin123`
+- Password: `<redacted>`
 
 **⚠️ Change password after first login in production!**
 

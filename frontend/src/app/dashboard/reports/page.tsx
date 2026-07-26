@@ -483,14 +483,14 @@ export default function ReportsPage() {
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: accentColor }}>
                     <span className="text-white font-black text-xl">N</span>
                   </div>
-                  <h2 className="text-4xl font-black tracking-tight" style={{ color: theme === 'light' ? fontColor : '#ffffff' }}>REPORT</h2>
+                  <h2 className="text-4xl font-black tracking-tight" style={{ color: theme === 'light' ? fontColor : '#ffffff' }}>{t('reportsPage.builder.reportHeading')}</h2>
                 </div>
                 <p className="mt-2 font-medium tracking-wide opacity-70">{t('reports.infographicProject')}: {data?.project_name || activeProject?.name || t('reports.allProjects')}</p>
               </div>
               <div className="text-right">
                 <div className="text-sm font-black uppercase tracking-[0.2em]" style={{ color: accentColor }}>Nope360 Intelligence</div>
                 <div className="text-xs mt-1 font-mono px-3 py-1 rounded-md opacity-80 border" style={{ backgroundColor: `${accentColor}1A`, borderColor: `${accentColor}33` }}>
-                  DATE: {new Date(data?.generated_at || Date.now()).toLocaleDateString('vi-VN')}
+                  {t('reportsPage.builder.dateLabel')} {new Date(data?.generated_at || Date.now()).toLocaleDateString('vi-VN')}
                 </div>
               </div>
             </div>
@@ -584,8 +584,8 @@ export default function ReportsPage() {
                         {data?.selected_mentions && data.selected_mentions.length > 0 ? (
                           data.selected_mentions.map((m: any, i: number) => (
                             <div key={i} className="p-4 rounded-xl border shadow-sm" style={{ borderColor: `${accentColor}22`, backgroundColor: theme === 'light' ? '#f8fafc' : '#0f172a' }}>
-                              <h4 className="font-bold text-sm mb-1">{m.title || 'Untitled'}</h4>
-                              <p className="text-xs opacity-70 mb-2">{m.domain || 'unknown'} • {new Date(m.published_at || Date.now()).toLocaleDateString()}</p>
+                              <h4 className="font-bold text-sm mb-1">{m.title || t('mentions.page.noTitle')}</h4>
+                              <p className="text-xs opacity-70 mb-2">{m.domain || t('mentions.page.unknownSource')} • {new Date(m.published_at || Date.now()).toLocaleDateString()}</p>
                               <p className="text-xs opacity-80 leading-relaxed line-clamp-3">{m.snippet || m.content?.substring(0, 200)}</p>
                             </div>
                           ))

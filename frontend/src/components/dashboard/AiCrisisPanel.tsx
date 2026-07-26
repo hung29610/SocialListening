@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AlertTriangle, Shield, Zap } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ActionItem {
   step: number;
@@ -36,6 +37,8 @@ export default function AiCrisisPanel({
   totalMentions,
   isLoading,
 }: AiCrisisPanelProps) {
+  const { t } = useLanguage();
+
   // Chỉ hiển thị khi risk >= Medium
   if (!isLoading && riskLevel === 'Low') {
     return null;
@@ -64,7 +67,7 @@ export default function AiCrisisPanel({
       bgGradient: 'from-red-500/10 via-red-500/5 to-orange-500/10',
       borderColor: 'border-red-500/30',
       badgeBg: 'bg-red-500',
-      badgeText: 'Cao',
+      badgeText: t('reputationPage.crisisPanel.risk.high'),
       icon: AlertTriangle,
       iconColor: 'text-red-500',
       glowColor: 'shadow-red-500/20',
@@ -73,7 +76,7 @@ export default function AiCrisisPanel({
       bgGradient: 'from-amber-500/10 via-amber-500/5 to-yellow-500/10',
       borderColor: 'border-amber-500/30',
       badgeBg: 'bg-amber-500',
-      badgeText: 'Trung bình',
+      badgeText: t('reputationPage.crisisPanel.risk.medium'),
       icon: Zap,
       iconColor: 'text-amber-500',
       glowColor: 'shadow-amber-500/20',
@@ -82,7 +85,7 @@ export default function AiCrisisPanel({
       bgGradient: 'from-emerald-500/10 via-emerald-500/5 to-green-500/10',
       borderColor: 'border-emerald-500/30',
       badgeBg: 'bg-emerald-500',
-      badgeText: 'Thấp',
+      badgeText: t('reputationPage.crisisPanel.risk.low'),
       icon: Shield,
       iconColor: 'text-emerald-500',
       glowColor: 'shadow-emerald-500/10',
@@ -133,10 +136,10 @@ export default function AiCrisisPanel({
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                🤖 Phân Tích AI — Cảnh Báo Khủng Hoảng
+                🤖 {t('reputationPage.crisisPanel.title')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-gray-400">
-                Từ khóa: <span className="font-medium">{keyword}</span>
+                {t('reputationPage.crisisPanel.keywordLabel')} <span className="font-medium">{keyword}</span>
               </p>
             </div>
           </div>
@@ -151,7 +154,7 @@ export default function AiCrisisPanel({
               {config.badgeText}
             </span>
             <span className="text-xs text-slate-500 dark:text-gray-400">
-              {negativeMentionsCount}/{totalMentions} tiêu cực
+              {t('reputationPage.crisisPanel.negativeCount', { negative: negativeMentionsCount, total: totalMentions })}
             </span>
           </div>
         </div>
@@ -167,7 +170,7 @@ export default function AiCrisisPanel({
         {actionItems.length > 0 && (
           <div>
             <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <span>📋</span> Hành Động Đề Xuất
+              <span>📋</span> {t('reputationPage.crisisPanel.actionItems')}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {actionItems.map((item) => (
@@ -192,12 +195,12 @@ export default function AiCrisisPanel({
                       `}
                     >
                       {item.priority === 'critical'
-                        ? 'Khẩn cấp'
+                        ? t('reputationPage.crisisPanel.priority.critical')
                         : item.priority === 'high'
-                        ? 'Cao'
+                        ? t('reputationPage.crisisPanel.priority.high')
                         : item.priority === 'medium'
-                        ? 'Vừa'
-                        : 'Thấp'}
+                        ? t('reputationPage.crisisPanel.priority.medium')
+                        : t('reputationPage.crisisPanel.priority.low')}
                     </span>
                   </div>
                   <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">

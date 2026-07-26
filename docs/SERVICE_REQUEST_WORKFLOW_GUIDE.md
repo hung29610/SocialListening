@@ -79,7 +79,7 @@ alembic upgrade head
 ```python
 import requests
 
-BASE_URL = "https://social-listening-backend.onrender.com"
+BASE_URL = "https://sociallistening-9fvs.onrender.com"
 # Login và get token
 token = "..."
 
