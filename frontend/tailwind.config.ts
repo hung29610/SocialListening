@@ -77,6 +77,59 @@ const config: Config = {
         'chart-6': 'hsl(var(--chart-6))',
         'chart-7': 'hsl(var(--chart-7))',
         'chart-8': 'hsl(var(--chart-8))',
+        /* ── SIGNAL tokens (Epic SIGNAL, ADR 0002 — src/styles/tokens.css) ── */
+        void: {
+          DEFAULT: 'hsl(var(--void) / <alpha-value>)',
+          surface: 'hsl(var(--void-surface) / <alpha-value>)',
+          raised: 'hsl(var(--void-raised) / <alpha-value>)',
+        },
+        paper: {
+          DEFAULT: 'hsl(var(--paper) / <alpha-value>)',
+          muted: 'hsl(var(--paper-muted) / <alpha-value>)',
+          faint: 'hsl(var(--paper-faint) / <alpha-value>)',
+        },
+        signal: {
+          DEFAULT: 'hsl(var(--signal) / <alpha-value>)',
+          bright: 'hsl(var(--signal-bright) / <alpha-value>)',
+          deep: 'hsl(var(--signal-deep) / <alpha-value>)',
+        },
+        sentiment: {
+          positive: 'hsl(var(--sentiment-positive) / <alpha-value>)',
+          negative: 'hsl(var(--sentiment-negative) / <alpha-value>)',
+          neutral: 'hsl(var(--sentiment-neutral) / <alpha-value>)',
+        },
+        edge: {
+          DEFAULT: 'hsl(var(--edge) / <alpha-value>)',
+          strong: 'hsl(var(--edge-strong) / <alpha-value>)',
+        },
+      },
+      fontFamily: {
+        /* SIGNAL display face — Space Grotesk via next/font (--font-display
+           set on <body> in src/app/layout.tsx); Inter fallback keeps SSR/
+           no-JS rendering sane. */
+        display: ['var(--font-display)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        'display-2xl': ['var(--text-display-2xl)', { lineHeight: 'var(--leading-display)', letterSpacing: 'var(--tracking-display)' }],
+        'display-xl': ['var(--text-display-xl)', { lineHeight: 'var(--leading-display)', letterSpacing: 'var(--tracking-display)' }],
+        'display-lg': ['var(--text-display-lg)', { lineHeight: '1', letterSpacing: 'var(--tracking-display)' }],
+        'display-md': ['var(--text-display-md)', { lineHeight: '1.05', letterSpacing: 'var(--tracking-display)' }],
+        'metric-lg': ['var(--text-metric-lg)', { lineHeight: '1', letterSpacing: 'var(--tracking-metric)' }],
+        metric: ['var(--text-metric)', { lineHeight: '1', letterSpacing: 'var(--tracking-metric)' }],
+        eyebrow: ['var(--text-eyebrow)', { lineHeight: '1.2', letterSpacing: 'var(--tracking-eyebrow)' }],
+      },
+      letterSpacing: {
+        display: 'var(--tracking-display)',
+        metric: 'var(--tracking-metric)',
+        eyebrow: 'var(--tracking-eyebrow)',
+      },
+      lineHeight: {
+        display: 'var(--leading-display)',
+      },
+      boxShadow: {
+        'glow-signal': 'var(--glow-signal)',
+        'glow-signal-sm': 'var(--glow-signal-sm)',
+        tile: 'var(--shadow-tile)',
       },
       borderRadius: {
         sm: '6px',
@@ -85,9 +138,15 @@ const config: Config = {
         xl: '16px',
         marketing: '24px',
         pill: '9999px',
+        tile: 'var(--radius-tile)',
       },
       spacing: {
         '4.5': '1.125rem',
+        /* 8px-grid additions for SIGNAL section rhythm */
+        '18': '4.5rem',
+        '22': '5.5rem',
+        '30': '7.5rem',
+        band: 'var(--space-band)',
       },
     },
   },
