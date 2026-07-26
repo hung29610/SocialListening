@@ -12,6 +12,12 @@ import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import ScanSchedulesPanel from '@/components/ScanSchedulesPanel';
 
+/* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const focusRingOffset =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
+
 interface WorkerStatus {
   scheduler_enabled: boolean;
   worker_mode: string;
@@ -254,7 +260,7 @@ export default function ScanPage() {
       const source = sources.find(s => s.id === id);
       return source && ['rss', 'website', 'global_search'].includes((source.source_type || '').toLowerCase());
     });
-    
+
     if (validSources.length < selectedSources.length) {
       toast('Đã bỏ qua nguồn chưa tích hợp.', { icon: 'ℹ️' });
       setSelectedSources(validSources);
@@ -264,11 +270,11 @@ export default function ScanPage() {
       toast.error('Vui lòng chọn ít nhất 1 nguồn để quét.');
       return;
     }
-    
+
     try {
       setScanning(true);
       const loadingToast = toast.loading('Đang xử lý và quét dữ liệu...');
-      
+
       let finalKeywordGroups = [...selectedGroups];
       let finalKeywords: string[] = [];
 
@@ -293,7 +299,7 @@ export default function ScanPage() {
       }
 
       await fetchData();
-      
+
       const payload: any = {
         keyword_group_ids: finalKeywordGroups,
         mode: scanMode,
@@ -303,7 +309,7 @@ export default function ScanPage() {
       if (finalKeywords.length > 0) {
         payload.keywords = finalKeywords;
       }
-      
+
       if (customUrl) {
         payload.url = customUrl;
       }
@@ -319,9 +325,9 @@ export default function ScanPage() {
         lastResponseData: null,
         hasAuthToken: !!localStorage.getItem('access_token'),
       }));
-      
+
       const result = await crawl.manualScan(payload);
-      
+
       setDebugInfo(prev => ({
         ...prev,
         lastStatus: 200,
@@ -336,7 +342,7 @@ export default function ScanPage() {
       } else {
         toast.success(result.message || 'Đã tạo job scan. Hệ thống đang quét trong nền.');
       }
-      
+
       setQuickKeyword('');
       setShowHistory(true);
       fetchCrawlJobs();
@@ -390,15 +396,15 @@ export default function ScanPage() {
     const s = sources.find(src => src.id === id);
     return s && ['rss', 'website'].includes((s.source_type || '').toLowerCase());
   });
-  
+
   const hasValidSources = validSelectedSources.length > 0;
   const isUrlValid = customUrl.trim().length > 0;
   const isAutoDiscoveryConfigured = scanCapabilities?.auto_discovery?.configured;
-  
+
   const hasKeyword = quickKeyword.trim().length > 0 || selectedGroups.length > 0;
 
-  const canScan = hasKeyword && 
-    (scanMode !== 'SELECTED_SOURCES' || hasValidSources || isUrlValid) && 
+  const canScan = hasKeyword &&
+    (scanMode !== 'SELECTED_SOURCES' || hasValidSources || isUrlValid) &&
     (scanMode !== 'AUTO_DISCOVERY' || isAutoDiscoveryConfigured);
 
   // Disable reason text
@@ -431,13 +437,13 @@ export default function ScanPage() {
   // ── Badge helpers ──
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string; icon: React.ReactNode; label: string }> = {
-      completed: { bg: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', icon: <CheckCircle className="w-3 h-3 mr-1" />, label: 'Xong' },
-      running: { bg: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20', icon: <Loader2 className="w-3 h-3 mr-1 animate-spin" />, label: 'Đang chạy' },
-      failed: { bg: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Thất bại' },
-      pending: { bg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', icon: <Clock className="w-3 h-3 mr-1" />, label: 'Chờ' },
-      cancelled: { bg: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Hủy' },
+      completed: { bg: 'bg-success/10 text-success border border-success/25', icon: <CheckCircle className="w-3 h-3 mr-1" />, label: 'Xong' },
+      running: { bg: 'bg-signal/10 text-signal dark:text-signal-bright border border-signal/20', icon: <Loader2 className="w-3 h-3 mr-1 animate-spin motion-reduce:animate-none" />, label: 'Đang chạy' },
+      failed: { bg: 'bg-destructive/10 text-destructive border border-destructive/25', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Thất bại' },
+      pending: { bg: 'bg-warning/10 text-warning border border-warning/25', icon: <Clock className="w-3 h-3 mr-1" />, label: 'Chờ' },
+      cancelled: { bg: 'bg-void-raised text-paper-faint border border-edge', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Hủy' },
     };
-    const s = map[status] || { bg: 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700', icon: null, label: status };
+    const s = map[status] || { bg: 'bg-void-raised text-paper-faint border border-edge', icon: null, label: status };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${s.bg}`}>
         {s.icon}{s.label}
@@ -447,9 +453,9 @@ export default function ScanPage() {
 
   const getJobTypeBadge = (jobType: string) => {
     const styles: Record<string, string> = {
-      manual: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
-      scheduled: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-      retry: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+      manual: 'bg-signal/10 text-signal dark:text-signal-bright border border-signal/20',
+      scheduled: 'bg-info/10 text-info border border-info/25',
+      retry: 'bg-warning/10 text-warning border border-warning/25',
     };
     const labels: Record<string, string> = {
       manual: 'Thủ công',
@@ -457,7 +463,7 @@ export default function ScanPage() {
       retry: 'Retry',
     };
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${styles[jobType] || 'bg-white dark:bg-[#1E293B] text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700'}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${styles[jobType] || 'bg-void-raised text-paper-faint border border-edge'}`}>
         {labels[jobType] || jobType}
       </span>
     );
@@ -495,30 +501,30 @@ export default function ScanPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           1. PAGE HEADER
          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-4 mb-4">
+      <div className="flex items-center justify-between border-b border-edge pb-4 mb-4">
         <div className="flex items-center gap-4">
           <div className="relative flex items-center justify-center w-12 h-12">
-            <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-md" />
-            <Radar className="w-6 h-6 text-emerald-400 relative z-10" />
+            <div className="absolute inset-0 bg-signal/10 rounded-full blur-md" />
+            <Radar className="w-6 h-6 text-signal dark:text-signal-bright relative z-10" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-100 tracking-wide">
+            <h1 className="text-xl font-bold text-paper tracking-wide">
               Trung tâm quét dữ liệu
             </h1>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-paper-muted mt-1">
               Quét theo từ khóa, tự tìm nguồn hoặc quét các nguồn đã cấu hình
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <span className={`px-3 py-1 rounded text-xs font-medium border ${isAutoDiscoveryConfigured ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`} title={!isAutoDiscoveryConfigured ? 'Cần cấu hình SERPAPI_API_KEY' : undefined}>
+          <span className={`px-3 py-1 rounded text-xs font-medium border ${isAutoDiscoveryConfigured ? 'bg-success/10 text-success border-success/25' : 'bg-destructive/10 text-destructive border-destructive/25'}`} title={!isAutoDiscoveryConfigured ? 'Cần cấu hình SERPAPI_API_KEY' : undefined}>
             Tự tìm nguồn: {isAutoDiscoveryConfigured ? 'Sẵn sàng' : 'Chưa cấu hình'}
           </span>
           <button
             onClick={() => { fetchWorkerStatus(); fetchCrawlJobs(); fetchData(); }}
-            className="group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-emerald-400 bg-gray-900 border border-emerald-500/30 rounded-lg transition-all hover:bg-emerald-900 hover:border-emerald-400"
+            className={`group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-signal dark:text-signal-bright bg-void-surface border border-signal/30 rounded-lg transition-colors duration-150 motion-reduce:transition-none hover:bg-signal/10 hover:border-signal/50 ${focusRing}`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin motion-reduce:animate-none' : 'group-hover:rotate-180 transition-transform duration-200 motion-reduce:transition-none'}`} />
             Đồng bộ
           </button>
           <button
@@ -534,7 +540,7 @@ export default function ScanPage() {
                 toast.error(`Lỗi: ${getErrorMessage(error)}`);
               }
             }}
-            className="group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-orange-400 bg-gray-900 border border-orange-500/30 rounded-lg transition-all hover:bg-orange-900 hover:border-orange-400"
+            className={`group relative flex items-center gap-2 px-4 py-2 text-xs font-medium text-paper-muted bg-void-surface border border-edge-strong rounded-lg transition-colors duration-150 motion-reduce:transition-none hover:bg-void-raised hover:text-paper ${focusRing}`}
           >
             <Rss className="w-3.5 h-3.5" />
             Cập nhật RSS
@@ -546,15 +552,15 @@ export default function ScanPage() {
           2. WORKER STATUS BAR — Terminal horizontal
          ═══════════════════════════════════════════════════════════════════ */}
       {workerStatus && (
-        <div className={`rounded font-mono px-4 py-3 border shadow-inner flex flex-wrap items-center gap-x-4 gap-y-1.5 ${
+        <div className={`rounded font-mono px-4 py-3 border flex flex-wrap items-center gap-x-4 gap-y-1.5 ${
           workerStatus.worker_running
-            ? 'bg-[#021008] border-emerald-500/30 text-emerald-400 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]'
-            : 'bg-[#150a0a] border-rose-500/30 text-rose-400 shadow-[inset_0_0_20px_rgba(244,63,94,0.05)]'
+            ? 'bg-success/5 border-success/30 text-success'
+            : 'bg-destructive/5 border-destructive/30 text-destructive'
         }`}>
           {/* Status icon + label */}
           <div className="flex items-center gap-2">
             {workerStatus.worker_running ? (
-              <Activity className="w-4 h-4 animate-pulse flex-shrink-0" />
+              <Activity className="w-4 h-4 animate-pulse motion-reduce:animate-none flex-shrink-0" />
             ) : (
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             )}
@@ -567,14 +573,14 @@ export default function ScanPage() {
 
           {/* Embedded warning */}
           {workerStatus.worker_mode === 'embedded' && (
-            <span className="text-[10px] text-amber-500/80 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+            <span className="text-[10px] text-warning flex items-center gap-1 bg-warning/10 px-2 py-0.5 rounded border border-warning/25">
               <AlertTriangle className="w-3 h-3" />
               BACKGROUND_CRON_DISABLED
             </span>
           )}
 
           {/* Metrics inline */}
-          <div className="flex items-center gap-3 ml-auto text-[11px] font-medium opacity-80">
+          <div className="flex items-center gap-3 ml-auto text-[11px] font-medium opacity-80 tabular-nums">
             <span>TARGETS: <strong>{workerStatus.active_sources}</strong></span>
             <span className="opacity-30">|</span>
             <span>QUEUE: <strong>{workerStatus.due_sources}</strong></span>
@@ -602,8 +608,8 @@ export default function ScanPage() {
 
           {/* Error line */}
           {workerStatus.last_error && (
-            <div className="w-full mt-2 pt-2 border-t border-rose-500/20">
-              <span className="text-[10px] text-rose-400 font-bold tracking-wider inline-block truncate max-w-full">
+            <div className="w-full mt-2 pt-2 border-t border-destructive/20">
+              <span className="text-[10px] text-destructive font-bold tracking-wider inline-block truncate max-w-full">
                 [ERR] {workerStatus.last_error}
               </span>
             </div>
@@ -614,11 +620,11 @@ export default function ScanPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           3. MAIN SCAN INPUT CARD
          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#0f172a] rounded-xl border border-slate-200 dark:border-gray-800 p-6 shadow-lg mb-6 mt-6">
+      <div className="bg-void-surface rounded-xl border border-edge p-6 mb-6 mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8 flex flex-col gap-5">
             <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">
+              <label className="text-sm font-medium text-paper-muted mb-2 block">
                 Từ khóa cần quét
               </label>
               <div className="flex gap-3">
@@ -629,13 +635,13 @@ export default function ScanPage() {
                   onChange={(e) => setQuickKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleScanSubmit()}
                   placeholder="Nhập từ khóa cần theo dõi, ví dụ: Bệnh viện TTH"
-                  className="flex-1 bg-[#1e293b] border border-slate-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+                  className="flex-1 bg-void-surface border border-edge-strong rounded-lg px-4 py-2.5 text-sm text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-colors duration-150 motion-reduce:transition-none"
                 />
                 <select
                   id="quick-keyword-group"
                   value={quickGroupId}
                   onChange={(e) => setQuickGroupId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-48 bg-[#1e293b] border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-48 bg-void-surface border border-edge-strong rounded-lg px-3 py-2.5 text-sm text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                 >
                   <option value="">-- Dự án / Nhãn hiệu --</option>
                   {keywordGroups.map((g) => (
@@ -646,7 +652,7 @@ export default function ScanPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-gray-300 mb-2 block">Chế độ quét</label>
+              <label className="text-sm font-medium text-paper-muted mb-2 block">Chế độ quét</label>
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'AUTO_DISCOVERY', label: 'Tự tìm nguồn', disabled: !isAutoDiscoveryConfigured },
@@ -656,12 +662,12 @@ export default function ScanPage() {
                 ].map(mode => (
                   <div key={mode.id} className="group relative">
                     <label
-                      className={`inline-flex items-center gap-2 px-4 py-2 border rounded-lg transition-all text-sm font-medium ${
+                      className={`inline-flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors duration-150 motion-reduce:transition-none text-sm font-medium ${
                         mode.disabled
-                          ? 'bg-gray-900/50 border-slate-200 dark:border-gray-800 text-gray-600 cursor-not-allowed'
+                          ? 'bg-void-raised border-edge text-paper-faint cursor-not-allowed'
                           : scanMode === mode.id
-                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 cursor-pointer'
-                            : 'bg-[#1e293b] hover:bg-gray-800 border-slate-300 dark:border-gray-700 text-slate-500 dark:text-gray-400 hover:text-gray-200 cursor-pointer'
+                            ? 'bg-signal/10 border-signal/40 text-signal dark:text-signal-bright cursor-pointer'
+                            : 'bg-void-surface hover:bg-void-raised border-edge-strong text-paper-muted hover:text-paper cursor-pointer'
                       }`}
                       title={mode.disabled ? "Chưa cấu hình Web Search provider" : undefined}
                     >
@@ -674,7 +680,7 @@ export default function ScanPage() {
                           if (!mode.disabled) setScanMode(mode.id);
                         }}
                         disabled={mode.disabled}
-                        className={`rounded-full border-gray-600 focus:ring-emerald-500 bg-gray-800 h-4 w-4 ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'text-emerald-500'}`}
+                        className={`rounded-full border-edge-strong bg-void-surface h-4 w-4 ${focusRing} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'text-signal'}`}
                       />
                       {mode.label}
                     </label>
@@ -683,31 +689,31 @@ export default function ScanPage() {
               </div>
             </div>
           </div>
-          
-          <div className="lg:col-span-4 flex flex-col justify-end gap-3 lg:border-l lg:border-slate-200 dark:border-gray-800 lg:pl-6">
+
+          <div className="lg:col-span-4 flex flex-col justify-end gap-3 lg:border-l lg:border-edge lg:pl-6">
             <div className="mb-auto">
-               <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+               <p className="text-xs text-paper-muted leading-relaxed">
                  {getDisableReason() ? (
-                   <span className="text-rose-400 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4"/> {getDisableReason()}</span>
+                   <span className="text-destructive flex items-center gap-1.5"><AlertTriangle className="w-4 h-4"/> {getDisableReason()}</span>
                  ) : (
-                   <span className="text-emerald-400 flex items-center gap-1.5"><CheckCircle className="w-4 h-4"/> Sẵn sàng quét</span>
+                   <span className="text-success flex items-center gap-1.5"><CheckCircle className="w-4 h-4"/> Sẵn sàng quét</span>
                  )}
                </p>
             </div>
             <button
               onClick={handleScanSubmit}
               disabled={scanning || !canScan}
-              className="w-full px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 transition-all"
+              className={`w-full px-6 py-3 bg-signal text-white font-medium rounded-lg hover:bg-signal-deep dark:hover:bg-signal-bright disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
             >
-              {scanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Radar className="w-5 h-5" />}
+              {scanning ? <Loader2 className="w-5 h-5 animate-spin motion-reduce:animate-none" /> : <Radar className="w-5 h-5" />}
               Bắt đầu quét
             </button>
             <button
               onClick={handleQuickAdd}
               disabled={addingKeyword || !quickKeyword.trim()}
-              className="w-full px-6 py-2.5 bg-gray-800 text-slate-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300 dark:border-gray-700 transition-all"
+              className={`w-full px-6 py-2.5 bg-void-raised text-paper-muted font-medium rounded-lg hover:text-paper disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-edge-strong transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
             >
-              {addingKeyword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {addingKeyword ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <Plus className="w-4 h-4" />}
               Chỉ thêm từ khóa
             </button>
           </div>
@@ -717,28 +723,28 @@ export default function ScanPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           4. SOURCE SELECTION CARD (Optional)
          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#0f172a] border border-slate-200 dark:border-gray-800 rounded-xl mb-6">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
-          <h2 className="text-base font-semibold text-gray-100 flex items-center gap-2">
+      <div className="bg-void-surface border border-edge rounded-xl mb-6">
+        <div className="px-6 py-4 border-b border-edge">
+          <h2 className="text-base font-semibold text-paper flex items-center gap-2">
             Nguồn tùy chọn
           </h2>
-          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-paper-muted mt-1">
             Chỉ cần chọn nguồn khi muốn giới hạn phạm vi quét. Nếu không chọn, hệ thống sẽ tự tìm nguồn theo từ khóa.
           </p>
         </div>
 
         {/* ── 4B. Source Filters + Quick Actions ─────────────────────── */}
-        <div className="px-4 py-2.5 border-b border-gray-800/80 flex flex-wrap items-center gap-2">
+        <div className="px-4 py-2.5 border-b border-edge flex flex-wrap items-center gap-2">
           {/* Filter tabs */}
-          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mr-1">Nguồn:</span>
+          <span className="text-[10px] tracking-eyebrow font-semibold text-paper-faint uppercase mr-1">Nguồn:</span>
           {filterTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setSourceFilter(tab.key)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${
                 sourceFilter === tab.key
-                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/25'
-                  : 'bg-slate-50 dark:bg-[#0B1220] text-gray-500 hover:text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-800 hover:border-slate-300 dark:border-gray-700'
+                  ? 'bg-signal/10 text-signal dark:text-signal-bright border border-signal/25'
+                  : 'bg-void-raised text-paper-faint hover:text-paper border border-edge hover:border-edge-strong'
               }`}
             >
               {tab.icon}
@@ -747,10 +753,10 @@ export default function ScanPage() {
           ))}
           <button
             onClick={() => setHideTestSources(!hideTestSources)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${
               hideTestSources
-                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/15'
-                : 'bg-slate-50 dark:bg-[#0B1220] text-gray-500 hover:text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-800'
+                ? 'bg-signal/10 text-signal dark:text-signal-bright border border-signal/20'
+                : 'bg-void-raised text-paper-faint hover:text-paper border border-edge'
             }`}
             title={hideTestSources ? 'Test sources đang ẩn' : 'Hiện tất cả sources'}
           >
@@ -761,20 +767,20 @@ export default function ScanPage() {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={selectAllVisible}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+              className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-signal dark:text-signal-bright hover:text-signal-deep dark:hover:text-signal transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}
             >
               <CheckSquare className="w-3 h-3" />
               Chọn tất cả
             </button>
             <button
               onClick={clearSelection}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
+              className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-paper-faint hover:text-paper transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}
             >
               <Square className="w-3 h-3" />
               Bỏ chọn
             </button>
-            <span className="text-[10px] text-gray-600 font-medium border-l border-slate-200 dark:border-gray-800 pl-2 ml-1">
-              <span className="text-indigo-400">{validSelectedSources.length}</span>/{selectableCount} nguồn hợp lệ
+            <span className="text-[10px] text-paper-faint font-medium border-l border-edge pl-2 ml-1 tabular-nums">
+              <span className="text-signal dark:text-signal-bright">{validSelectedSources.length}</span>/{selectableCount} nguồn hợp lệ
             </span>
           </div>
         </div>
@@ -783,8 +789,8 @@ export default function ScanPage() {
         <div className="max-h-[340px] overflow-y-auto scrollbar-hide">
           {filteredSources.length === 0 ? (
             <div className="text-center py-8 px-4">
-              <Globe className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-              <p className="text-xs text-gray-500 font-medium">
+              <Globe className="w-8 h-8 text-paper-faint mx-auto mb-2" />
+              <p className="text-xs text-paper-muted font-medium">
                 {realSourceCount === 0
                   ? 'Chưa có nguồn thật để quét. Hãy thêm nguồn RSS/Web trước.'
                   : 'Không có nguồn nào phù hợp bộ lọc.'}
@@ -793,16 +799,16 @@ export default function ScanPage() {
           ) : (
             <table className="w-full text-xs">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-slate-50 dark:bg-[#0B1220] text-left text-[10px] text-gray-500 uppercase tracking-wider">
-                  <th className="px-3 py-2 w-8 font-medium"></th>
-                  <th className="px-3 py-2 font-medium">Nguồn</th>
-                  <th className="px-3 py-2 hidden md:table-cell font-medium w-20">Loại</th>
-                  <th className="px-3 py-2 hidden lg:table-cell font-medium w-16">Status</th>
-                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">Crawl gần nhất</th>
-                  <th className="px-3 py-2 hidden xl:table-cell font-medium w-24">Crawl tiếp</th>
+                <tr className="bg-void-raised text-left text-[10px] tracking-eyebrow font-semibold text-paper-faint uppercase border-b border-edge">
+                  <th scope="col" className="px-3 py-2 w-8"></th>
+                  <th scope="col" className="px-3 py-2">Nguồn</th>
+                  <th scope="col" className="px-3 py-2 hidden md:table-cell w-20">Loại</th>
+                  <th scope="col" className="px-3 py-2 hidden lg:table-cell w-16">Status</th>
+                  <th scope="col" className="px-3 py-2 hidden xl:table-cell w-24">Crawl gần nhất</th>
+                  <th scope="col" className="px-3 py-2 hidden xl:table-cell w-24">Crawl tiếp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-edge">
                 {filteredSources.map((source: any) => {
                   const test = isTestSource(source);
                   const isSupported = ['rss', 'website', 'global_search'].includes((source.source_type || '').toLowerCase());
@@ -812,9 +818,9 @@ export default function ScanPage() {
                   return (
                     <tr
                       key={source.id}
-                      className={`transition-colors ${
-                        !isSupported ? 'opacity-50' : 'hover:bg-white dark:bg-[#1E293B]/60 cursor-pointer'
-                      } ${isSelected ? 'bg-indigo-500/5' : ''}`}
+                      className={`transition-colors duration-150 motion-reduce:transition-none ${
+                        !isSupported ? 'opacity-50' : 'hover:bg-void-raised cursor-pointer'
+                      } ${isSelected ? 'bg-signal/[0.06]' : ''}`}
                       onClick={() => {
                         if (!isSupported) return;
                         if (isSelected) {
@@ -831,87 +837,87 @@ export default function ScanPage() {
                           checked={isSelected}
                           disabled={!isSupported}
                           onChange={() => {}}
-                          className="rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-800 pointer-events-none disabled:opacity-40 h-3.5 w-3.5"
+                          className="rounded border-edge-strong text-signal bg-void-surface pointer-events-none disabled:opacity-40 h-3.5 w-3.5"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-slate-700 dark:text-gray-300 truncate flex items-center gap-1.5 flex-wrap text-xs">
+                            <div className="font-medium text-paper truncate flex items-center gap-1.5 flex-wrap text-xs">
                               <span title={source.name}>{source.name}</span>
                               {(() => {
                                 if (isUnsupported) {
                                   return (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge">
                                       Chưa hỗ trợ
                                     </span>
                                   );
                                 }
                                 if (test) {
                                   return (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20">
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge">
                                       <FlaskConical className="w-2.5 h-2.5" />
                                       Nguồn test
                                     </span>
                                   );
                                 }
                                 const error = source.last_error;
-                                const isInvalidRss = error && (error.includes('invalid_rss_feed') || 
-                                                     error.includes('Feed parse error') || 
+                                const isInvalidRss = error && (error.includes('invalid_rss_feed') ||
+                                                     error.includes('Feed parse error') ||
                                                      error.includes('not well-formed') ||
                                                      error.includes('invalid token') ||
                                                      (source.source_type === 'rss' && error.includes('not well-formed')));
-                                const isAiConfigError = error && (error.includes('ai_provider_not_configured') || 
-                                                        error.includes('openai_dependency_missing') || 
+                                const isAiConfigError = error && (error.includes('ai_provider_not_configured') ||
+                                                        error.includes('openai_dependency_missing') ||
                                                         error.includes('AI chưa cấu hình') ||
                                                         error.includes('thiếu package openai') ||
                                                         error.includes('openai package not installed'));
-                                
+
                                 if (isInvalidRss) {
                                   return (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-shrink-0">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-destructive/10 text-destructive border border-destructive/25 flex-shrink-0">
                                       RSS không hợp lệ
                                     </span>
                                   );
                                 } else if (error && !isAiConfigError) {
                                   return (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-shrink-0">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-destructive/10 text-destructive border border-destructive/25 flex-shrink-0">
                                       Lỗi crawl
                                     </span>
                                   );
                                 } else if (source.last_crawled_at) {
                                   return (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-success/10 text-success border border-success/25 flex-shrink-0">
                                       Quét thành công
                                     </span>
                                   );
                                 } else {
                                   return (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-gray-500/10 text-slate-500 dark:text-gray-400 border border-gray-500/20 flex-shrink-0">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-void-raised text-paper-faint border border-edge flex-shrink-0">
                                       Chưa crawl
                                     </span>
                                   );
                                 }
                               })()}
                             </div>
-                            <div className="text-[10px] text-gray-600 truncate max-w-xs mt-0.5">{source.url}</div>
+                            <div className="text-[10px] text-paper-faint truncate max-w-xs mt-0.5">{source.url}</div>
                             {(() => {
                               if (isUnsupported || test) return null;
-                              
+
                               const error = source.last_error;
-                              const isAiConfigError = error && (error.includes('ai_provider_not_configured') || 
-                                                      error.includes('openai_dependency_missing') || 
+                              const isAiConfigError = error && (error.includes('ai_provider_not_configured') ||
+                                                      error.includes('openai_dependency_missing') ||
                                                       error.includes('AI chưa cấu hình') ||
                                                       error.includes('thiếu package openai') ||
                                                       error.includes('openai package not installed'));
-                              
+
                               if (isAiConfigError) {
                                  return (
                                    <div className="mt-1 flex items-center gap-1">
-                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-warning/10 text-warning border border-warning/25">
                                        AI chưa cấu hình
                                      </span>
-                                     <span className="text-[10px] text-gray-500 truncate" title="Mention đã thu thập, nhưng AI chưa phân tích do thiếu package.">
+                                     <span className="text-[10px] text-paper-faint truncate" title="Mention đã thu thập, nhưng AI chưa phân tích do thiếu package.">
                                        Mention đã thu thập, thiếu package.
                                      </span>
                                    </div>
@@ -919,7 +925,7 @@ export default function ScanPage() {
                               } else if (source.last_crawled_at && (!error || error === '')) {
                                  return (
                                    <div className="mt-1 flex items-center gap-1">
-                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-info/10 text-info border border-info/25">
                                        AI đã phân tích
                                      </span>
                                    </div>
@@ -927,32 +933,32 @@ export default function ScanPage() {
                               }
                               return null;
                             })()}
-                            
+
                             {source.last_error && (() => {
                               const error = source.last_error;
-                              const isInvalidRss = error.includes('invalid_rss_feed') || 
-                                                   error.includes('Feed parse error') || 
+                              const isInvalidRss = error.includes('invalid_rss_feed') ||
+                                                   error.includes('Feed parse error') ||
                                                    error.includes('not well-formed') ||
                                                    error.includes('invalid token') ||
                                                    ((source.source_type || '').toLowerCase() === 'rss' && error.includes('not well-formed'));
                               if (isInvalidRss) {
                                 return (
-                                  <div className="text-[10px] text-rose-400 mt-1 truncate max-w-sm" title="URL này là trang web, không phải RSS feed. Hãy đổi loại nguồn sang Website.">
+                                  <div className="text-[10px] text-destructive mt-1 truncate max-w-sm" title="URL này là trang web, không phải RSS feed. Hãy đổi loại nguồn sang Website.">
                                     ⚠ RSS không hợp lệ: URL hiện tại là trang web.
                                   </div>
                                 );
                               }
-                              
+
                               // Check if AI error, if so, DO NOT display as crawl error!
-                              const isAiConfigError = error.includes('ai_provider_not_configured') || 
-                                                      error.includes('openai_dependency_missing') || 
+                              const isAiConfigError = error.includes('ai_provider_not_configured') ||
+                                                      error.includes('openai_dependency_missing') ||
                                                       error.includes('AI chưa cấu hình') ||
                                                       error.includes('thiếu package openai') ||
                                                       error.includes('openai package not installed');
                               if (isAiConfigError) {
                                 return null;
                               }
-                              
+
                               let cleanMsg = error;
                               if (error.includes(': ')) {
                                 const parts = error.split(': ');
@@ -960,17 +966,17 @@ export default function ScanPage() {
                                   cleanMsg = Array.isArray(parts) ? parts.slice(1).join(': ') : error;
                                 }
                               }
-                              
+
                               if (test) {
                                 return (
-                                  <div className="text-[10px] text-gray-500 mt-1 truncate max-w-sm" title={error}>
+                                  <div className="text-[10px] text-paper-faint mt-1 truncate max-w-sm" title={error}>
                                     ⚠ {cleanMsg} (lỗi test)
                                   </div>
                                 );
                               }
-                              
+
                               return (
-                                <div className="text-[10px] text-rose-400 mt-1 truncate max-w-sm" title={error}>
+                                <div className="text-[10px] text-destructive mt-1 truncate max-w-sm" title={error}>
                                   ⚠ {cleanMsg}
                                 </div>
                               );
@@ -980,9 +986,7 @@ export default function ScanPage() {
                       </td>
                       <td className="px-3 py-2 hidden md:table-cell">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
-                          (source.source_type || '').toLowerCase() === 'rss'
-                            ? 'bg-orange-500/10 text-orange-400 border-orange-500/15'
-                            : isUnsupported ? 'bg-gray-800 text-gray-500 border-slate-300 dark:border-gray-700' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/15'
+                          isUnsupported ? 'bg-void-raised text-paper-faint border-edge' : 'bg-void-raised text-paper-muted border-edge'
                         }`}>
                           {(source.source_type || '').toLowerCase() === 'rss' ? (
                             <Rss className="w-2.5 h-2.5" />
@@ -994,14 +998,14 @@ export default function ScanPage() {
                       </td>
                       <td className="px-3 py-2 hidden lg:table-cell">
                         <span className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${source.is_active ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.6)]' : 'bg-gray-600'}`} />
-                          <span className="text-[10px] text-gray-500">{source.is_active ? 'On' : 'Off'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${source.is_active ? 'bg-success' : 'bg-paper-faint'}`} />
+                          <span className="text-[10px] text-paper-faint">{source.is_active ? 'On' : 'Off'}</span>
                         </span>
                       </td>
-                      <td className="px-3 py-2 hidden xl:table-cell text-[10px] text-gray-500">
+                      <td className="px-3 py-2 hidden xl:table-cell text-[10px] text-paper-faint tabular-nums">
                         {formatDate(source.last_crawled_at)}
                       </td>
-                      <td className="px-3 py-2 hidden xl:table-cell text-[10px] text-gray-500">
+                      <td className="px-3 py-2 hidden xl:table-cell text-[10px] text-paper-faint tabular-nums">
                         {formatDate(source.next_crawl_at)}
                       </td>
                     </tr>
@@ -1013,18 +1017,18 @@ export default function ScanPage() {
         </div>
 
         {/* ── 4D. Custom URL — Collapsible ──────────────────────────── */}
-        <div className="px-4 py-2 border-t border-gray-800/80">
+        <div className="px-4 py-2 border-t border-edge">
           <button
             onClick={() => setShowCustomUrl(!showCustomUrl)}
-            className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-slate-700 dark:text-gray-300 font-medium transition-colors"
+            className={`flex items-center gap-1.5 text-[11px] text-paper-faint hover:text-paper font-medium transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}
           >
             {showCustomUrl ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             <LinkIcon className="w-3 h-3" />
             Hoặc nhập URL tùy chỉnh
           </button>
           {showCustomUrl && (
-            <div className="mt-2 relative animate-fadeIn">
-              <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+            <div className="mt-2 relative animate-fadeIn motion-reduce:animate-none">
+              <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-paper-faint w-3.5 h-3.5" />
               <input
                 id="custom-url-input"
                 type="url"
@@ -1034,7 +1038,7 @@ export default function ScanPage() {
                   if (e.target.value) setSelectedSources([]);
                 }}
                 placeholder="https://example.com hoặc https://example.com/rss"
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-white text-xs placeholder-gray-500 transition-shadow"
+                className="w-full pl-9 pr-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper text-xs placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               />
             </div>
           )}
@@ -1048,25 +1052,25 @@ export default function ScanPage() {
          ═══════════════════════════════════════════════════════════════════ */}
       {latestJob && (
         <div className={`rounded-xl border px-4 py-3 flex flex-wrap items-center gap-3 ${
-          latestJob.status === 'completed' ? 'bg-emerald-500/5 border-emerald-500/15' :
-          latestJob.status === 'failed' ? 'bg-rose-500/5 border-rose-500/15' :
-          latestJob.status === 'running' ? 'bg-indigo-500/5 border-indigo-500/15' :
-          'bg-gray-800/30 border-slate-200 dark:border-gray-800'
+          latestJob.status === 'completed' ? 'bg-success/5 border-success/20' :
+          latestJob.status === 'failed' ? 'bg-destructive/5 border-destructive/20' :
+          latestJob.status === 'running' ? 'bg-signal/5 border-signal/20' :
+          'bg-void-raised border-edge'
         }`}>
           <div className="flex items-center gap-2">
             {getStatusBadge(latestJob.status)}
             {getJobTypeBadge(latestJob.job_type)}
-            <span className="text-[10px] text-gray-500 font-mono">#{latestJob.id}</span>
+            <span className="text-[10px] text-paper-faint font-mono">#{latestJob.id}</span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-gray-400 font-medium">
-            <span>Nguồn: <strong className="text-slate-700 dark:text-gray-300">{latestJob.processed_sources}/{latestJob.total_sources}</strong></span>
-            <span>Mentions: <strong className="text-slate-700 dark:text-gray-300">{latestJob.mentions_found}</strong></span>
+          <div className="flex items-center gap-3 text-xs text-paper-muted font-medium">
+            <span>Nguồn: <strong className="text-paper tabular-nums">{latestJob.processed_sources}/{latestJob.total_sources}</strong></span>
+            <span>Mentions: <strong className="text-paper tabular-nums">{latestJob.mentions_found}</strong></span>
             {latestJob.completed_at && <span>Xong: {formatDate(latestJob.completed_at)}</span>}
           </div>
           {latestJob.mentions_found > 0 && (
             <Link
               href={latestJob.project_id ? `/dashboard/mentions?project_id=${latestJob.project_id}&job_id=${latestJob.id}` : `/dashboard/mentions?job_id=${latestJob.id}`}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+              className={`ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-signal dark:text-signal-bright hover:text-signal-deep dark:hover:text-signal transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}
             >
               Xem lượt đề cập
               <ExternalLink className="w-3 h-3" />
@@ -1074,7 +1078,7 @@ export default function ScanPage() {
           )}
           {latestJob.error_message && (
             <div className="w-full mt-1">
-              <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15 inline-block truncate max-w-full" title={latestJob.error_message}>
+              <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 inline-block truncate max-w-full" title={latestJob.error_message}>
                 ❌ {latestJob.error_message.substring(0, 120)}
               </span>
             </div>
@@ -1090,38 +1094,38 @@ export default function ScanPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           6. CRAWL JOBS HISTORY — Collapsible
          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-gray-800 overflow-hidden">
+      <div className="bg-void-surface rounded-xl border border-edge overflow-hidden">
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-white dark:bg-[#1E293B]/30 transition-colors"
+          className={`w-full px-4 py-3 flex items-center justify-between hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
         >
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Lịch Sử Crawl Jobs</h2>
-            <span className="text-[10px] text-gray-500 font-medium bg-gray-800 px-2 py-0.5 rounded">{crawlJobs.length}</span>
+            <History className="w-4 h-4 text-signal dark:text-signal-bright" />
+            <h2 className="text-sm font-semibold text-paper">Lịch Sử Crawl Jobs</h2>
+            <span className="text-[10px] text-paper-faint font-medium bg-void-raised px-2 py-0.5 rounded tabular-nums">{crawlJobs.length}</span>
           </div>
-          {showHistory ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+          {showHistory ? <ChevronUp className="w-4 h-4 text-paper-faint" /> : <ChevronDown className="w-4 h-4 text-paper-faint" />}
         </button>
 
         {showHistory && (
-          <div className="border-t border-gray-800/80 divide-y divide-gray-800/60 max-h-[340px] overflow-y-auto scrollbar-hide">
+          <div className="border-t border-edge divide-y divide-edge max-h-[340px] overflow-y-auto scrollbar-hide">
             {crawlJobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-6 text-xs font-medium">Chưa có lịch sử scan</p>
+              <p className="text-paper-faint text-center py-6 text-xs font-medium">Chưa có lịch sử scan</p>
             ) : (
               crawlJobs.map((job) => (
-                <div key={job.id} className="px-4 py-3 hover:bg-white dark:bg-[#1E293B]/30 transition-colors">
+                <div key={job.id} className="px-4 py-3 hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {getJobTypeBadge(job.job_type)}
                       {getStatusBadge(job.status)}
-                      <span className="text-[10px] text-gray-600 font-mono">#{job.id}</span>
+                      <span className="text-[10px] text-paper-faint font-mono">#{job.id}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-700 dark:text-gray-300 font-medium">{job.mentions_found} mentions</span>
+                      <span className="text-xs text-paper font-medium tabular-nums">{job.mentions_found} mentions</span>
                       {job.status === 'completed' && job.mentions_found > 0 && (
                         <Link
                           href={job.project_id ? `/dashboard/mentions?project_id=${job.project_id}&job_id=${job.id}` : `/dashboard/mentions?job_id=${job.id}`}
-                          className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                          className={`inline-flex items-center gap-1 text-[10px] font-medium text-signal dark:text-signal-bright hover:text-signal-deep dark:hover:text-signal transition-colors duration-150 motion-reduce:transition-none rounded ${focusRing}`}
                         >
                           <Eye className="w-3 h-3" />
                           Xem
@@ -1131,10 +1135,10 @@ export default function ScanPage() {
                         <button
                           onClick={() => handleRetry(job.id)}
                           disabled={retryingJobId === job.id}
-                          className="flex items-center px-2 py-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/15 rounded-md hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+                          className={`flex items-center px-2 py-1 text-[10px] font-medium text-warning bg-warning/10 border border-warning/20 rounded-md hover:bg-warning/20 transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 ${focusRing}`}
                         >
                           {retryingJobId === job.id ? (
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin motion-reduce:animate-none" />
                           ) : (
                             <RefreshCw className="w-3 h-3 mr-1" />
                           )}
@@ -1143,17 +1147,17 @@ export default function ScanPage() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-medium text-gray-500">
-                    <span>Nguồn: <strong className="text-slate-500 dark:text-gray-400">{job.processed_sources}/{job.total_sources}</strong></span>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-medium text-paper-faint">
+                    <span>Nguồn: <strong className="text-paper-muted tabular-nums">{job.processed_sources}/{job.total_sources}</strong></span>
                     {job.status === 'completed' && job.total_sources > job.processed_sources && (
-                      <span className="text-rose-400">Thất bại: {job.total_sources - job.processed_sources} nguồn</span>
+                      <span className="text-destructive tabular-nums">Thất bại: {job.total_sources - job.processed_sources} nguồn</span>
                     )}
                     {job.created_at && <span>Tạo: {formatDate(job.created_at)}</span>}
                     {job.completed_at && <span>Xong: {formatDate(job.completed_at)}</span>}
-                    {job.retry_count > 0 && <span className="text-amber-400">Retry #{job.retry_count}</span>}
+                    {job.retry_count > 0 && <span className="text-warning tabular-nums">Retry #{job.retry_count}</span>}
                   </div>
                   {job.error_message && (
-                    <p className="mt-1.5 text-[10px] text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/15 truncate" title={job.error_message}>
+                    <p className="mt-1.5 text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded border border-destructive/20 truncate" title={job.error_message}>
                       ❌ {job.error_message}
                     </p>
                   )}
@@ -1167,41 +1171,41 @@ export default function ScanPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           DEBUG PANEL — Collapsible connection diagnostics
          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#0D1117] border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-void-surface border border-edge rounded-xl overflow-hidden">
         <button
           onClick={() => setShowDebug(!showDebug)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#161B22] transition-colors"
+          className={`w-full px-4 py-3 flex items-center justify-between hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
         >
           <div className="flex items-center gap-2">
-            <FlaskConical className="w-4 h-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-slate-500 dark:text-gray-400">Debug kết nối backend</h2>
+            <FlaskConical className="w-4 h-4 text-paper-faint" />
+            <h2 className="text-sm font-semibold text-paper-muted">Debug kết nối backend</h2>
           </div>
-          {showDebug ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+          {showDebug ? <ChevronUp className="w-4 h-4 text-paper-faint" /> : <ChevronDown className="w-4 h-4 text-paper-faint" />}
         </button>
 
         {showDebug && (
-          <div className="border-t border-slate-200 dark:border-gray-800 px-4 py-3 font-mono text-[11px] space-y-1.5">
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">NEXT_PUBLIC_API_URL:</span><span className="text-cyan-400 break-all">{process.env.NEXT_PUBLIC_API_URL || '(not set — fallback to localhost)'}</span></div>
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">API_BASE_URL (resolved):</span><span className="text-cyan-400 break-all">{API_BASE_URL}</span></div>
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">capabilities URL:</span><span className="text-slate-700 dark:text-gray-300 break-all">{API_BASE_URL}/api/crawl/capabilities</span></div>
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">manual-scan URL:</span><span className="text-slate-700 dark:text-gray-300 break-all">{API_BASE_URL}/api/crawl/manual-scan</span></div>
-            <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Auth token exists:</span><span className={debugInfo.hasAuthToken ? 'text-emerald-400' : 'text-rose-400'}>{debugInfo.hasAuthToken ? 'true' : 'false'}</span></div>
-            
+          <div className="border-t border-edge px-4 py-3 font-mono text-[11px] space-y-1.5">
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">NEXT_PUBLIC_API_URL:</span><span className="text-info break-all">{process.env.NEXT_PUBLIC_API_URL || '(not set — fallback to localhost)'}</span></div>
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">API_BASE_URL (resolved):</span><span className="text-info break-all">{API_BASE_URL}</span></div>
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">capabilities URL:</span><span className="text-paper-muted break-all">{API_BASE_URL}/api/crawl/capabilities</span></div>
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">manual-scan URL:</span><span className="text-paper-muted break-all">{API_BASE_URL}/api/crawl/manual-scan</span></div>
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Auth token exists:</span><span className={debugInfo.hasAuthToken ? 'text-success' : 'text-destructive'}>{debugInfo.hasAuthToken ? 'true' : 'false'}</span></div>
+
             {debugInfo.lastUrl && (
               <>
-                <div className="border-t border-slate-200 dark:border-gray-800 mt-2 pt-2" />
-                <div className="text-slate-500 dark:text-gray-400 font-semibold">Lần gọi gần nhất:</div>
-                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">URL:</span><span className="text-yellow-400 break-all">{debugInfo.lastUrl}</span></div>
-                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Payload:</span><span className="text-slate-700 dark:text-gray-300 break-all">{JSON.stringify(debugInfo.lastPayload)}</span></div>
-                <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Response status:</span><span className={debugInfo.lastStatus === 200 ? 'text-emerald-400' : debugInfo.lastStatus ? 'text-rose-400' : 'text-gray-500'}>{debugInfo.lastStatus ?? '(no response)'}</span></div>
+                <div className="border-t border-edge mt-2 pt-2" />
+                <div className="text-paper-muted font-semibold">Lần gọi gần nhất:</div>
+                <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">URL:</span><span className="text-warning break-all">{debugInfo.lastUrl}</span></div>
+                <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Payload:</span><span className="text-paper-muted break-all">{JSON.stringify(debugInfo.lastPayload)}</span></div>
+                <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Response status:</span><span className={debugInfo.lastStatus === 200 ? 'text-success' : debugInfo.lastStatus ? 'text-destructive' : 'text-paper-faint'}>{debugInfo.lastStatus ?? '(no response)'}</span></div>
                 {debugInfo.lastErrorName && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Error name:</span><span className="text-rose-400">{debugInfo.lastErrorName}</span></div>
+                  <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Error name:</span><span className="text-destructive">{debugInfo.lastErrorName}</span></div>
                 )}
                 {debugInfo.lastErrorMessage && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Error message:</span><span className="text-rose-400 break-all">{debugInfo.lastErrorMessage}</span></div>
+                  <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Error message:</span><span className="text-destructive break-all">{debugInfo.lastErrorMessage}</span></div>
                 )}
                 {debugInfo.lastResponseData && (
-                  <div className="flex gap-2"><span className="text-gray-500 min-w-[160px]">Response data:</span><span className="text-slate-700 dark:text-gray-300 break-all">{(JSON.stringify(debugInfo.lastResponseData) || '').slice(0, 500)}</span></div>
+                  <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Response data:</span><span className="text-paper-muted break-all">{(JSON.stringify(debugInfo.lastResponseData) || '').slice(0, 500)}</span></div>
                 )}
               </>
             )}

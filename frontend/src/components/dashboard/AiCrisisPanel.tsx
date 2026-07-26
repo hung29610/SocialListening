@@ -21,11 +21,12 @@ interface AiCrisisPanelProps {
 }
 
 /**
- * AiCrisisPanel — Elegant AI Insight panel
+ * AiCrisisPanel — AI Insight panel on the SIGNAL tokens (Epic SIGNAL, W-D).
  * Hiển thị cảnh báo khủng hoảng AI và các bước hành động.
- * 
+ *
  * Chỉ hiển thị khi risk_level là "Medium" hoặc "High".
- * Sử dụng glassmorphism + animated gradient border cho High risk.
+ * Risk ladder uses the semantic status tokens (destructive/warning/success);
+ * multi-hue gradients were replaced with flat quiet tints.
  */
 export default function AiCrisisPanel({
   keyword,
@@ -43,14 +44,14 @@ export default function AiCrisisPanel({
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+      <div className="rounded-2xl border border-edge bg-void-surface p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
-          <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="w-10 h-10 bg-void-raised rounded-xl animate-pulse motion-reduce:animate-none" />
+          <div className="h-5 w-48 bg-void-raised rounded animate-pulse motion-reduce:animate-none" />
         </div>
         <div className="space-y-2">
-          <div className="h-4 w-full bg-gray-100 dark:bg-gray-700/50 rounded animate-pulse" />
-          <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-700/50 rounded animate-pulse" />
+          <div className="h-4 w-full bg-void-raised rounded animate-pulse motion-reduce:animate-none" />
+          <div className="h-4 w-3/4 bg-void-raised rounded animate-pulse motion-reduce:animate-none" />
         </div>
       </div>
     );
@@ -58,46 +59,46 @@ export default function AiCrisisPanel({
 
   const isHigh = riskLevel === 'High';
 
-  // Risk level badge config
+  // Risk level badge config (semantic status tokens; flat tints, no gradients)
   const riskConfig = {
     High: {
-      bgGradient: 'from-red-500/10 via-red-500/5 to-orange-500/10',
-      borderColor: 'border-red-500/30',
-      badgeBg: 'bg-red-500',
+      tint: 'bg-destructive/5',
+      borderColor: 'border-destructive/30',
+      badgeBg: 'bg-destructive text-destructive-foreground',
       badgeText: 'Cao',
       icon: AlertTriangle,
-      iconColor: 'text-red-500',
-      glowColor: 'shadow-red-500/20',
+      iconColor: 'text-destructive',
+      iconBg: 'bg-destructive/10',
     },
     Medium: {
-      bgGradient: 'from-amber-500/10 via-amber-500/5 to-yellow-500/10',
-      borderColor: 'border-amber-500/30',
-      badgeBg: 'bg-amber-500',
+      tint: 'bg-warning/5',
+      borderColor: 'border-warning/30',
+      badgeBg: 'bg-warning text-white',
       badgeText: 'Trung bình',
       icon: Zap,
-      iconColor: 'text-amber-500',
-      glowColor: 'shadow-amber-500/20',
+      iconColor: 'text-warning',
+      iconBg: 'bg-warning/10',
     },
     Low: {
-      bgGradient: 'from-emerald-500/10 via-emerald-500/5 to-green-500/10',
-      borderColor: 'border-emerald-500/30',
-      badgeBg: 'bg-emerald-500',
+      tint: 'bg-success/5',
+      borderColor: 'border-success/30',
+      badgeBg: 'bg-success text-white',
       badgeText: 'Thấp',
       icon: Shield,
-      iconColor: 'text-emerald-500',
-      glowColor: 'shadow-emerald-500/10',
+      iconColor: 'text-success',
+      iconBg: 'bg-success/10',
     },
   };
 
   const config = riskConfig[riskLevel as keyof typeof riskConfig] || riskConfig.Low;
   const RiskIcon = config.icon;
 
-  // Priority badge colors
+  // Priority badge colors (severity ladder on the status tokens)
   const priorityColors: Record<string, string> = {
-    critical: 'bg-red-500 text-white',
-    high: 'bg-orange-500 text-white',
-    medium: 'bg-amber-500 text-white',
-    low: 'bg-gray-400 text-white',
+    critical: 'bg-destructive/10 text-destructive border border-destructive/25',
+    high: 'bg-warning/10 text-warning border border-warning/25',
+    medium: 'bg-warning/[0.06] text-warning border border-warning/20',
+    low: 'bg-sentiment-neutral/10 text-sentiment-neutral border border-sentiment-neutral/25',
   };
 
   return (
@@ -105,18 +106,17 @@ export default function AiCrisisPanel({
       className={`
         relative rounded-2xl overflow-hidden
         border ${config.borderColor}
-        bg-gradient-to-br ${config.bgGradient}
+        ${config.tint}
         backdrop-blur-sm
-        shadow-lg ${config.glowColor}
-        transition-all duration-500 ease-out
+        transition-colors duration-200 motion-reduce:transition-none
       `}
       style={{
         animation: 'fadeSlideUp 0.5s ease-out',
       }}
     >
-      {/* Animated gradient border for High risk */}
+      {/* Animated border emphasis for High risk */}
       {isHigh && (
-        <div className="absolute inset-0 rounded-2xl border-2 border-red-500/40 animate-pulse pointer-events-none" />
+        <div className="absolute inset-0 rounded-2xl border-2 border-destructive/40 animate-pulse motion-reduce:animate-none pointer-events-none" />
       )}
 
       <div className="relative p-6">
@@ -126,16 +126,16 @@ export default function AiCrisisPanel({
             <div
               className={`
                 p-2.5 rounded-xl
-                ${isHigh ? 'bg-red-500/20 animate-pulse' : 'bg-amber-500/20'}
+                ${config.iconBg} ${isHigh ? 'animate-pulse motion-reduce:animate-none' : ''}
               `}
             >
               <RiskIcon className={`w-6 h-6 ${config.iconColor}`} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              <h3 className="text-lg font-bold text-paper">
                 🤖 Phân Tích AI — Cảnh Báo Khủng Hoảng
               </h3>
-              <p className="text-xs text-slate-500 dark:text-gray-400">
+              <p className="text-xs text-paper-muted">
                 Từ khóa: <span className="font-medium">{keyword}</span>
               </p>
             </div>
@@ -145,20 +145,20 @@ export default function AiCrisisPanel({
             <span
               className={`
                 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
-                ${config.badgeBg} text-white shadow-sm
+                ${config.badgeBg}
               `}
             >
               {config.badgeText}
             </span>
-            <span className="text-xs text-slate-500 dark:text-gray-400">
+            <span className="text-xs text-paper-muted tabular-nums">
               {negativeMentionsCount}/{totalMentions} tiêu cực
             </span>
           </div>
         </div>
 
         {/* Crisis Summary */}
-        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 mb-5 border border-gray-200/50 dark:border-gray-700/50">
-          <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+        <div className="bg-void-surface/60 backdrop-blur-sm rounded-xl p-4 mb-5 border border-edge">
+          <p className="text-sm text-paper leading-relaxed">
             {crisisSummary}
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function AiCrisisPanel({
         {/* Action Items */}
         {actionItems.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-paper-muted mb-3 flex items-center gap-2">
               <span>📋</span> Hành Động Đề Xuất
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -174,15 +174,15 @@ export default function AiCrisisPanel({
                 <div
                   key={item.step}
                   className="
-                    bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
+                    bg-void-surface/80 backdrop-blur-sm
                     rounded-xl p-4
-                    border border-gray-200/50 dark:border-gray-700/50
-                    hover:shadow-md transition-shadow duration-200
+                    border border-edge
+                    hover:shadow-md transition-shadow duration-200 motion-reduce:transition-none
                     group
                   "
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500 text-white text-xs font-bold">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-signal text-white text-xs font-bold tabular-nums">
                       {item.step}
                     </span>
                     <span
@@ -200,10 +200,10 @@ export default function AiCrisisPanel({
                         : 'Thấp'}
                     </span>
                   </div>
-                  <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h5 className="text-sm font-semibold text-paper mb-1">
                     {item.title}
                   </h5>
-                  <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                  <p className="text-xs text-paper-muted leading-relaxed">
                     {item.description}
                   </p>
                 </div>

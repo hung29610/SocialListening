@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { chartColors } from './chartTheme';
 
 interface SentimentBreakdown {
   positive_count: number;
@@ -27,11 +28,11 @@ interface MonitorSentimentChartProps {
 /**
  * MonitorSentimentChart — Enhanced donut chart with center label
  * Biểu đồ tròn sentiment với nhãn trung tâm hiển thị tổng số.
- * 
- * Color palette sử dụng HSL-tailored colors:
- * - Tích cực: Emerald gradient (#10B981 → #34D399)
- * - Trung lập: Slate (#94A3B8)
- * - Tiêu cực: Rose gradient (#F43F5E → #FB7185)
+ *
+ * Colors come from the SIGNAL chart theme (`./chartTheme`):
+ * - Tích cực: chartColors.positive
+ * - Trung lập: chartColors.neutral
+ * - Tiêu cực: chartColors.negative
  */
 export default function MonitorSentimentChart({
   data,
@@ -40,14 +41,14 @@ export default function MonitorSentimentChart({
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-signal/30 border-t-signal rounded-full animate-spin motion-reduce:animate-none" />
       </div>
     );
   }
 
   if (!data || (data.positive_count + data.negative_count + data.neutral_count) === 0) {
     return (
-      <div className="h-72 flex flex-col items-center justify-center text-slate-500 dark:text-gray-400">
+      <div className="h-72 flex flex-col items-center justify-center text-paper-faint">
         <svg className="w-12 h-12 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
@@ -60,18 +61,18 @@ export default function MonitorSentimentChart({
   const total = data.positive_count + data.negative_count + data.neutral_count;
 
   const chartData = [
-    { name: 'Tích cực', value: data.positive_count, color: '#10B981', pct: data.positive_pct },
-    { name: 'Trung lập', value: data.neutral_count, color: '#94A3B8', pct: data.neutral_pct },
-    { name: 'Tiêu cực', value: data.negative_count, color: '#F43F5E', pct: data.negative_pct },
+    { name: 'Tích cực', value: data.positive_count, color: chartColors.positive, pct: data.positive_pct },
+    { name: 'Trung lập', value: data.neutral_count, color: chartColors.neutral, pct: data.neutral_pct },
+    { name: 'Tiêu cực', value: data.negative_count, color: chartColors.negative, pct: data.negative_pct },
   ].filter((item) => item.value > 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const entry = payload[0].payload;
       return (
-        <div className="bg-gray-900 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl shadow-xl border border-gray-700/50 text-sm">
+        <div className="bg-void-surface text-paper px-4 py-2.5 rounded-xl shadow-tile border border-edge-strong text-sm">
           <p className="font-semibold">{entry.name}</p>
-          <p className="text-slate-700 dark:text-gray-300">
+          <p className="text-paper-muted">
             {entry.value} đề cập ({entry.pct}%)
           </p>
         </div>
@@ -91,7 +92,7 @@ export default function MonitorSentimentChart({
           y={cy - 8}
           textAnchor="middle"
           dominantBaseline="central"
-          className="fill-gray-800 dark:fill-gray-200 text-2xl font-bold"
+          className="fill-paper text-2xl font-bold"
           style={{ fontSize: '24px', fontWeight: 700 }}
         >
           {total.toLocaleString('vi-VN')}
@@ -101,7 +102,7 @@ export default function MonitorSentimentChart({
           y={cy + 14}
           textAnchor="middle"
           dominantBaseline="central"
-          className="fill-gray-500 text-xs"
+          className="fill-paper-faint text-xs"
           style={{ fontSize: '11px' }}
         >
           đề cập
@@ -132,7 +133,7 @@ export default function MonitorSentimentChart({
               <Cell
                 key={`cell-${index}`}
                 fill={entry.color}
-                className="hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+                className="hover:opacity-80 transition-opacity duration-200 motion-reduce:transition-none cursor-pointer"
               />
             ))}
           </Pie>
@@ -156,7 +157,7 @@ export default function MonitorSentimentChart({
             iconType="circle"
             iconSize={10}
             formatter={(value: string) => (
-              <span className="text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400">{value}</span>
+              <span className="text-sm text-paper-muted">{value}</span>
             )}
           />
         </PieChart>

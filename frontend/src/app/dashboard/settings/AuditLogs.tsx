@@ -104,16 +104,16 @@ export default function AuditLogs() {
   };
 
   const getActionColor = (action: string) => {
-    if (action.includes('create')) return 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20';
-    if (action.includes('update')) return 'text-blue-400 bg-blue-500/10 border border-blue-500/20';
-    if (action.includes('delete')) return 'text-rose-400 bg-rose-500/10 border border-rose-500/20';
-    return 'text-slate-500 dark:text-gray-400 bg-gray-800 border border-slate-300 dark:border-gray-700';
+    if (action.includes('create')) return 'text-success bg-success/10 border border-success/25';
+    if (action.includes('update')) return 'text-info bg-info/10 border border-info/25';
+    if (action.includes('delete')) return 'text-destructive bg-destructive/10 border border-destructive/25';
+    return 'text-paper-muted bg-void-raised border border-edge';
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin motion-reduce:animate-none rounded-full h-8 w-8 border-b-2 border-signal"></div>
       </div>
     );
   }
@@ -123,12 +123,12 @@ export default function AuditLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Audit Logs</h2>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Lịch sử hoạt động và thay đổi trong hệ thống</p>
+          <h2 className="text-xl font-bold text-paper tracking-wide">Audit Logs</h2>
+          <p className="text-sm text-paper-muted mt-1">Lịch sử hoạt động và thay đổi trong hệ thống</p>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center px-4 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+          className="flex items-center px-4 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
         >
           <Filter className="w-4 h-4 mr-2" />
           {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
@@ -138,38 +138,38 @@ export default function AuditLogs() {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+          <div className="bg-void-surface border border-edge rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Tổng số logs</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{stats.total_logs}</p>
+                <p className="text-sm font-medium text-paper-muted">Tổng số logs</p>
+                <p className="text-2xl font-bold text-paper tracking-wide tabular-nums mt-1">{stats.total_logs}</p>
               </div>
-              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                <Activity className="w-6 h-6 text-indigo-400" />
+              <div className="p-3 bg-signal/10 border border-signal/25 rounded-xl">
+                <Activity className="w-6 h-6 text-signal dark:text-signal-bright" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+          <div className="bg-void-surface border border-edge rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Loại hành động</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{stats.by_action?.length || 0}</p>
+                <p className="text-sm font-medium text-paper-muted">Loại hành động</p>
+                <p className="text-2xl font-bold text-paper tracking-wide tabular-nums mt-1">{stats.by_action?.length || 0}</p>
               </div>
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <FileText className="w-6 h-6 text-emerald-400" />
+              <div className="p-3 bg-void-raised border border-edge rounded-xl">
+                <FileText className="w-6 h-6 text-paper-muted" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+          <div className="bg-void-surface border border-edge rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">Hiển thị</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide mt-1">{logs.length}</p>
+                <p className="text-sm font-medium text-paper-muted">Hiển thị</p>
+                <p className="text-2xl font-bold text-paper tracking-wide tabular-nums mt-1">{logs.length}</p>
               </div>
-              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
-                <Search className="w-6 h-6 text-purple-400" />
+              <div className="p-3 bg-void-raised border border-edge rounded-xl">
+                <Search className="w-6 h-6 text-paper-muted" />
               </div>
             </div>
           </div>
@@ -178,69 +178,69 @@ export default function AuditLogs() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-wide mb-6">Bộ lọc</h3>
+        <div className="bg-void-surface border border-edge rounded-xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-paper tracking-wide mb-6">Bộ lọc</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">User ID</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">User ID</label>
               <input
                 type="number"
                 value={filters.user_id}
                 onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="ID người dùng"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Hành động</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">Hành động</label>
               <input
                 type="text"
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="e.g., user.create"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Loại tài nguyên</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">Loại tài nguyên</label>
               <input
                 type="text"
                 value={filters.resource_type}
                 onChange={(e) => setFilters({ ...filters, resource_type: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
                 placeholder="e.g., user, source"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Từ ngày</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">Từ ngày</label>
               <input
                 type="datetime-local"
                 value={filters.start_date}
                 onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white [color-scheme:dark] transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper dark:[color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Đến ngày</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">Đến ngày</label>
               <input
                 type="datetime-local"
                 value={filters.end_date}
                 onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white [color-scheme:dark] transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper dark:[color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Số lượng</label>
+              <label className="block text-sm font-medium text-paper-muted mb-2">Số lượng</label>
               <select
                 value={filters.limit}
                 onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value) })}
-                className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white [color-scheme:dark] transition-shadow"
+                className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper dark:[color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal transition-shadow motion-reduce:transition-none"
               >
                 <option value={50}>50</option>
                 <option value={100}>100</option>
@@ -250,16 +250,16 @@ export default function AuditLogs() {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-slate-200 dark:border-gray-800">
+          <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-edge">
             <button
               onClick={handleReset}
-              className="px-6 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+              className="px-6 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
             >
               Đặt lại
             </button>
             <button
               onClick={handleSearch}
-              className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-sm shadow-indigo-500/20"
+              className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
             >
               <Search className="w-4 h-4 mr-2" />
               Tìm kiếm
@@ -269,38 +269,38 @@ export default function AuditLogs() {
       )}
 
       {/* Logs Table */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-void-surface border border-edge rounded-xl overflow-hidden shadow-sm">
         {logs.length === 0 ? (
           <div className="text-center py-12">
-            <FileText className="w-12 h-12 mx-auto text-gray-600 mb-3" />
-            <p className="text-slate-500 dark:text-gray-400 font-medium tracking-wide">Không có audit logs</p>
+            <FileText className="w-12 h-12 mx-auto text-paper-faint mb-3" />
+            <p className="text-paper-muted font-medium tracking-wide">Không có audit logs</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-white dark:bg-[#1E293B]/50 border-b border-slate-200 dark:border-gray-800">
+              <thead className="bg-void-raised border-b border-edge">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Thời gian</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Hành động</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Tài nguyên</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">IP</th>
+                  <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">Thời gian</th>
+                  <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">User</th>
+                  <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">Hành động</th>
+                  <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">Tài nguyên</th>
+                  <th scope="col" className="px-6 py-4 text-left text-eyebrow font-semibold uppercase text-paper-faint">IP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/50">
+              <tbody className="divide-y divide-edge">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-white dark:bg-[#1E293B]/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-200 font-medium whitespace-nowrap">
+                  <tr key={log.id} className="hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
+                    <td className="px-6 py-4 text-sm text-paper font-medium whitespace-nowrap tabular-nums">
                       {formatDate(log.created_at)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-gray-400">
+                    <td className="px-6 py-4 text-sm text-paper-muted tabular-nums">
                       {log.user_id ? (
-                        <span className="flex items-center text-slate-700 dark:text-gray-300">
-                          <User className="w-4 h-4 mr-2 text-indigo-400" />
+                        <span className="flex items-center text-paper-muted">
+                          <User className="w-4 h-4 mr-2 text-signal dark:text-signal-bright" />
                           ID: {log.user_id}
                         </span>
                       ) : (
-                        <span className="text-gray-500 font-medium">System</span>
+                        <span className="text-paper-faint font-medium">System</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -308,15 +308,15 @@ export default function AuditLogs() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-gray-400 font-medium">
+                    <td className="px-6 py-4 text-sm text-paper-muted font-medium">
                       {log.resource_type && (
                         <span>
                           {log.resource_type}
-                          {log.resource_id && <span className="text-gray-500 ml-1">#{log.resource_id}</span>}
+                          {log.resource_id && <span className="text-paper-faint ml-1 tabular-nums">#{log.resource_id}</span>}
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 font-mono tracking-wider">
+                    <td className="px-6 py-4 text-sm text-paper-faint font-mono tracking-wider tabular-nums">
                       {log.ip_address || '-'}
                     </td>
                   </tr>
@@ -330,8 +330,8 @@ export default function AuditLogs() {
       {/* Pagination */}
       {logs.length > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-            Hiển thị <span className="text-slate-900 dark:text-white">{filters.offset + 1} - {filters.offset + logs.length}</span> logs
+          <p className="text-sm font-medium text-paper-muted">
+            Hiển thị <span className="text-paper tabular-nums">{filters.offset + 1} - {filters.offset + logs.length}</span> logs
           </p>
           <div className="flex space-x-3">
             <button
@@ -340,7 +340,7 @@ export default function AuditLogs() {
                 setTimeout(loadLogs, 100);
               }}
               disabled={filters.offset === 0}
-              className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
             >
               Trước
             </button>
@@ -350,7 +350,7 @@ export default function AuditLogs() {
                 setTimeout(loadLogs, 100);
               }}
               disabled={logs.length < filters.limit}
-              className="px-5 py-2.5 text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 text-paper-muted bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised hover:text-paper transition-colors duration-150 motion-reduce:transition-none font-medium disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
             >
               Sau
             </button>
@@ -359,9 +359,9 @@ export default function AuditLogs() {
       )}
 
       {/* Info Box */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-        <p className="text-sm text-indigo-200">
-          <strong className="text-indigo-300">Lưu ý:</strong> Audit logs ghi lại tất cả hoạt động quan trọng trong hệ thống. 
+      <div className="bg-signal/10 border border-signal/25 rounded-xl p-4">
+        <p className="text-sm text-paper-muted">
+          <strong className="text-signal dark:text-signal-bright">Lưu ý:</strong> Audit logs ghi lại tất cả hoạt động quan trọng trong hệ thống.
           Dữ liệu này được lưu trữ vĩnh viễn để đảm bảo tính minh bạch và truy vết.
         </p>
       </div>

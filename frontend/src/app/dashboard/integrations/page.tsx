@@ -27,13 +27,18 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  READY: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20',
-  CONFIG_REQUIRED: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20',
-  CONNECT_REQUIRED: 'text-blue-600 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20',
-  CONNECTOR_REQUIRED: 'text-gray-500 bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20',
-  NO_SOURCES: 'text-orange-600 bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20',
-  COMING_SOON: 'text-gray-500 bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/20',
+  READY: 'text-success bg-success/10 border-success/25',
+  CONFIG_REQUIRED: 'text-warning bg-warning/10 border-warning/25',
+  CONNECT_REQUIRED: 'text-destructive bg-destructive/10 border-destructive/25',
+  CONNECTOR_REQUIRED: 'text-paper-faint bg-void-raised border-edge',
+  NO_SOURCES: 'text-warning bg-warning/[0.06] border-warning/20',
+  COMING_SOON: 'text-paper-faint bg-void-raised border-edge',
 };
+
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const focusRingOffset =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
 
 export default function IntegrationsPage() {
   const [caps, setCaps] = useState<Capabilities>({});
@@ -79,7 +84,7 @@ export default function IntegrationsPage() {
       key: 'web',
       label: 'Web Search',
       icon: Globe,
-      color: 'text-indigo-500',
+      color: 'text-signal dark:text-signal-bright',
       description: 'Thu thập mentions từ toàn bộ web qua Search API.',
       action: null,
       actionLabel: null,
@@ -88,7 +93,7 @@ export default function IntegrationsPage() {
       key: 'youtube',
       label: 'YouTube',
       icon: Youtube,
-      color: 'text-red-500',
+      color: 'text-paper-muted',
       description: 'Thu thập video, bình luận từ YouTube qua Data API v3.',
       action: null,
       actionLabel: null,
@@ -97,7 +102,7 @@ export default function IntegrationsPage() {
       key: 'facebook',
       label: 'Facebook',
       icon: Facebook,
-      color: 'text-blue-600',
+      color: 'text-paper-muted',
       description: 'Kết nối Facebook Page qua Meta OAuth để theo dõi bình luận.',
       action: handleMetaConnect,
       actionLabel: 'Connect',
@@ -106,7 +111,7 @@ export default function IntegrationsPage() {
       key: 'instagram',
       label: 'Instagram',
       icon: Instagram,
-      color: 'text-fuchsia-500',
+      color: 'text-paper-muted',
       description: 'Kết nối Instagram Business qua Meta OAuth.',
       action: handleMetaConnect,
       actionLabel: 'Connect',
@@ -115,7 +120,7 @@ export default function IntegrationsPage() {
       key: 'rss',
       label: 'RSS Feeds',
       icon: Rss,
-      color: 'text-orange-500',
+      color: 'text-paper-muted',
       description: 'Theo dõi RSS/Atom feeds từ blog, báo điện tử.',
       action: () => router.push('/dashboard/sources'),
       actionLabel: 'Add RSS Source',
@@ -124,7 +129,7 @@ export default function IntegrationsPage() {
       key: 'twitter',
       label: 'X / Twitter',
       icon: Twitter,
-      color: 'text-sky-500',
+      color: 'text-paper-muted',
       description: 'Thu thập tweets, threads qua X API v2.',
       action: null,
       actionLabel: null,
@@ -133,7 +138,7 @@ export default function IntegrationsPage() {
       key: 'tiktok',
       label: 'TikTok',
       icon: Video,
-      color: 'text-pink-500',
+      color: 'text-paper-muted',
       description: 'Chưa có connector TikTok hợp pháp khả dụng.',
       action: null,
       actionLabel: null,
@@ -143,7 +148,7 @@ export default function IntegrationsPage() {
       key: 'podcasts',
       label: 'Podcasts',
       icon: Mic,
-      color: 'text-purple-500',
+      color: 'text-paper-muted',
       description: 'Thu thập từ podcast platforms.',
       action: null,
       actionLabel: null,
@@ -155,18 +160,18 @@ export default function IntegrationsPage() {
     <div className="space-y-6 max-w-[1200px] mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-            <Link2 className="w-6 h-6 text-indigo-500" />
+          <h1 className="text-2xl font-bold text-paper tracking-wide flex items-center gap-2">
+            <Link2 className="w-6 h-6 text-signal dark:text-signal-bright" />
             Integrations
           </h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-paper-muted mt-1">
             Trạng thái kết nối với từng nguồn dữ liệu và nền tảng mạng xã hội.
           </p>
         </div>
         <button
           onClick={fetchCapabilities}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+          className={`flex items-center gap-2 px-4 py-2 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-lg font-medium text-sm transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 ${focusRingOffset}`}
         >
           <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Làm mới
@@ -174,7 +179,7 @@ export default function IntegrationsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-32 text-slate-500 dark:text-gray-400">
+        <div className="flex items-center justify-center h-32 text-paper-muted">
           <RefreshCcw className="w-5 h-5 animate-spin mr-2" /> Đang tải trạng thái...
         </div>
       ) : (
@@ -189,49 +194,49 @@ export default function IntegrationsPage() {
             return (
               <div
                 key={intg.key}
-                className="bg-white dark:bg-[#050A15] rounded-2xl shadow border border-gray-200 dark:border-white/10 p-6"
+                className="bg-void-surface rounded-2xl border border-edge p-6"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center border border-gray-100 dark:border-white/10`}>
+                    <div className={`w-12 h-12 rounded-xl bg-void-raised flex items-center justify-center border border-edge`}>
                       <intg.icon className={`w-6 h-6 ${intg.color}`} />
                     </div>
                     <div>
-                      <h2 className="font-bold text-slate-900 dark:text-white">{intg.label}</h2>
-                      <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 max-w-sm">{intg.description}</p>
+                      <h2 className="font-bold text-paper">{intg.label}</h2>
+                      <p className="text-xs text-paper-muted mt-0.5 max-w-sm">{intg.description}</p>
                     </div>
                   </div>
-                  <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${statusClass}`}>
+                  <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-eyebrow px-2.5 py-1 rounded-lg border ${statusClass}`}>
                     {statusLabel}
                   </span>
                 </div>
 
                 <div className="mt-4 flex items-center gap-3">
                   {isReady ? (
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-success">
                       <CheckCircle2 className="w-4 h-4" />
                       Đang hoạt động — dữ liệu đang được thu thập
                     </div>
                   ) : intg.action && (status === 'CONNECT_REQUIRED' || status === 'NO_SOURCES') ? (
                     <button
                       onClick={intg.action}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors"
+                      className={`flex items-center gap-2 px-4 py-2 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white text-sm font-bold rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       {intg.actionLabel}
                     </button>
                   ) : status === 'CONFIG_REQUIRED' ? (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="flex items-center gap-1.5 text-xs text-warning">
                       <AlertCircle className="w-3.5 h-3.5" />
                       Cần cấu hình API key trên server — liên hệ admin
                     </div>
                   ) : status === 'CONNECTOR_REQUIRED' ? (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <div className="flex items-center gap-1.5 text-xs text-paper-faint">
                       <AlertCircle className="w-3.5 h-3.5" />
                       Không có connector hợp pháp — Connector required
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <div className="flex items-center gap-1.5 text-xs text-paper-faint">
                       <Clock className="w-3.5 h-3.5" />
                       Coming soon
                     </div>
@@ -240,7 +245,7 @@ export default function IntegrationsPage() {
                   {intg.key === 'facebook' || intg.key === 'instagram' ? (
                     <Link
                       href="/dashboard/integrations/meta"
-                      className="ml-auto text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                      className={`ml-auto text-xs text-signal dark:text-signal-bright hover:underline flex items-center gap-1 rounded ${focusRing}`}
                     >
                       Quản lý tài khoản <ExternalLink className="w-3 h-3" />
                     </Link>

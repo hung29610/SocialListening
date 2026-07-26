@@ -22,7 +22,7 @@ const PROVIDER_OPTIONS = [
     name: 'Google Gemini',
     description: 'Gemini 2.5 Flash, 2.0 Flash, 1.5 Pro',
     icon: '✦',
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'bg-signal',
     models: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
   },
   {
@@ -30,7 +30,7 @@ const PROVIDER_OPTIONS = [
     name: 'OpenAI GPT',
     description: 'GPT-4o, GPT-4o Mini, GPT-4 Turbo',
     icon: '◎',
-    gradient: 'from-emerald-500 to-teal-500',
+    gradient: 'bg-signal',
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
   },
   {
@@ -38,7 +38,7 @@ const PROVIDER_OPTIONS = [
     name: 'Custom Provider',
     description: 'OpenAI-compatible API (Ollama, Together, Groq...)',
     icon: '⚙',
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'bg-signal',
     models: [],
   },
 ];
@@ -161,7 +161,7 @@ export default function AIModelSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+        <Loader2 className="w-6 h-6 animate-spin motion-reduce:animate-none text-signal dark:text-signal-bright" />
       </div>
     );
   }
@@ -172,34 +172,34 @@ export default function AIModelSettings() {
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+        <h2 className="text-2xl font-bold text-paper flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-signal flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           Cấu hình AI Model
         </h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-2">
+        <p className="text-sm text-paper-muted mt-2">
           Chọn AI provider và cấu hình cho tính năng AI Assistant. Khách hàng sẽ được tính phí khi sử dụng tính năng AI.
         </p>
       </div>
 
       {/* Enable/Disable Toggle */}
-      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-void-raised border border-edge rounded-xl">
         <div className="flex items-center gap-3">
-          <Zap className={`w-5 h-5 ${isEnabled ? 'text-emerald-400' : 'text-gray-500'}`} />
+          <Zap className={`w-5 h-5 ${isEnabled ? 'text-success' : 'text-paper-faint'}`} />
           <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">Kích hoạt AI Assistant</p>
-            <p className="text-xs text-slate-500 dark:text-gray-400">Bật/tắt tính năng chat với AI cho tất cả người dùng</p>
+            <p className="text-sm font-semibold text-paper">Kích hoạt AI Assistant</p>
+            <p className="text-xs text-paper-muted">Bật/tắt tính năng chat với AI cho tất cả người dùng</p>
           </div>
         </div>
         <button
           onClick={() => setIsEnabled(!isEnabled)}
-          className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-            isEnabled ? 'bg-emerald-500' : 'bg-gray-600'
+          className={`relative w-12 h-6 rounded-full transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 ${
+            isEnabled ? 'bg-signal' : 'bg-edge-strong'
           }`}
         >
           <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-void-surface rounded-full shadow transition-transform duration-200 motion-reduce:transition-none ${
               isEnabled ? 'translate-x-6' : ''
             }`}
           />
@@ -208,28 +208,28 @@ export default function AIModelSettings() {
 
       {/* Provider Selection */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3">Chọn AI Provider</label>
+        <label className="block text-sm font-semibold text-paper-muted mb-3">Chọn AI Provider</label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {PROVIDER_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => handleProviderChange(opt.id)}
-              className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+              className={`relative p-4 rounded-xl border-2 text-left transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 ${
                 provider === opt.id
-                  ? 'border-indigo-500 bg-indigo-500/5 dark:bg-indigo-500/10 shadow-lg shadow-indigo-500/10'
-                  : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-white/5'
+                  ? 'border-signal bg-signal/10'
+                  : 'border-edge hover:border-edge-strong bg-void-surface'
               }`}
             >
               {provider === opt.id && (
                 <div className="absolute top-2 right-2">
-                  <CheckCircle className="w-4 h-4 text-indigo-400" />
+                  <CheckCircle className="w-4 h-4 text-signal dark:text-signal-bright" />
                 </div>
               )}
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${opt.gradient} flex items-center justify-center text-white text-lg font-bold mb-3`}>
+              <div className={`w-10 h-10 rounded-lg ${opt.gradient} flex items-center justify-center text-white text-lg font-bold mb-3`}>
                 {opt.icon}
               </div>
-              <p className="font-semibold text-slate-900 dark:text-white text-sm">{opt.name}</p>
-              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{opt.description}</p>
+              <p className="font-semibold text-paper text-sm">{opt.name}</p>
+              <p className="text-xs text-paper-muted mt-1">{opt.description}</p>
             </button>
           ))}
         </div>
@@ -237,7 +237,7 @@ export default function AIModelSettings() {
 
       {/* API Key */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">API Key</label>
+        <label className="block text-sm font-semibold text-paper-muted mb-2">API Key</label>
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
@@ -245,18 +245,18 @@ export default function AIModelSettings() {
             onChange={(e) => setApiKey(e.target.value)}
             placeholder={config?.api_key_masked || 'Nhập API key...'}
             autoComplete="new-password"
-            className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 pr-10"
+            className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal pr-10"
           />
           <button
             type="button"
             onClick={() => setShowApiKey(!showApiKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-paper-faint hover:text-paper rounded transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
           >
             {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
         {config?.api_key_masked && !apiKey && (
-          <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+          <p className="text-xs text-paper-faint mt-1">
             Key hiện tại: {config.api_key_masked} — Nhập key mới để thay đổi
           </p>
         )}
@@ -264,15 +264,15 @@ export default function AIModelSettings() {
 
       {/* Model Selection */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Model</label>
+        <label className="block text-sm font-semibold text-paper-muted mb-2">Model</label>
         {selectedProvider && selectedProvider.models.length > 0 ? (
           <select
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none"
+            className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal appearance-none"
           >
             {selectedProvider.models.map((m) => (
-              <option key={m} value={m} className="bg-slate-800">{m}</option>
+              <option key={m} value={m} className="bg-void-surface">{m}</option>
             ))}
           </select>
         ) : (
@@ -281,7 +281,7 @@ export default function AIModelSettings() {
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
             placeholder="Nhập tên model (vd: llama-3.1-70b)"
-            className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
           />
         )}
       </div>
@@ -289,15 +289,15 @@ export default function AIModelSettings() {
       {/* Custom Provider: Base URL */}
       {provider === 'custom' && (
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Base URL</label>
+          <label className="block text-sm font-semibold text-paper-muted mb-2">Base URL</label>
           <input
             type="text"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://api.together.ai/v1"
-            className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
           />
-          <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+          <p className="text-xs text-paper-faint mt-1">
             URL gốc của API OpenAI-compatible (không cần thêm /chat/completions)
           </p>
         </div>
@@ -305,15 +305,15 @@ export default function AIModelSettings() {
 
       {/* System Prompt */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">System Prompt (Chỉ dẫn AI)</label>
+        <label className="block text-sm font-semibold text-paper-muted mb-2">System Prompt (Chỉ dẫn AI)</label>
         <textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
           placeholder="Nhập chỉ dẫn cho AI... (ví dụ: Bạn là trợ lý AI chuyên phân tích thương hiệu. Trả lời bằng tiếng Việt.)"
           rows={4}
-          className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
+          className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal resize-y"
         />
-        <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+        <p className="text-xs text-paper-faint mt-1">
           Chỉ dẫn này sẽ được gửi kèm mỗi lần gọi AI để phân tích sentiment, tạo báo cáo, và trả lời chat.
         </p>
       </div>
@@ -321,7 +321,7 @@ export default function AIModelSettings() {
       {/* Advanced Settings */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-paper-muted mb-2">
             Temperature: {temperature.toFixed(1)}
           </label>
           <input
@@ -331,22 +331,22 @@ export default function AIModelSettings() {
             step="0.1"
             value={temperature}
             onChange={(e) => setTemperature(parseFloat(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-signal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
           />
-          <div className="flex justify-between text-xs text-slate-500 dark:text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-paper-faint mt-1">
             <span>Chính xác (0.0)</span>
             <span>Sáng tạo (2.0)</span>
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">Max Tokens</label>
+          <label className="block text-sm font-semibold text-paper-muted mb-2">Max Tokens</label>
           <input
             type="number"
             min={128}
             max={16384}
             value={maxTokens}
             onChange={(e) => setMaxTokens(parseInt(e.target.value) || 2048)}
-            className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="w-full px-4 py-3 bg-void-surface border border-edge-strong rounded-xl text-paper tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
           />
         </div>
       </div>
@@ -355,21 +355,21 @@ export default function AIModelSettings() {
       {testResult && (
         <div className={`p-4 rounded-xl border ${
           testResult.success
-            ? 'bg-emerald-500/5 border-emerald-500/20'
-            : 'bg-red-500/5 border-red-500/20'
+            ? 'bg-success/10 border-success/25'
+            : 'bg-destructive/10 border-destructive/25'
         }`}>
           <div className="flex items-center gap-2 mb-1">
             {testResult.success ? (
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <CheckCircle className="w-4 h-4 text-success" />
             ) : (
-              <XCircle className="w-4 h-4 text-red-400" />
+              <XCircle className="w-4 h-4 text-destructive" />
             )}
-            <span className={`text-sm font-semibold ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className={`text-sm font-semibold ${testResult.success ? 'text-success' : 'text-destructive'}`}>
               {testResult.message}
             </span>
           </div>
           {testResult.preview && (
-            <p className="text-xs text-slate-600 dark:text-gray-400 mt-2 italic">
+            <p className="text-xs text-paper-muted mt-2 italic">
               AI trả lời: &ldquo;{testResult.preview}&rdquo;
             </p>
           )}
@@ -381,17 +381,17 @@ export default function AIModelSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+          className="flex items-center gap-2 px-6 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-xl font-medium transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <Save className="w-4 h-4" />}
           Lưu cấu hình
         </button>
         <button
           onClick={handleTest}
           disabled={testing || (!apiKey && !config?.api_key_masked)}
-          className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-void-surface hover:bg-void-raised text-paper border border-edge-strong rounded-xl font-medium transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
         >
-          {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube2 className="w-4 h-4" />}
+          {testing ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <TestTube2 className="w-4 h-4" />}
           Kiểm tra kết nối
         </button>
       </div>
