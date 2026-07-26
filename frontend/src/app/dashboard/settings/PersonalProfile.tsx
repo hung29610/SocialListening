@@ -139,18 +139,18 @@ export default function PersonalProfile() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">Hồ sơ cá nhân</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Quản lý thông tin cá nhân của bạn</p>
+        <h2 className="text-xl font-bold text-paper tracking-wide">Hồ sơ cá nhân</h2>
+        <p className="text-sm text-paper-muted mt-1">Quản lý thông tin cá nhân của bạn</p>
       </div>
 
       {/* Avatar */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6">
         <div className="flex items-center space-x-6">
-          <div className="w-24 h-24 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-full flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="w-24 h-24 bg-void-raised border border-edge-strong rounded-full flex items-center justify-center overflow-hidden shadow-inner">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <UserIcon className="w-12 h-12 text-gray-500" />
+              <UserIcon className="w-12 h-12 text-paper-faint" />
             )}
           </div>
           <div>
@@ -164,88 +164,88 @@ export default function PersonalProfile() {
             <button 
               onClick={handleUploadClick}
               disabled={uploading}
-              className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 font-medium"
+              className="flex items-center px-4 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none disabled:bg-void-raised disabled:text-paper-faint disabled:cursor-not-allowed font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
             >
               <Upload className="w-4 h-4 mr-2" />
               {uploading ? t('common.loading') : t('common.uploadLogo')}
             </button>
-            <p className="text-xs text-gray-500 mt-2 font-medium">JPG, PNG. Tối đa 2MB</p>
+            <p className="text-xs text-paper-faint mt-2 font-medium">JPG, PNG. Tối đa 2MB</p>
           </div>
         </div>
       </div>
 
       {/* Profile Form */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+      <div className="bg-void-surface border border-edge rounded-xl shadow-sm p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               Họ và tên *
             </label>
             <input
               type="text"
               value={profile.full_name}
               onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               Email
             </label>
             <input
               type="email"
               value={profile.email}
               disabled
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B]/50 border border-slate-200 dark:border-gray-800 rounded-xl text-gray-500 cursor-not-allowed opacity-70"
+              className="w-full px-4 py-2.5 bg-void-raised border border-edge rounded-xl text-paper-faint cursor-not-allowed opacity-70"
             />
-            <p className="text-xs text-gray-500 mt-1.5 font-medium">Email không thể thay đổi</p>
+            <p className="text-xs text-paper-faint mt-1.5 font-medium">Email không thể thay đổi</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               Số điện thoại
             </label>
             <input
               type="tel"
               value={profile.phone}
               onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder="+84 xxx xxx xxx"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               Phòng ban
             </label>
             <input
               type="text"
               value={profile.department}
               onChange={(e) => setProfile({ ...profile, department: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+              className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
               placeholder="Ví dụ: Marketing"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-paper-muted mb-2">
               Vai trò
             </label>
             <div className="flex items-center space-x-3 mt-1">
               <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${getRoleBadgeColor(profile.role)}`}>
                 {getRoleDisplayName(profile.role)}
               </span>
-              <span className="text-xs font-medium text-gray-500">(Chỉ admin có thể thay đổi)</span>
+              <span className="text-xs font-medium text-paper-faint">(Chỉ admin có thể thay đổi)</span>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-gray-800">
+        <div className="flex justify-end pt-4 border-t border-edge">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 font-medium"
+            className="flex items-center px-6 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none disabled:bg-void-raised disabled:text-paper-faint disabled:cursor-not-allowed font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
           >
             <Save className="w-4 h-4 mr-2" />
             {saving ? t('common.saving') : t('settings.saveChanges')}
