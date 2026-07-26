@@ -4,15 +4,6 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { API_BASE_URL, auth, resetAuthRedirectLock } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Display } from '@/components/ui/Display';
-import {
-  AuthShell,
-  authErrorClass,
-  authInputClass,
-  authLabelClass,
-  authLinkClass,
-  authSubmitClass,
-} from '@/components/auth/AuthShell';
 
 function getBackendUrl() {
   return (API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
@@ -188,128 +179,124 @@ function LoginContent() {
   };
 
   return (
-    <AuthShell
-      /* COPY_TBD: draft brand-zone copy below — pending human copywriting */
-      brandEyebrow="Nope360 · Social listening"
-      brandHeadline="Internet là nhiễu. Nope360 lọc ra tín hiệu."
-      brandBody="Đăng nhập để theo dõi mentions, sentiment và cảnh báo của thương hiệu trong một không gian làm việc."
-    >
-      <div>
-        <p className="font-display text-eyebrow font-semibold uppercase text-signal dark:text-signal-bright">
-          Nope360 workspace
-        </p>
-        <Display as="h1" size="md" className="mt-3 break-words text-paper">
-          Đăng nhập Nope360
-        </Display>
-        <p className="mt-2 text-sm text-paper-muted">Đăng nhập vào hệ thống</p>
+    <div className="premium-auth-shell flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6">
+      <div className="premium-auth-card w-full max-w-md min-w-0 space-y-6 rounded-[1.75rem] p-5 sm:p-8">
+        <div className="text-center">
+          <div className="premium-auth-mark mx-auto grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-teal-50">N</div>
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">Nope360 workspace</p>
+          <h1 className="mt-2 break-words text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">Đăng nhập Nope360</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Đăng nhập vào hệ thống</p>
 
-        {/* Server warm-up indicator */}
-        {serverStatus === 'checking' && !loading && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-paper-muted">
-            <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Đang kiểm tra trạng thái máy chủ...
-          </p>
-        )}
-        {serverStatus === 'ready' && !loading && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-sentiment-positive">
-            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            Máy chủ sẵn sàng
-          </p>
-        )}
-        {serverStatus === 'slow' && !loading && (
-          <div className="mt-3 rounded-xl border border-edge bg-void-raised/70 p-3 text-left text-xs text-paper-muted">
-            <p className="mb-1 font-semibold text-paper">⚠️ Lưu ý (Render Free Tier):</p>
-            <p>Máy chủ đang ngủ. Quá trình đăng nhập đầu tiên có thể mất <span className="font-bold text-paper">45-60 giây</span> để đánh thức hệ thống. Vui lòng bấm Đăng nhập và đợi.</p>
-          </div>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        {error && (
-          <div id="login-error" role="alert" className={authErrorClass}>
-            {error}
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="email" className={authLabelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            aria-describedby={error ? 'login-error' : undefined}
-            className={authInputClass}
-            placeholder="admin@example.com"
-            autoComplete="email"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className={authLabelClass}>
-            Mật khẩu
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            aria-describedby={error ? 'login-error' : undefined}
-            className={authInputClass}
-            placeholder="••••••••"
-            autoComplete="current-password"
-          />
-        </div>
-
-        <button type="submit" disabled={loading} className={authSubmitClass}>
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          {/* Server warm-up indicator */}
+          {serverStatus === 'checking' && !loading && (
+            <p className="mt-2 text-xs text-amber-500 flex items-center justify-center gap-1.5">
+              <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {btnLabel()}
-            </span>
-          ) : (
-            'Đăng nhập'
+              Đang kiểm tra trạng thái máy chủ...
+            </p>
           )}
-        </button>
-      </form>
-
-      {/* Elapsed time hint when login is slow */}
-      {loading && elapsedSec >= 5 && (
-        <p className="mt-4 text-center text-xs text-paper-muted">
-          {elapsedSec < 50
-            ? `Hệ thống đang khởi động (thường mất ~50s), vui lòng không tắt trang...`
-            : 'Sắp xong rồi, vui lòng đợi thêm chút nữa...'}
-        </p>
-      )}
-
-      <div className="mt-8 flex flex-col items-center gap-3 border-t border-edge pt-6">
-        <div className="text-center text-sm text-paper-muted">
-          <p>Chưa có tài khoản?{' '}
-            <a href="/register" className={authLinkClass}>
-              Đăng ký ngay
-            </a>
-          </p>
+          {serverStatus === 'ready' && !loading && (
+            <p className="mt-2 text-xs text-emerald-500 flex items-center justify-center gap-1.5">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+              Máy chủ sẵn sàng
+            </p>
+          )}
+          {serverStatus === 'slow' && !loading && (
+            <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30 rounded text-xs text-orange-600 dark:text-orange-400 text-left">
+              <p className="font-semibold mb-1">⚠️ Lưu ý (Render Free Tier):</p>
+              <p>Máy chủ đang ngủ. Quá trình đăng nhập đầu tiên có thể mất <span className="font-bold">45-60 giây</span> để đánh thức hệ thống. Vui lòng bấm Đăng nhập và đợi.</p>
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={handleResetSession}
-          type="button"
-          className="text-xs font-medium text-paper-muted underline underline-offset-2 transition-colors hover:text-paper motion-reduce:transition-none"
-        >
-          Reset phiên đăng nhập
-        </button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800/30">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
+              placeholder="admin@example.com"
+              autoComplete="email"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Mật khẩu
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="premium-auth-submit w-full rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {btnLabel()}
+              </span>
+            ) : (
+              'Đăng nhập'
+            )}
+          </button>
+        </form>
+
+        {/* Elapsed time hint when login is slow */}
+        {loading && elapsedSec >= 5 && (
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+            {elapsedSec < 50 
+              ? `Hệ thống đang khởi động (thường mất ~50s), vui lòng không tắt trang...`
+              : 'Sắp xong rồi, vui lòng đợi thêm chút nữa...'}
+          </p>
+        )}
+
+        <div className="flex flex-col items-center gap-3 mt-4">
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>Chưa có tài khoản?{' '}
+              <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                Đăng ký ngay
+              </a>
+            </p>
+          </div>
+          
+          <button
+            onClick={handleResetSession}
+            type="button"
+            className="text-xs font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 underline underline-offset-2 transition-colors"
+          >
+            Reset phiên đăng nhập
+          </button>
+        </div>
       </div>
-    </AuthShell>
+    </div>
   );
 }
 
