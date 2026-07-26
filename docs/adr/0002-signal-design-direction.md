@@ -26,6 +26,10 @@ Constitution (binding for all epic workers; violations fail review):
 
 **Motion library: Framer Motion** (v11, already a project dependency). GSAP is rejected for this epic — it would add a new runtime dependency for capabilities Framer Motion + a hand-rolled canvas particle field already cover. The particle hero is plain canvas 2D, not WebGL.
 
+**Display typeface: Space Grotesk** via `next/font/google` (latin + vietnamese subsets, exposed as `--font-display` / Tailwind `font-display`; zero dependency changes). Decided 2026-07-26 after W-A review flagged Inter-as-display as the generic-SaaS tell the constitution forbids. Body text remains Inter.
+
+**Lint gate:** the repo ships eslint deps with no config (pre-existing gap, three workers confirmed). An epic chore ticket adds `.eslintrc.json` (`next/core-web-vitals`); legacy-code violations may be downgraded to warnings with an explicit documented list, so the epic's lint gate means "no new errors". Full lint enforcement over the assembled epic happens at the W-F evidence stage before the epic→main PR.
+
 **Scope:** frontend only. No `backend/**`, no `alembic/**`; the only permitted dependency additions are dev-deps for evidence (axe/Playwright), each recorded here if added.
 
 ## Supersession
