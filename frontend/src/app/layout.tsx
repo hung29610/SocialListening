@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -7,13 +7,6 @@ import { DialogProvider } from '@/components/ui/Dialog'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
-
-/* SIGNAL display face (Epic SIGNAL, ADR 0002) — exposed as a CSS variable
-   only; body text stays Inter. Consumed via Tailwind `font-display`. */
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin', 'vietnamese'],
-  variable: '--font-display',
-})
 
 export const metadata: Metadata = {
   title: 'Nope360',
@@ -37,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${inter.className} ${spaceGrotesk.variable}`}>
+      <body className={inter.className}>
         <LanguageProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <AuthProvider>

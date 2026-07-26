@@ -1,6 +1,3 @@
-/* SIGNAL design tokens (Epic SIGNAL, ADR 0002) — single tokens source */
-@import '../styles/tokens.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
