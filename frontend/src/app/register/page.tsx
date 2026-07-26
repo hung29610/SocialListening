@@ -4,6 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Display } from '@/components/ui/Display';
+import {
+  AuthShell,
+  authErrorClass,
+  authInputClass,
+  authLabelClass,
+  authLinkClass,
+  authSubmitClass,
+} from '@/components/auth/AuthShell';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -64,109 +73,113 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="premium-auth-shell flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6">
-      <div className="premium-auth-card w-full max-w-md min-w-0 space-y-6 rounded-[1.75rem] p-5 sm:p-8">
-        <div className="text-center">
-          <div className="premium-auth-mark mx-auto grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-teal-50">N</div>
-          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-teal-100/70">Nope360 workspace</p>
-          <h2 className="mt-2 text-center text-[clamp(1.75rem,8vw,2.25rem)] font-bold leading-tight tracking-[-0.035em] text-gray-900 dark:text-white">
-            Đăng ký tài khoản
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Hoặc{' '}
-            <Link href="/login" className="font-semibold text-primary transition-colors hover:text-primary-hover">
-              đăng nhập nếu đã có tài khoản
-            </Link>
-          </p>
-        </div>
+    <AuthShell
+      /* COPY_TBD: draft brand-zone copy below — pending human copywriting */
+      brandEyebrow="Nope360 · Social listening"
+      brandHeadline="Tách tín hiệu khỏi nhiễu, từ hôm nay."
+      brandBody="Tạo tài khoản để thiết lập dự án, quét mentions và nhận cảnh báo sớm khi có rủi ro."
+    >
+      <div>
+        <p className="font-display text-eyebrow font-semibold uppercase text-signal dark:text-signal-bright">
+          Nope360 workspace
+        </p>
+        <Display as="h1" size="md" className="mt-3 break-words text-paper">
+          Đăng ký tài khoản
+        </Display>
+        <p className="mt-2 text-sm text-paper-muted">
+          Hoặc{' '}
+          <Link href="/login" className={authLinkClass}>
+            đăng nhập nếu đã có tài khoản
+          </Link>
+        </p>
+      </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
-              {error}
-            </div>
-          )}
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        {error && (
+          <div id="register-error" role="alert" className={authErrorClass}>
+            {error}
+          </div>
+        )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="full_name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Họ và tên
-              </label>
-              <input
-                id="full_name"
-                name="full_name"
-                type="text"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Nguyễn Văn A"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="email@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Mật khẩu
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Ít nhất 6 ký tự"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Xác nhận mật khẩu
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="block w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 dark:border-white/10 dark:bg-white/[0.07] dark:text-white dark:placeholder:text-slate-300"
-                placeholder="Nhập lại mật khẩu"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              />
-            </div>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="full_name" className={authLabelClass}>
+              Họ và tên
+            </label>
+            <input
+              id="full_name"
+              name="full_name"
+              type="text"
+              required
+              aria-describedby={error ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder="Nguyễn Văn A"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+            />
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="premium-auth-submit flex w-full justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-            </button>
+            <label htmlFor="email" className={authLabelClass}>
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              aria-describedby={error ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder="email@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+
+          <div>
+            <label htmlFor="password" className={authLabelClass}>
+              Mật khẩu
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              aria-describedby={error ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder="Ít nhất 6 ký tự"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className={authLabelClass}>
+              Xác nhận mật khẩu
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              aria-describedby={error ? 'register-error' : undefined}
+              className={authInputClass}
+              placeholder="Nhập lại mật khẩu"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" disabled={loading} className={authSubmitClass}>
+            {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+          </button>
+        </div>
+      </form>
+    </AuthShell>
   );
 }
