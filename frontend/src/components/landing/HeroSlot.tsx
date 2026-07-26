@@ -13,8 +13,10 @@ import { SignalWaveMark } from '@/components/public/PublicSiteShell';
  *
  * INTEGRATION (one line, in src/app/page.tsx):
  *   replace  `import HeroSlot from '@/components/landing/HeroSlot';`
- *   with     `import HeroSlot from '@/components/landing/hero/SignalHero';`
- * per the props contract documented in state/EPIC_SIGNAL_WB_RESULT.md.
+ *   with     `import { SignalHero as HeroSlot } from '@/components/landing/hero';`
+ * per the mount contract documented in state/EPIC_SIGNAL_WB_RESULT.md
+ * (props `{ className?: string }`; SignalHero renders the page <h1>,
+ * exactly like this fallback, so the swap keeps heading order intact).
  */
 
 /* Truthful trust strip — product facts verified in the repo
