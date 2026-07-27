@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { createElement, type CSSProperties, type ReactNode } from 'react';
 
 /**
  * SIGNAL chart theme — central recharts styling on the SIGNAL tokens
@@ -18,23 +18,27 @@ import type { CSSProperties } from 'react';
 
 export const chartColors = {
   /** Primary / total series — the one signal accent, used sparingly. */
-  accent: 'hsl(var(--signal))',
+  accent: 'hsl(var(--chart-1))',
   /** Hover / active emphasis of the accent series. */
-  accentBright: 'hsl(var(--signal-bright))',
+  accentBright: 'hsl(var(--chart-2))',
 
   /** Sentiment data encoding. */
-  positive: 'hsl(var(--sentiment-positive))',
-  negative: 'hsl(var(--sentiment-negative))',
-  neutral: 'hsl(var(--sentiment-neutral))',
+  positive: 'hsl(var(--chart-3))',
+  negative: 'hsl(var(--chart-5))',
+  neutral: 'hsl(var(--chart-4))',
 
   /** Neutral series (volume, reach, secondary lines, unknown buckets). */
-  ink: 'hsl(var(--paper))',
-  inkMuted: 'hsl(var(--paper-muted))',
-  inkFaint: 'hsl(var(--paper-faint))',
+  ink: 'hsl(var(--chart-6))',
+  inkMuted: 'hsl(var(--chart-6))',
+  inkFaint: 'hsl(var(--chart-8))',
 
   /** Alert / at-risk series (non-sentiment status; legacy semantic token). */
-  warning: 'hsl(var(--warning))',
+  warning: 'hsl(var(--chart-7))',
 } as const;
+
+export function ChartA11ySummary({ id, children }: { id: string; children: ReactNode }) {
+  return createElement('p', { id, className: 'sr-only' }, children);
+}
 
 /** CartesianGrid props. */
 export const chartGrid = {

@@ -16,6 +16,7 @@ import {
   chartTooltipStyle,
   chartTooltipItemStyle,
   chartLegendStyle,
+  ChartA11ySummary,
 } from './chartTheme';
 
 interface TrendChartProps {
@@ -33,7 +34,10 @@ export default function TrendChart({ data, isLoading }: TrendChartProps) {
   }
 
   return (
-    <div className="h-72 w-full">
+    <div className="h-72 w-full" role="img" aria-labelledby="trend-chart-summary">
+      <ChartA11ySummary id="trend-chart-summary">
+        Trend chart showing total mentions, negative mentions, alerts, and incidents across {data.length} data points.
+      </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} vertical={false} stroke={chartGrid.stroke} />

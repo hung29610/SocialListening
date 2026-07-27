@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useReducedMotion } from 'framer-motion';
 import {
   PieChart,
   Pie,
@@ -9,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { chartColors } from './chartTheme';
+import { chartColors, ChartA11ySummary } from './chartTheme';
 
 interface SentimentBreakdown {
   positive_count: number;
@@ -38,6 +39,7 @@ export default function MonitorSentimentChart({
   data,
   isLoading,
 }: MonitorSentimentChartProps) {
+  const reducedMotion = useReducedMotion();
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -112,7 +114,10 @@ export default function MonitorSentimentChart({
   };
 
   return (
-    <div className="h-72 w-full">
+    <div className="h-72 w-full" role="img" aria-labelledby="monitor-sentiment-chart-summary">
+      <ChartA11ySummary id="monitor-sentiment-chart-summary">
+        Sentiment chart showing {data.positive_count} positive, {data.neutral_count} neutral, and {data.negative_count} negative mentions.
+      </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -125,7 +130,8 @@ export default function MonitorSentimentChart({
             dataKey="value"
             strokeWidth={0}
             animationBegin={0}
-            animationDuration={800}
+            animationDuration={180}
+            isAnimationActive={!reducedMotion}
             animationEasing="ease-out"
             label={false}
           >

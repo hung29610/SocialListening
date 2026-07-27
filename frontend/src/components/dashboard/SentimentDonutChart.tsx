@@ -5,6 +5,7 @@ import {
   chartTooltipStyle,
   chartTooltipItemStyle,
   chartLegendStyle,
+  ChartA11ySummary,
 } from './chartTheme';
 
 interface SentimentData {
@@ -32,7 +33,10 @@ export default function SentimentDonutChart({ data, isLoading }: { data: Sentime
   ].filter(item => item.value > 0);
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-64 w-full" role="img" aria-labelledby="sentiment-donut-chart-summary">
+      <ChartA11ySummary id="sentiment-donut-chart-summary">
+        Sentiment donut chart showing {data.positive} positive, {data.neutral} neutral, {data.negative} negative, and {data.unknown || 0} unanalyzed mentions.
+      </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie

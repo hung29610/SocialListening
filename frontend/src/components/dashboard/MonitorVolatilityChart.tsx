@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useReducedMotion } from 'framer-motion';
 import {
   AreaChart,
   Area,
@@ -16,6 +17,7 @@ import {
   chartGrid,
   chartAxisTick,
   chartLegendStyle,
+  ChartA11ySummary,
 } from './chartTheme';
 
 interface VolatilityDataPoint {
@@ -40,6 +42,7 @@ export default function MonitorVolatilityChart({
   data,
   isLoading,
 }: MonitorVolatilityChartProps) {
+  const reducedMotion = useReducedMotion();
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -90,7 +93,10 @@ export default function MonitorVolatilityChart({
   };
 
   return (
-    <div className="h-72 w-full">
+    <div className="h-72 w-full" role="img" aria-labelledby="monitor-volatility-chart-summary">
+      <ChartA11ySummary id="monitor-volatility-chart-summary">
+        Volatility chart showing total, negative, and positive mentions across {data.length} dates.
+      </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           {/* Gradient definitions — stops resolve through SIGNAL chart tokens */}
@@ -148,7 +154,8 @@ export default function MonitorVolatilityChart({
             fill="url(#gradTotal)"
             dot={false}
             activeDot={{ r: 5, strokeWidth: 0, fill: chartColors.accentBright }}
-            animationDuration={1000}
+            isAnimationActive={!reducedMotion}
+            animationDuration={180}
           />
           <Area
             type="monotone"
@@ -159,7 +166,8 @@ export default function MonitorVolatilityChart({
             fill="url(#gradNegative)"
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
-            animationDuration={1200}
+            isAnimationActive={!reducedMotion}
+            animationDuration={180}
           />
           <Area
             type="monotone"
@@ -170,7 +178,8 @@ export default function MonitorVolatilityChart({
             fill="url(#gradPositive)"
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
-            animationDuration={1400}
+            isAnimationActive={!reducedMotion}
+            animationDuration={180}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -86,7 +86,10 @@ export default function CompetitorsPage() {
             <TrendingUp className="w-5 h-5 mr-2 text-signal dark:text-signal-bright" />
             Share of Voice (Thị phần thảo luận)
           </h3>
-          <div className="h-80">
+          <div className="h-80" role="img" aria-labelledby="competitor-share-chart-summary">
+            <p id="competitor-share-chart-summary" className="sr-only">
+              Share of voice chart showing live comparison values for configured competitors.
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data?.data || []}
@@ -121,7 +124,10 @@ export default function CompetitorsPage() {
             <BarChartIcon className="w-5 h-5 mr-2 text-paper-faint" />
             Cảm xúc (Sentiment)
           </h3>
-          <div className="h-80">
+          <div className="h-80" role="img" aria-labelledby="competitor-sentiment-chart-summary">
+            <p id="competitor-sentiment-chart-summary" className="sr-only">
+              Sentiment comparison chart showing positive, neutral, and negative analyzed mentions for configured competitors.
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
