@@ -87,6 +87,7 @@ function MonitorVisual() {
         )}
       </div>
       <div className="mt-6 space-y-2 border-t border-edge pt-5">
+        <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - scan state preview</p>
         <div className="flex items-center justify-between">
           <span className="text-xs text-paper-muted">Đang quét nguồn…</span>
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal motion-reduce:animate-none" />
@@ -101,9 +102,9 @@ function MonitorVisual() {
 
 function MentionsVisual() {
   const rows = [
-    { source: 'Facebook Page', sentiment: 'negative' },
-    { source: 'Báo & tin tức', sentiment: 'neutral' },
-    { source: 'Diễn đàn', sentiment: 'positive' },
+    { source: 'COPY_TBD source', sentiment: null },
+    { source: 'COPY_TBD source', sentiment: null },
+    { source: 'COPY_TBD source', sentiment: null },
   ] as const;
 
   return (
@@ -115,14 +116,14 @@ function MentionsVisual() {
         <Chip>Đã gộp trùng lặp</Chip>
       </div>
       <ul className="mt-5 space-y-3">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <li
-            key={row.source}
+            key={index}
             className="rounded-xl border border-edge bg-void-raised/60 p-4"
           >
             <div className="flex items-center justify-between gap-3">
               <Chip>{row.source}</Chip>
-              <SentimentBadge sentiment={row.sentiment} size="sm" />
+              <SentimentBadge sentiment={row.sentiment} label="COPY_TBD" size="sm" />
             </div>
             <div className="mt-3 space-y-2">
               <SkeletonLine width="92%" />

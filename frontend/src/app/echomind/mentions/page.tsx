@@ -42,9 +42,9 @@ export default function MentionsPage() {
 
   const getSourceIcon = (source: string) => {
     switch (source.toLowerCase()) {
-      case 'x': return <Twitter size={18} className="text-blue-400" />;
-      case 'reddit': return <MessageCircle size={18} className="text-orange-500" />;
-      default: return <Globe size={18} className="text-emerald-500" />;
+      case 'x': return <Twitter size={18} className="text-signal" />;
+      case 'reddit': return <MessageCircle size={18} className="text-paper-muted" />;
+      default: return <Globe size={18} className="text-paper-muted" />;
     }
   };
 

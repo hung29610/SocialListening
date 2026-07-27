@@ -49,16 +49,16 @@ export default function DashboardPage() {
   }, []);
 
   if (loading && !analytics) {
-    return <div className="text-slate-400 p-8 text-center">Loading dashboard...</div>;
+    return <div className="text-paper-muted p-8 text-center">Loading dashboard...</div>;
   }
 
   if (!analytics) return null;
 
   const StatCard = ({ title, value, icon: Icon, colorClass }: any) => (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex items-center justify-between">
+    <div className="bg-void-surface border border-edge rounded-xl p-6 flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-white">{value}</p>
+        <p className="text-sm font-medium text-paper-muted mb-1">{title}</p>
+        <p className="text-3xl font-bold text-paper">{value}</p>
       </div>
       <div className={`p-4 rounded-xl ${colorClass} bg-opacity-10`}>
         <Icon size={24} className={colorClass.replace('bg-', 'text-')} />
