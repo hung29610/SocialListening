@@ -154,6 +154,55 @@ known limitation and is out of scope for this PR.
 
 ---
 
+## Remaining Historical Migration Idempotency Audit
+
+Static analysis of `backend/alembic/versions/` found 22 historical migrations containing
+unguarded `add_column`, `create_table`, or `create_index` operations, including
+`batch_op` equivalents.
+
+This affects only databases with partially-applied migrations or schema objects created
+out of band. It does **not** affect normal upgrades of fresh databases where each migration
+runs once against its expected predecessor schema.
+
+| Migration | Non-idempotent statements |
+|---|---|
+| 001_initial.py | create_table, create_index |
+| 003_add_service_catalog.py | create_table, create_index |
+| 015_add_organization_settings.py | create_table |
+| 016_add_email_and_notification_settings.py | create_table |
+| 017_add_roles_and_permissions.py | create_table, create_index |
+| 018_add_api_keys_branding_audit_logs.py | create_table, create_index |
+| 019_fix_roles_table_schema.py | create_table, create_index |
+| 027_add_system_prompt_to_ai_config.py | add_column |
+| 05c3b568d49b_add_user_id_to_ai_model_config.py | add_column, create_index |
+| 0703f131f6ae_create_source_items_table.py | create_table, create_index |
+| 1d09402c6678_create_source_items_table.py | create_index |
+| 308ae8695f74_add_performance_indexes.py | create_index |
+| 3095ba7bef01_add_rss_collector_columns.py | add_column, create_index |
+| 46a47d2d65f8_add_scan_schedule_id_and_scan_logs.py | add_column, create_index |
+| 559c5ffc3273_add_multi_tenant_organizations_and_.py | add_column, create_table, create_index |
+| 5bd0ccefc51f_add_next_retry_at_and_payload_to_.py | add_column, create_index |
+| 5fe3f0fbfb82_add_verification_fields.py | add_column, create_index |
+| 7a8e2eb4683b_add_ai_usage_log.py | create_table, create_index |
+| 7c2e4d6b8a91_add_ai_chat_messages.py | create_table, create_index |
+| a34bcad08e54_enhance_worker_status.py | add_column |
+| bda1a60d4048_add_discovery_tables.py | create_table, create_index |
+| fab61847c68d_add_mention_visits.py | add_column, create_table, create_index |
+
+The static re-scan corrected the inherited audit in two places:
+
+- `020_add_display_name_to_roles.py` was removed because it already checks
+  `information_schema.columns` before adding `display_name`.
+- `46a47d2d65f8_add_scan_schedule_id_and_scan_logs.py` was added because
+  `crawl_jobs.scan_schedule_id` and its index are unguarded.
+
+The reference hardening approach is the live-reflection guard used by #173: inspect target
+tables, columns, and indexes immediately before DDL; create only missing objects; and fail
+explicitly when a required prerequisite table is absent. The follow-up work is tracked in
+#189.
+
+---
+
 ## Repo Hygiene
 
 - **`pgsql/` directory**: Not tracked by Git. Correctly ignored by `.gitignore` (line 50).
