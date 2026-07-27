@@ -238,3 +238,15 @@ For every coding task, report:
 - Risks or notes
 - Whether it is ready for PR
 - Ask for user confirmation before PR/merge
+
+## Agent skills
+
+### Issue tracker
+GitHub issues for `nope-chouhi/SocialListening`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+Custom labels: `bug`, `chore`, `feature`, `blocked`, `needs-spec`. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+Single-context. See `docs/agents/domain.md`.
