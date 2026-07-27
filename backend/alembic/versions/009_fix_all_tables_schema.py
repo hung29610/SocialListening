@@ -19,35 +19,88 @@ depends_on = None
 def upgrade() -> None:
     """
     Fix all tables to match their SQLAlchemy models.
-    Uses IF NOT EXISTS to be idempotent.
+    Uses idempotent PostgreSQL DDL.
     """
     
     conn = op.get_bind()
     
     # Create all enum types
+    # Issue #188: PostgreSQL has never supported CREATE TYPE IF NOT EXISTS.
+    # Anonymous blocks make creation idempotent by suppressing only duplicate_object;
+    # every other PostgreSQL error must propagate and fail the migration.
     enums = [
-        "CREATE TYPE IF NOT EXISTS keywordtype AS ENUM ('brand', 'product', 'competitor', 'sensitive', 'general')",
-        "CREATE TYPE IF NOT EXISTS logicoperator AS ENUM ('and', 'or', 'not')",
-        "CREATE TYPE IF NOT EXISTS sentimentscore AS ENUM ('positive', 'neutral', 'negative_low', 'negative_medium', 'negative_high')",
-        "CREATE TYPE IF NOT EXISTS alertseverity AS ENUM ('low', 'medium', 'high', 'critical')",
-        "CREATE TYPE IF NOT EXISTS alertstatus AS ENUM ('new', 'acknowledged', 'assigned', 'resolved')",
-        "CREATE TYPE IF NOT EXISTS incidentstatus AS ENUM ('new', 'verifying', 'responding', 'waiting_legal', 'waiting_platform', 'resolved', 'closed')",
-        "CREATE TYPE IF NOT EXISTS takedownstatus AS ENUM ('draft', 'pending_review', 'approved', 'submitted', 'in_progress', 'completed', 'rejected')",
-        "CREATE TYPE IF NOT EXISTS takedownplatform AS ENUM ('facebook', 'youtube', 'google', 'tiktok', 'zalo', 'authority', 'other')",
+        """DO $$
+        BEGIN
+            CREATE TYPE keywordtype AS ENUM ('brand', 'product', 'competitor', 'sensitive', 'general');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE logicoperator AS ENUM ('and', 'or', 'not');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE sentimentscore AS ENUM ('positive', 'neutral', 'negative_low', 'negative_medium', 'negative_high');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE alertseverity AS ENUM ('low', 'medium', 'high', 'critical');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE alertstatus AS ENUM ('new', 'acknowledged', 'assigned', 'resolved');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE incidentstatus AS ENUM ('new', 'verifying', 'responding', 'waiting_legal', 'waiting_platform', 'resolved', 'closed');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE takedownstatus AS ENUM ('draft', 'pending_review', 'approved', 'submitted', 'in_progress', 'completed', 'rejected');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
+        """DO $$
+        BEGIN
+            CREATE TYPE takedownplatform AS ENUM ('facebook', 'youtube', 'google', 'tiktok', 'zalo', 'authority', 'other');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $$;""",
     ]
     
     for stmt in enums:
-        try:
-            conn.execute(sa.text(stmt))
-            conn.commit()
-        except Exception as e:
-            print(f"Enum: {e}")
-            conn.rollback()
-    
-    # Fix keyword_groups table
+        conn.execute(sa.text(stmt))
+
+    # keyword_groups is absent on the fresh 001 -> 008 path, but can exist on
+    # incrementally built databases. Preserve the historical optional repair.
     keyword_groups_columns = [
-        "ALTER TABLE keyword_groups ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 3",
-        "ALTER TABLE keyword_groups ADD COLUMN IF NOT EXISTS alert_threshold FLOAT DEFAULT 70.0",
+        """DO $$
+        BEGIN
+            IF to_regclass('keyword_groups') IS NOT NULL THEN
+                ALTER TABLE keyword_groups ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 3;
+                ALTER TABLE keyword_groups ADD COLUMN IF NOT EXISTS alert_threshold FLOAT DEFAULT 70.0;
+            END IF;
+        END
+        $$;""",
     ]
     
     # Fix keywords table
@@ -226,14 +279,7 @@ def upgrade() -> None:
     )
     
     for stmt in all_statements:
-        try:
-            conn.execute(sa.text(stmt))
-            conn.commit()
-        except Exception as e:
-            print(f"Statement error: {e}")
-            conn.rollback()
-    
-    print("✅ Migration 009 complete - All tables fixed!")
+        conn.execute(sa.text(stmt))
 
 
 def downgrade() -> None:
