@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, MoonStar, SunMedium, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
@@ -136,6 +137,7 @@ function PublicNav() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <ThemeChip />
           <Link
             href="/login"

@@ -6,10 +6,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Language, languageNames } from '@/i18n';
 
 export function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const label = language === 'vi' ? 'Đổi ngôn ngữ' : 'Change language';
+  const label = t('common.changeLanguage');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

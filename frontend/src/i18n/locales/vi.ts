@@ -165,9 +165,44 @@ export const vi = {
     active: 'Hoạt động',
     expand: 'Mở rộng',
     collapse: 'Thu gọn',
+    changeLanguage: 'Đổi ngôn ngữ',
     uploading: 'Đang tải lên...',
     saving: 'Đang lưu...',
     uploadLogo: 'Nhấp hoặc kéo logo vào đây',
+  },
+  i18n: {
+    languageSaveFailed: 'Không thể lưu ngôn ngữ vào tài khoản. Lựa chọn này vẫn được giữ cho phiên hiện tại.',
+  },
+  integrationsPage: {
+    platforms: {
+      youtube: {
+        description: 'Thu thập video từ YouTube qua Data API v3.',
+      },
+    },
+  },
+  errors: {
+    network: 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.',
+    unknown: 'Đã xảy ra lỗi. Vui lòng thử lại.',
+    code: {
+      bad_request: 'Yêu cầu không hợp lệ.',
+      not_found: 'Không tìm thấy dữ liệu được yêu cầu.',
+      forbidden: 'Bạn không có quyền thực hiện thao tác này.',
+      conflict: 'Dữ liệu đã thay đổi hoặc bị trùng lặp.',
+      internal_error: 'Máy chủ gặp lỗi. Vui lòng thử lại sau.',
+      invalid_credentials: 'Email hoặc mật khẩu không đúng.',
+      email_already_registered: 'Email này đã được đăng ký.',
+      password_too_short: 'Mật khẩu quá ngắn.',
+    },
+    status: {
+      badRequest: 'Yêu cầu không hợp lệ.',
+      unauthorized: 'Bạn chưa đăng nhập hoặc không có quyền thực hiện thao tác này.',
+      notFound: 'Không tìm thấy dữ liệu được yêu cầu.',
+      conflict: 'Dữ liệu đã thay đổi hoặc bị trùng lặp.',
+      tooLarge: 'Dữ liệu gửi lên vượt quá giới hạn.',
+      validation: 'Dữ liệu nhập chưa hợp lệ.',
+      rateLimited: 'Có quá nhiều yêu cầu. Vui lòng thử lại sau.',
+      server: 'Máy chủ gặp lỗi. Vui lòng thử lại sau.',
+    },
   },
   reports: {
     noReportData: 'Chưa có dữ liệu báo cáo',

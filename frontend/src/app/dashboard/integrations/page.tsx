@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Capabilities {
   web?: { status: string };
@@ -44,6 +45,7 @@ export default function IntegrationsPage() {
   const [caps, setCaps] = useState<Capabilities>({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     fetchCapabilities();
@@ -94,7 +96,7 @@ export default function IntegrationsPage() {
       label: 'YouTube',
       icon: Youtube,
       color: 'text-paper-muted',
-      description: 'Thu thập video, bình luận từ YouTube qua Data API v3.',
+      description: t('integrationsPage.platforms.youtube.description'),
       action: null,
       actionLabel: null,
     },
