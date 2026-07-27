@@ -84,11 +84,11 @@ export default function AnalysisPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-            <PieChart className="w-6 h-6 text-indigo-500" />
+          <h1 className="text-2xl font-bold text-paper tracking-wide flex items-center gap-2">
+            <PieChart className="w-6 h-6 text-signal dark:text-signal-bright" />
             {t('summary.page.title')}
           </h1>
-          <p className="text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-paper-muted mt-1">
             {t('summary.page.subtitle')}
             {activeProject ? ` — ${activeProject.name}` : ''}.
           </p>
@@ -96,109 +96,109 @@ export default function AnalysisPage() {
         <button
           onClick={fetchSummary}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-lg font-medium transition-colors duration-150 motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
         >
-          <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin motion-reduce:animate-none' : ''}`} />
           {t('summary.page.refresh')}
         </button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-gray-500">
-          <RefreshCcw className="w-5 h-5 mr-2 animate-spin" /> {t('summary.page.loading')}
+        <div className="flex items-center justify-center h-64 text-paper-muted">
+          <RefreshCcw className="w-5 h-5 mr-2 animate-spin motion-reduce:animate-none" /> {t('summary.page.loading')}
         </div>
       ) : (
         <>
           {/* KPI row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: t('summary.page.totalMentions'), value: total, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-500/10', icon: BarChart3 },
-              { label: t('summary.page.positive'), value: positive, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-500/10', icon: TrendingUp },
-              { label: t('summary.page.negative'), value: negative, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-500/10', icon: TrendingDown },
-              { label: t('summary.page.neutral'), value: neutral, color: 'text-gray-600', bg: 'bg-gray-50 dark:bg-gray-500/10', icon: BarChart3 },
+              { label: t('summary.page.totalMentions'), value: total, color: 'text-signal dark:text-signal-bright', bg: 'bg-signal/10', icon: BarChart3 },
+              { label: t('summary.page.positive'), value: positive, color: 'text-sentiment-positive', bg: 'bg-sentiment-positive/10', icon: TrendingUp },
+              { label: t('summary.page.negative'), value: negative, color: 'text-sentiment-negative', bg: 'bg-sentiment-negative/10', icon: TrendingDown },
+              { label: t('summary.page.neutral'), value: neutral, color: 'text-sentiment-neutral', bg: 'bg-sentiment-neutral/10', icon: BarChart3 },
             ].map((kpi) => (
-              <div key={kpi.label} className={`${kpi.bg} rounded-xl p-4 border border-gray-200 dark:border-white/10`}>
+              <div key={kpi.label} className={`${kpi.bg} rounded-xl p-4 border border-edge`}>
                 <div className="flex items-center gap-2 mb-2">
                   <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-                  <span className="text-xs font-bold text-gray-600 dark:text-slate-500 dark:text-gray-400 uppercase tracking-wider">{kpi.label}</span>
+                  <span className="text-eyebrow font-semibold uppercase text-paper-faint">{kpi.label}</span>
                 </div>
-                <p className={`text-3xl font-black ${kpi.color}`}>{kpi.value.toLocaleString()}</p>
+                <p className={`text-3xl font-black tabular-nums ${kpi.color}`}>{kpi.value.toLocaleString()}</p>
               </div>
             ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* AI Summary */}
-            <div className="lg:col-span-2 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/20 rounded-2xl shadow border border-indigo-200 dark:border-indigo-500/30 p-6">
+            <div className="lg:col-span-2 bg-signal/[0.06] rounded-2xl border border-signal/20 p-6">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                  <div className="p-2 bg-signal/10 rounded-lg border border-signal/25">
+                    <Sparkles className="w-5 h-5 text-signal dark:text-signal-bright" />
                   </div>
-                  <h2 className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{t('summary.page.aiTitle')}</h2>
+                  <h2 className="text-lg font-bold text-signal dark:text-signal-bright">{t('summary.page.aiTitle')}</h2>
                 </div>
                 <button
                   onClick={handleAiSummary}
                   disabled={aiLoading || total === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void"
                 >
-                  {aiLoading ? <RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  {aiLoading ? <RefreshCcw className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" /> : <Sparkles className="w-3.5 h-3.5" />}
                   {aiLoading ? t('summary.page.aiLoading') : t('summary.page.aiButton')}
                 </button>
               </div>
               {aiText ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-gray-300 whitespace-pre-wrap">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-paper-muted whitespace-pre-wrap">
                   {aiText}
                 </div>
               ) : total === 0 ? (
-                <p className="text-gray-600 dark:text-slate-500 dark:text-gray-400 text-sm">{t('summary.page.noData')}</p>
+                <p className="text-paper-muted text-sm">{t('summary.page.noData')}</p>
               ) : (
-                <p className="text-gray-600 dark:text-slate-500 dark:text-gray-400 text-sm">{t('summary.page.aiPrompt')} {total} {t('summary.page.aiPromptSuffix')}</p>
+                <p className="text-paper-muted text-sm">{t('summary.page.aiPrompt')} {total} {t('summary.page.aiPromptSuffix')}</p>
               )}
             </div>
 
             {/* Sentiment Donut */}
-            <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">{t('summary.page.sentimentTitle')}</h2>
+            <div className="bg-void-surface rounded-2xl border border-edge p-6">
+              <h2 className="text-base font-bold text-paper mb-4">{t('summary.page.sentimentTitle')}</h2>
               {total === 0 ? (
-                <p className="text-slate-500 dark:text-gray-400 text-sm text-center py-8">{t('summary.page.noDataShort')}</p>
+                <p className="text-paper-muted text-sm text-center py-8">{t('summary.page.noDataShort')}</p>
               ) : (
                 <>
                   <div className="relative h-40 flex items-center justify-center mb-4">
                     <svg viewBox="0 0 36 36" className="w-40 h-40 -rotate-90">
-                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3f4f6" strokeWidth="3" />
-                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981"
+                      <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-void-raised" strokeWidth="3" />
+                      <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-sentiment-positive"
                         strokeWidth="3"
                         strokeDasharray={`${sentimentPct.pos} ${100 - sentimentPct.pos}`}
                         strokeDashoffset="0"
                       />
-                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f43f5e"
+                      <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-sentiment-negative"
                         strokeWidth="3"
                         strokeDasharray={`${sentimentPct.neg} ${100 - sentimentPct.neg}`}
                         strokeDashoffset={`${-(sentimentPct.pos)}`}
                       />
-                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#94a3b8"
+                      <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-sentiment-neutral"
                         strokeWidth="3"
                         strokeDasharray={`${sentimentPct.neu} ${100 - sentimentPct.neu}`}
                         strokeDashoffset={`${-(sentimentPct.pos + sentimentPct.neg)}`}
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{sentimentPct.pos}%</span>
-                      <span className="text-xs text-gray-500 uppercase">Positive</span>
+                      <span className="text-2xl font-black text-paper tabular-nums">{sentimentPct.pos}%</span>
+                      <span className="text-xs text-paper-faint uppercase">Positive</span>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
                     {[
-                      { label: t('summary.page.positive'), pct: sentimentPct.pos, count: positive, color: 'bg-emerald-500' },
-                      { label: t('summary.page.negative'), pct: sentimentPct.neg, count: negative, color: 'bg-rose-500' },
-                      { label: t('summary.page.neutral'), pct: sentimentPct.neu, count: neutral, color: 'bg-slate-400' },
+                      { label: t('summary.page.positive'), pct: sentimentPct.pos, count: positive, color: 'bg-sentiment-positive' },
+                      { label: t('summary.page.negative'), pct: sentimentPct.neg, count: negative, color: 'bg-sentiment-negative' },
+                      { label: t('summary.page.neutral'), pct: sentimentPct.neu, count: neutral, color: 'bg-sentiment-neutral' },
                     ].map(s => (
                       <div key={s.label} className="flex items-center gap-2">
                         <div className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                        <span className="text-gray-600 dark:text-slate-500 dark:text-gray-400 flex-1">{s.label}</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{s.count.toLocaleString()}</span>
-                        <span className="text-slate-500 dark:text-gray-400 w-10 text-right">{s.pct}%</span>
+                        <span className="text-paper-muted flex-1">{s.label}</span>
+                        <span className="font-bold text-paper tabular-nums">{s.count.toLocaleString()}</span>
+                        <span className="text-paper-faint w-10 text-right tabular-nums">{s.pct}%</span>
                       </div>
                     ))}
                   </div>
@@ -209,27 +209,27 @@ export default function AnalysisPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trend Chart */}
-            <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
+            <div className="bg-void-surface rounded-2xl border border-edge p-6">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-slate-500" />
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                <TrendingUp className="w-4 h-4 text-paper-faint" />
+                <h2 className="text-base font-bold text-paper">
                   {summary?.trend_start && summary?.trend_end 
                     ? t('summary.page.trendTitle').replace('{start}', summary.trend_start).replace('{end}', summary.trend_end)
                     : t('summary.page.trendDefault')}
                 </h2>
               </div>
               {byDay.length === 0 ? (
-                <p className="text-slate-500 dark:text-gray-400 text-sm text-center py-8">{t('summary.page.noDataShort')}</p>
+                <p className="text-paper-muted text-sm text-center py-8">{t('summary.page.noDataShort')}</p>
               ) : (
                 <div className="flex items-end gap-2 h-40">
                   {byDay.map((d, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
-                        className="w-full bg-indigo-500 rounded-t-md opacity-80 hover:opacity-100 transition-opacity"
+                        className="w-full bg-signal rounded-t-md opacity-80 hover:opacity-100 transition-opacity duration-150 motion-reduce:transition-none"
                         style={{ height: `${Math.round((d.count / maxDayCount) * 130)}px`, minHeight: '4px' }}
                         title={`${d.date}: ${d.count} mentions`}
                       />
-                      <span className="text-[9px] text-slate-500 dark:text-gray-400 truncate">{typeof d.date === 'string' ? d.date.slice(5) : ''}</span>
+                      <span className="text-[9px] text-paper-faint truncate">{typeof d.date === 'string' ? d.date.slice(5) : ''}</span>
                     </div>
                   ))}
                 </div>
@@ -237,13 +237,13 @@ export default function AnalysisPage() {
             </div>
 
             {/* Sources */}
-            <div className="bg-white dark:bg-[#050A15] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 p-6">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-indigo-500" />
+            <div className="bg-void-surface rounded-2xl border border-edge p-6">
+              <h2 className="text-base font-bold text-paper mb-4 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-signal dark:text-signal-bright" />
                 {t('summary.page.sourcesTitle')}
               </h2>
               {Object.keys(bySource).length === 0 ? (
-                <p className="text-slate-500 dark:text-gray-400 text-sm text-center py-8">{t('summary.page.noSourceData')}</p>
+                <p className="text-paper-muted text-sm text-center py-8">{t('summary.page.noSourceData')}</p>
               ) : (
                 <div className="space-y-3">
                   {Object.entries(bySource || {})
@@ -254,11 +254,11 @@ export default function AnalysisPage() {
                       return (
                         <div key={source}>
                           <div className="flex justify-between text-sm mb-1">
-                            <span className="font-medium text-slate-700 dark:text-gray-300 capitalize">{source}</span>
-                            <span className="font-bold text-slate-900 dark:text-white">{(count as number).toLocaleString()} ({pct}%)</span>
+                            <span className="font-medium text-paper-muted capitalize">{source}</span>
+                            <span className="font-bold text-paper tabular-nums">{(count as number).toLocaleString()} ({pct}%)</span>
                           </div>
-                          <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-1.5 bg-void-raised rounded-full overflow-hidden">
+                            <div className="h-full bg-signal rounded-full" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );

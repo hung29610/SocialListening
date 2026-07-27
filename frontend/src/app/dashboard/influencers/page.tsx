@@ -31,8 +31,8 @@ export default function InfluencersPage() {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500 dark:text-gray-400 font-medium tracking-wide flex items-center">
-          <RefreshCcw className="w-5 h-5 mr-2 animate-spin text-indigo-400" />
+        <div className="text-paper-muted font-medium tracking-wide flex items-center">
+          <RefreshCcw className="w-5 h-5 mr-2 animate-spin motion-reduce:animate-none text-signal dark:text-signal-bright" />
           Đang tổng hợp dữ liệu Influencers...
         </div>
       </div>
@@ -44,8 +44,8 @@ export default function InfluencersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Influencers Leaderboard</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Danh sách những người có sức ảnh hưởng và lượng thảo luận cao nhất.</p>
+          <h1 className="text-2xl font-bold text-paper tracking-wide">Influencers Leaderboard</h1>
+          <p className="text-sm text-paper-muted mt-1">Danh sách những người có sức ảnh hưởng và lượng thảo luận cao nhất.</p>
         </div>
       </div>
 
@@ -53,36 +53,36 @@ export default function InfluencersPage() {
       {filteredItems.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {Array.isArray(filteredItems) && filteredItems.slice(0, 3).map((inf: any, idx: number) => (
-            <div key={idx} className="bg-gradient-to-br from-slate-50 dark:from-[#1E293B] to-slate-100 dark:to-[#0F172A] border border-slate-200 dark:border-gray-800 hover:border-purple-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden group transition-all">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                {idx === 0 ? <TrophyIcon color="#F59E0B" /> : idx === 1 ? <TrophyIcon color="#94A3B8" /> : <TrophyIcon color="#B45309" />}
+            <div key={idx} className="bg-void-surface border border-edge hover:border-edge-strong rounded-2xl p-6 relative overflow-hidden group transition-colors duration-150 motion-reduce:transition-none">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-150 motion-reduce:transition-none">
+                {idx === 0 ? <TrophyIcon className="text-warning" /> : idx === 1 ? <TrophyIcon className="text-paper-faint" /> : <TrophyIcon className="text-warning/70" />}
               </div>
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex items-center space-x-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 ${
-                    idx === 0 ? 'bg-amber-500/20 text-amber-500 border-amber-500/50' : 
-                    idx === 1 ? 'bg-slate-300/20 text-slate-700 dark:text-slate-700 dark:text-slate-300 border-slate-300/50' : 
-                    'bg-orange-700/20 text-orange-500 border-orange-700/50'
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold tabular-nums border-2 ${
+                    idx === 0 ? 'bg-warning/10 text-warning border-warning/25' :
+                    idx === 1 ? 'bg-paper-faint/10 text-paper-muted border-paper-faint/25' :
+                    'bg-warning/[0.06] text-warning border-warning/20'
                   }`}>
                     #{idx + 1}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">{inf.author}</h3>
-                    <div className="flex items-center text-xs text-slate-500 dark:text-gray-400 mt-1">
-                      <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                      Điểm ảnh hưởng: <span className="font-bold text-slate-900 dark:text-white ml-1">{inf.influence_score}</span>
+                    <h3 className="text-lg font-bold text-paper line-clamp-1">{inf.author}</h3>
+                    <div className="flex items-center text-xs text-paper-faint mt-1">
+                      <Star className="w-3 h-3 text-warning mr-1" />
+                      Điểm ảnh hưởng: <span className="font-bold text-paper tabular-nums ml-1">{inf.influence_score}</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
-                <div className="bg-slate-50 dark:bg-[#0B1220]/50 rounded-xl p-3 border border-gray-800/50">
-                  <div className="text-xs text-gray-500 mb-1">Mentions</div>
-                  <div className="font-bold text-slate-900 dark:text-white">{inf.mentions_count.toLocaleString()}</div>
+                <div className="bg-void-raised rounded-xl p-3 border border-edge">
+                  <div className="text-xs text-paper-faint mb-1">Mentions</div>
+                  <div className="font-bold text-paper tabular-nums">{inf.mentions_count.toLocaleString()}</div>
                 </div>
-                <div className="bg-slate-50 dark:bg-[#0B1220]/50 rounded-xl p-3 border border-gray-800/50">
-                  <div className="text-xs text-gray-500 mb-1">Reach (Est)</div>
-                  <div className="font-bold text-indigo-400">{inf.reach.toLocaleString()}</div>
+                <div className="bg-void-raised rounded-xl p-3 border border-edge">
+                  <div className="text-xs text-paper-faint mb-1">Reach (Est)</div>
+                  <div className="font-bold text-signal dark:text-signal-bright tabular-nums">{inf.reach.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -91,55 +91,55 @@ export default function InfluencersPage() {
       )}
 
       {/* Main Table */}
-      <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[600px]">
-        <div className="p-4 border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]/50 backdrop-blur-md flex items-center justify-between shrink-0">
-          <h3 className="font-bold text-slate-900 dark:text-white">Toàn bộ Influencers ({filteredItems.length})</h3>
+      <div className="bg-void-surface border border-edge rounded-2xl overflow-hidden flex flex-col h-[600px]">
+        <div className="p-4 border-b border-edge bg-void-surface flex items-center justify-between shrink-0">
+          <h3 className="font-bold text-paper">Toàn bộ Influencers ({filteredItems.length})</h3>
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-paper-faint absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm kiếm tác giả..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-300 dark:border-gray-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 w-64 transition-colors"
+              className="pl-9 pr-4 py-2 bg-void-surface border border-edge-strong rounded-xl text-sm text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal w-64 transition-colors duration-150 motion-reduce:transition-none"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-slate-50 dark:bg-[#0F172A] z-10">
-              <tr className="text-xs uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-800">
-                <th className="px-6 py-4 font-medium">Hạng</th>
-                <th className="px-6 py-4 font-medium">Tác giả / Kênh</th>
-                <th className="px-6 py-4 font-medium">Nền tảng</th>
-                <th className="px-6 py-4 font-medium">Lượng Mentions</th>
-                <th className="px-6 py-4 font-medium">Reach Ước tính</th>
-                <th className="px-6 py-4 font-medium text-right">Influence Score</th>
+            <thead className="sticky top-0 bg-void-raised z-10">
+              <tr className="text-eyebrow font-semibold uppercase text-paper-faint border-b border-edge">
+                <th scope="col" className="px-6 py-4">Hạng</th>
+                <th scope="col" className="px-6 py-4">Tác giả / Kênh</th>
+                <th scope="col" className="px-6 py-4">Nền tảng</th>
+                <th scope="col" className="px-6 py-4">Lượng Mentions</th>
+                <th scope="col" className="px-6 py-4">Reach Ước tính</th>
+                <th scope="col" className="px-6 py-4 text-right">Influence Score</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody>
               {filteredItems.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-slate-50 dark:bg-[#0F172A]/50 transition-colors">
+                <tr key={i} className="border-b border-edge hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none">
                   <td className="px-6 py-4">
-                    <span className={`text-sm font-bold ${i < 3 ? 'text-amber-500' : 'text-gray-500'}`}>
+                    <span className={`text-sm font-bold tabular-nums ${i < 3 ? 'text-warning' : 'text-paper-faint'}`}>
                       {i + 1}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900 dark:text-white">{row.author}</div>
+                    <div className="font-semibold text-paper">{row.author}</div>
                   </td>
-                  <td className="px-6 py-4 text-slate-500 dark:text-gray-400 text-sm">
+                  <td className="px-6 py-4 text-paper-muted text-sm">
                     {row.platform}
                   </td>
-                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300 font-medium">
+                  <td className="px-6 py-4 text-paper-muted font-medium tabular-nums">
                     {row.mentions_count.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 text-indigo-400 font-medium">
+                  <td className="px-6 py-4 text-signal dark:text-signal-bright font-medium tabular-nums">
                     {row.reach.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-bold text-sm">
+                    <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-signal/10 border border-signal/25 text-signal dark:text-signal-bright font-bold text-sm tabular-nums">
                       <Activity className="w-3 h-3 mr-1" />
                       {row.influence_score}
                     </div>
@@ -148,7 +148,7 @@ export default function InfluencersPage() {
               ))}
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-paper-faint">
                     Không tìm thấy dữ liệu.
                   </td>
                 </tr>
@@ -161,9 +161,9 @@ export default function InfluencersPage() {
   );
 }
 
-function TrophyIcon({ color }: { color: string }) {
+function TrophyIcon({ className }: { className?: string }) {
   return (
-    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={className} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
       <path d="M4 22h16"></path>

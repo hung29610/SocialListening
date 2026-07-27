@@ -26,6 +26,13 @@ interface KeywordGroup {
   created_at: string;
 }
 
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
+const focusRingOffset =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
+const inputClass =
+  'bg-void-surface border border-edge-strong text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal';
+
 export default function KeywordsPage() {
   const { t } = useLanguage();
   const [groups, setGroups] = useState<KeywordGroup[]>([]);
@@ -49,13 +56,13 @@ export default function KeywordsPage() {
     keyword: '',
     groupId: null
   });
-  
+
   const [newGroup, setNewGroup] = useState({
     name: '',
     description: '',
     priority: 3
   });
-  
+
   const [newKeyword, setNewKeyword] = useState({
     keyword: '',
     keyword_type: 'general'
@@ -137,7 +144,7 @@ export default function KeywordsPage() {
         priority: newGroup.priority,
         is_active: true
       } as any);
-      
+
       setShowAddGroupModal(false);
       setNewGroup({ name: '', description: '', priority: 3 });
       toast.success(t('keywords.addGroupOk'));
@@ -161,11 +168,11 @@ export default function KeywordsPage() {
         group_id: selectedGroupId,
         is_active: true,
       });
-      
+
       setShowAddKeywordModal(false);
       setNewKeyword({ keyword: '', keyword_type: 'general' });
       toast.success(t('keywords.addKeywordOk'));
-      
+
       await fetchKeywordsInGroup(selectedGroupId);
       fetchGroups();
     } catch (error: any) {
@@ -196,11 +203,11 @@ export default function KeywordsPage() {
         keyword_type: bulkKeyword.keyword_type,
         is_active: true
       });
-      
+
       setShowBulkKeywordModal(false);
       setBulkKeyword({ keywords_text: '', keyword_type: 'general' });
       toast.success(`Đã thêm ${result.created_count} từ khóa, bỏ qua ${result.skipped_count} từ khóa trùng`);
-      
+
       await fetchKeywordsInGroup(selectedGroupId);
       fetchGroups();
     } catch (error: any) {
@@ -221,11 +228,11 @@ export default function KeywordsPage() {
         keyword_type: selectedKeyword.keyword_type,
         is_active: selectedKeyword.is_active,
       });
-      
+
       setShowEditKeywordModal(false);
       setSelectedKeyword(null);
       toast.success('Cập nhật từ khóa thành công!');
-      
+
       await fetchKeywordsInGroup(selectedKeyword.group_id);
       fetchGroups();
     } catch (error: any) {
@@ -245,7 +252,7 @@ export default function KeywordsPage() {
     try {
       await keywordsApi.deleteKeyword(deleteKeywordConfirm.keywordId);
       toast.success(t('keywords.deleteKeywordOk'));
-      
+
       await fetchKeywordsInGroup(deleteKeywordConfirm.groupId);
       fetchGroups();
     } catch (error: any) {
@@ -259,7 +266,7 @@ export default function KeywordsPage() {
       await keywordsApi.updateKeyword(keyword.id, {
         is_active: !keyword.is_active
       });
-      
+
       await fetchKeywordsInGroup(keyword.group_id);
     } catch (error: any) {
       console.error('Error toggling keyword:', error);
@@ -300,9 +307,9 @@ export default function KeywordsPage() {
   });
 
   const getPriorityColor = (priority: number) => {
-    if (priority >= 4) return 'bg-red-100 text-red-800';
-    if (priority >= 3) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
+    if (priority >= 4) return 'bg-destructive/10 text-destructive';
+    if (priority >= 3) return 'bg-warning/10 text-warning';
+    return 'bg-sentiment-neutral/10 text-sentiment-neutral';
   };
 
   const getPriorityText = (priority: number) => {
@@ -314,7 +321,7 @@ export default function KeywordsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-slate-500 dark:text-gray-400 font-medium tracking-wide">Đang tải...</div>
+        <div className="text-lg text-paper-muted font-medium tracking-wide">Đang tải...</div>
       </div>
     );
   }
@@ -322,18 +329,18 @@ export default function KeywordsPage() {
   return (
     <div className="space-y-6">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-wide">Quản lý từ khóa</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-paper tracking-wide">Quản lý từ khóa</h1>
+          <p className="text-sm text-paper-muted mt-1">
             Quản lý các nhóm từ khóa và từ khóa để giám sát
           </p>
         </div>
         <button
           onClick={() => setShowAddGroupModal(true)}
-          className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm shadow-indigo-500/20 font-medium"
+          className={`flex items-center px-4 py-2.5 bg-signal text-white rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none font-medium ${focusRingOffset}`}
         >
           <Plus className="w-5 h-5 mr-2" />
           Thêm nhóm
@@ -342,34 +349,34 @@ export default function KeywordsPage() {
 
       {/* Search */}
       <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-paper-faint w-5 h-5" />
         <input
           type="text"
           placeholder={t('keywords.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 shadow-sm transition-shadow"
+          className={`w-full pl-11 pr-4 py-3 rounded-xl ${inputClass}`}
         />
       </div>
 
       {/* Groups List */}
       <div className="space-y-4">
         {filteredGroups.length === 0 ? (
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl shadow-sm p-10 text-center text-slate-500 dark:text-gray-400 font-medium tracking-wide">
-            <div className="w-16 h-16 rounded-xl bg-white dark:bg-[#1E293B] flex items-center justify-center mx-auto mb-4 border border-slate-200 dark:border-gray-800 shadow-sm">
-              <Search className="w-8 h-8 text-gray-500" />
+          <div className="bg-void-surface border border-edge rounded-xl p-10 text-center text-paper-muted font-medium tracking-wide">
+            <div className="w-16 h-16 rounded-xl bg-void-raised flex items-center justify-center mx-auto mb-4 border border-edge">
+              <Search className="w-8 h-8 text-paper-faint" />
             </div>
             {searchTerm ? 'Không tìm thấy kết quả phù hợp.' : 'Không có nhóm từ khóa nào. Hãy tạo nhóm đầu tiên!'}
           </div>
         ) : (
           filteredGroups.map((group) => (
-            <div key={group.id} className="bg-white dark:bg-[#111827] rounded-xl shadow-sm border border-slate-200 dark:border-gray-800 overflow-hidden transition-all duration-200">
+            <div key={group.id} className="bg-void-surface rounded-xl border border-edge overflow-hidden">
               {/* Group Header */}
-              <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/30 hover:bg-white dark:bg-[#1E293B]/50 transition-colors">
+              <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-edge bg-void-raised">
                 <div className="flex items-start sm:items-center space-x-4 flex-1">
                   <button
                     onClick={() => toggleGroup(group.id)}
-                    className="p-1 mt-1 sm:mt-0 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-lg text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:text-white hover:bg-gray-700 transition-colors"
+                    className={`p-1 mt-1 sm:mt-0 bg-void-surface border border-edge-strong rounded-lg text-paper-muted hover:text-paper hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                   >
                     {expandedGroups.has(group.id) ? (
                       <ChevronDown className="w-5 h-5" />
@@ -377,53 +384,53 @@ export default function KeywordsPage() {
                       <ChevronRight className="w-5 h-5" />
                     )}
                   </button>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h3 className="text-base font-semibold text-slate-900 dark:text-white tracking-wide truncate">{group.name}</h3>
-                      <span className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md border ${
-                        group.priority >= 4 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        group.priority >= 3 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      <h3 className="text-base font-semibold text-paper tracking-wide truncate">{group.name}</h3>
+                      <span className={`px-2 py-0.5 text-[10px] font-semibold tracking-eyebrow uppercase rounded-md border ${
+                        group.priority >= 4 ? 'bg-destructive/10 text-destructive border-destructive/25' :
+                        group.priority >= 3 ? 'bg-warning/10 text-warning border-warning/25' :
+                        'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25'
                       }`}>
                         {getPriorityText(group.priority)}
                       </span>
-                      <span className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md border ${
-                        group.is_active ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-300 dark:border-gray-700'
+                      <span className={`px-2 py-0.5 text-[10px] font-semibold tracking-eyebrow uppercase rounded-md border ${
+                        group.is_active ? 'bg-signal/10 text-signal dark:text-signal-bright border-signal/25' : 'bg-void-raised text-paper-faint border-edge'
                       }`}>
                         {group.is_active ? 'Hoạt động' : 'Đang tắt'}
                       </span>
                     </div>
                     {group.description && (
-                      <p className="text-sm text-slate-500 dark:text-gray-400 mt-1.5 line-clamp-2">{group.description}</p>
+                      <p className="text-sm text-paper-muted mt-1.5 line-clamp-2">{group.description}</p>
                     )}
                   </div>
-                  
-                  <div className="hidden sm:flex flex-col items-end text-sm text-slate-500 dark:text-gray-400">
-                    <div className="font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#1E293B] px-3 py-1 rounded-lg border border-slate-200 dark:border-gray-800 shadow-sm">
-                      {group.keyword_count} <span className="font-normal text-slate-500 dark:text-gray-400 ml-1">từ khóa</span>
+
+                  <div className="hidden sm:flex flex-col items-end text-sm text-paper-muted">
+                    <div className="font-semibold text-paper tabular-nums bg-void-surface px-3 py-1 rounded-lg border border-edge">
+                      {group.keyword_count} <span className="font-normal text-paper-muted ml-1">từ khóa</span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 pl-12 lg:pl-0">
                   <button
                     onClick={() => openBulkKeywordModal(group.id)}
-                    className="flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-white dark:bg-[#1E293B] text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 rounded-lg hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors whitespace-nowrap"
+                    className={`flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-void-surface text-paper border border-edge-strong rounded-lg hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none whitespace-nowrap ${focusRing}`}
                   >
                     <Plus className="w-3.5 h-3.5 inline mr-1" />
                     Thêm nhiều
                   </button>
                   <button
                     onClick={() => openAddKeywordModal(group.id)}
-                    className="flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
+                    className={`flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium bg-signal/10 text-signal dark:text-signal-bright border border-signal/25 rounded-lg hover:bg-signal/20 transition-colors duration-150 motion-reduce:transition-none whitespace-nowrap ${focusRing}`}
                   >
                     <Plus className="w-3.5 h-3.5 inline mr-1" />
                     Thêm 1
                   </button>
                   <button
                     onClick={() => setDeleteGroupConfirm({ isOpen: true, groupId: group.id, groupName: group.name })}
-                    className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20"
+                    className={`p-1.5 text-paper-faint hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none border border-transparent hover:border-destructive/20 ${focusRing}`}
                     title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -433,53 +440,53 @@ export default function KeywordsPage() {
 
               {/* Keywords List */}
               {expandedGroups.has(group.id) && (
-                <div className="p-0 sm:p-2 bg-slate-50 dark:bg-[#0B1220]">
+                <div className="p-0 sm:p-2 bg-void-raised">
                   {!groupKeywords[group.id] ? (
-                    <div className="text-center text-gray-500 py-8 text-sm">Đang tải từ khóa...</div>
+                    <div className="text-center text-paper-faint py-8 text-sm">Đang tải từ khóa...</div>
                   ) : groupKeywords[group.id].length === 0 ? (
-                    <div className="text-center text-gray-500 py-8 text-sm">
+                    <div className="text-center text-paper-faint py-8 text-sm">
                       Chưa có từ khóa nào trong nhóm này.
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-800">
+                    <div className="divide-y divide-edge">
                       {groupKeywords[group.id].map((keyword) => (
                         <div
                           key={keyword.id}
-                          className="flex items-center justify-between p-3 sm:px-5 hover:bg-white dark:bg-[#1E293B]/50 transition-colors group"
+                          className="flex items-center justify-between p-3 sm:px-5 hover:bg-paper/[0.04] transition-colors duration-150 motion-reduce:transition-none group"
                         >
                           <div className="flex flex-wrap items-center gap-3">
-                            <span className="font-medium text-gray-200">{keyword.keyword}</span>
-                            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-gray-400 px-2 py-0.5 bg-white dark:bg-[#111827] shadow-sm rounded-md border border-slate-200 dark:border-gray-800">
+                            <span className="font-medium text-paper">{keyword.keyword}</span>
+                            <span className="text-[10px] font-semibold tracking-eyebrow uppercase text-paper-muted px-2 py-0.5 bg-void-raised rounded-md border border-edge">
                               {KEYWORD_TYPES.find(t => t.value === keyword.keyword_type)?.label || keyword.keyword_type}
                             </span>
                             {keyword.created_at && (
-                              <span className="text-xs text-gray-500 font-medium hidden sm:inline-block">
+                              <span className="text-xs text-paper-faint font-medium hidden sm:inline-block">
                                 {new Date(keyword.created_at).toLocaleDateString('vi-VN')}
                               </span>
                             )}
                           </div>
-                          
-                          <div className="flex items-center space-x-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity">
+
+                          <div className="flex items-center space-x-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity duration-150 motion-reduce:transition-none">
                             <button
                               onClick={() => openEditKeywordModal(keyword)}
-                              className="p-1.5 text-slate-500 dark:text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                              className={`p-1.5 text-paper-muted hover:text-signal dark:hover:text-signal-bright hover:bg-signal/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                               title={t('common.update')}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleToggleKeywordActive(keyword)}
-                              className={`px-2 py-1 text-[10px] font-bold tracking-wider rounded border transition-colors ${
+                              className={`px-2 py-1 text-[10px] font-semibold tracking-eyebrow rounded border transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${
                                 keyword.is_active
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                  : 'bg-gray-800 text-gray-500 border-slate-300 dark:border-gray-700 hover:bg-gray-700'
+                                  ? 'bg-signal/10 text-signal dark:text-signal-bright border-signal/25 hover:bg-signal/20'
+                                  : 'bg-void-raised text-paper-faint border-edge hover:text-paper-muted'
                               }`}
                             >
                               {keyword.is_active ? 'ON' : 'OFF'}
                             </button>
                             <button
                               onClick={() => setDeleteKeywordConfirm({ isOpen: true, keywordId: keyword.id, keyword: keyword.keyword, groupId: group.id })}
-                              className="p-1.5 text-slate-500 dark:text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              className={`p-1.5 text-paper-muted hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
                               title={t('common.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -498,42 +505,42 @@ export default function KeywordsPage() {
 
       {/* Add Group Modal */}
       {showAddGroupModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm nhóm từ khóa mới</h2>
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-edge bg-void-raised">
+              <h2 className="text-xl font-bold text-paper">Thêm nhóm từ khóa mới</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Tên nhóm *
                 </label>
                 <input
                   type="text"
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                   placeholder="Ví dụ: Chất lượng sản phẩm"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Mô tả
                 </label>
                 <textarea
                   value={newGroup.description}
                   onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                   placeholder="Mô tả về nhóm từ khóa này..."
                   rows={3}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Độ ưu tiên (1-5)
                 </label>
                 <input
@@ -542,21 +549,21 @@ export default function KeywordsPage() {
                   max="5"
                   value={newGroup.priority}
                   onChange={(e) => setNewGroup({ ...newGroup, priority: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className={`w-full px-4 py-2.5 rounded-xl tabular-nums ${inputClass}`}
                 />
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50 flex justify-end space-x-3">
+            <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddGroupModal(false)}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium text-paper bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddGroup}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
+                className={`px-5 py-2.5 text-sm font-medium text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
               >
                 Thêm Nhóm
               </button>
@@ -591,37 +598,37 @@ export default function KeywordsPage() {
 
       {/* Add Keyword Modal */}
       {showAddKeywordModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm từ khóa mới</h2>
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-edge bg-void-raised">
+              <h2 className="text-xl font-bold text-paper">Thêm từ khóa mới</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Từ khóa *
                 </label>
                 <input
                   type="text"
                   value={newKeyword.keyword}
                   onChange={(e) => setNewKeyword({ ...newKeyword, keyword: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                   placeholder="Nhập từ khóa..."
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Loại từ khóa
                 </label>
                 <select
                   value={newKeyword.keyword_type}
                   onChange={(e) => setNewKeyword({ ...newKeyword, keyword_type: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
+                  <option value="" disabled className="text-paper-faint">-- Chọn loại --</option>
                   {KEYWORD_TYPES.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
@@ -629,16 +636,16 @@ export default function KeywordsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50 flex justify-end space-x-3">
+            <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddKeywordModal(false)}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium text-paper bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddKeyword}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
+                className={`px-5 py-2.5 text-sm font-medium text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
               >
                 Thêm
               </button>
@@ -649,21 +656,21 @@ export default function KeywordsPage() {
 
       {/* Bulk Keyword Modal */}
       {showBulkKeywordModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Thêm nhiều từ khóa</h2>
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-edge bg-void-raised">
+              <h2 className="text-xl font-bold text-paper">Thêm nhiều từ khóa</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Danh sách từ khóa (mỗi dòng một từ khóa) *
                 </label>
                 <textarea
                   value={bulkKeyword.keywords_text}
                   onChange={(e) => setBulkKeyword({ ...bulkKeyword, keywords_text: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500 custom-scrollbar"
+                  className={`w-full px-4 py-2.5 rounded-xl custom-scrollbar ${inputClass}`}
                   placeholder="Ví dụ:&#10;TTH&#10;TTH Group&#10;Bệnh viện TTH"
                   rows={6}
                   autoFocus
@@ -671,15 +678,15 @@ export default function KeywordsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Loại từ khóa chung
                 </label>
                 <select
                   value={bulkKeyword.keyword_type}
                   onChange={(e) => setBulkKeyword({ ...bulkKeyword, keyword_type: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
+                  <option value="" disabled className="text-paper-faint">-- Chọn loại --</option>
                   {KEYWORD_TYPES.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
@@ -687,16 +694,16 @@ export default function KeywordsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50 flex justify-end space-x-3">
+            <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3">
               <button
                 onClick={() => setShowBulkKeywordModal(false)}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium text-paper bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddBulkKeyword}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
+                className={`px-5 py-2.5 text-sm font-medium text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
               >
                 Thêm Hàng Loạt
               </button>
@@ -707,70 +714,70 @@ export default function KeywordsPage() {
 
       {/* Edit Keyword Modal */}
       {showEditKeywordModal && selectedKeyword && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Sửa từ khóa</h2>
+        <div className="fixed inset-0 bg-paper/25 dark:bg-void/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-void-surface border border-edge rounded-2xl shadow-tile w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-edge bg-void-raised">
+              <h2 className="text-xl font-bold text-paper">Sửa từ khóa</h2>
             </div>
-            
+
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Từ khóa *
                 </label>
                 <input
                   type="text"
                   value={selectedKeyword.keyword}
                   onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-gray-500"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                   placeholder="Nhập từ khóa..."
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-paper-muted mb-2">
                   Loại từ khóa
                 </label>
                 <select
                   value={selectedKeyword.keyword_type}
                   onChange={(e) => setSelectedKeyword({ ...selectedKeyword, keyword_type: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className={`w-full px-4 py-2.5 rounded-xl ${inputClass}`}
                 >
-                  <option value="" disabled className="text-gray-500">-- Chọn loại --</option>
+                  <option value="" disabled className="text-paper-faint">-- Chọn loại --</option>
                   {KEYWORD_TYPES.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center mt-2 p-3 bg-white dark:bg-[#1E293B]/50 border border-slate-300 dark:border-gray-700 rounded-xl">
+              <div className="flex items-center mt-2 p-3 bg-void-raised border border-edge-strong rounded-xl">
                 <input
                   type="checkbox"
                   id="edit_is_active"
                   checked={selectedKeyword.is_active}
                   onChange={(e) => setSelectedKeyword({ ...selectedKeyword, is_active: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500 focus:ring-offset-gray-900"
+                  className={`w-4 h-4 accent-signal bg-void-surface border-edge-strong rounded ${focusRing}`}
                 />
-                <label htmlFor="edit_is_active" className="ml-3 text-sm font-medium text-slate-700 dark:text-gray-300 cursor-pointer select-none">
+                <label htmlFor="edit_is_active" className="ml-3 text-sm font-medium text-paper-muted cursor-pointer select-none">
                   Kích hoạt từ khóa
                 </label>
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#0B1220]/50 flex justify-end space-x-3">
+            <div className="p-6 border-t border-edge bg-void-raised flex justify-end space-x-3">
               <button
                 onClick={() => {
                   setShowEditKeywordModal(false);
                   setSelectedKeyword(null);
                 }}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-gray-300 bg-white dark:bg-[#1E293B] border border-slate-300 dark:border-gray-700 rounded-xl hover:bg-gray-800 hover:text-slate-900 dark:text-white transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium text-paper bg-void-surface border border-edge-strong rounded-xl hover:bg-void-raised transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}
               >
                 Hủy
               </button>
               <button
                 onClick={handleEditKeyword}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 transition-all"
+                className={`px-5 py-2.5 text-sm font-medium text-white bg-signal rounded-xl hover:bg-signal-deep dark:hover:bg-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRingOffset}`}
               >
                 Cập nhật
               </button>

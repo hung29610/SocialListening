@@ -11,6 +11,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import {
+  chartColors,
+  chartGrid,
+  chartAxisTick,
+  chartLegendStyle,
+} from './chartTheme';
 
 interface VolatilityDataPoint {
   date: string;
@@ -37,14 +43,14 @@ export default function MonitorVolatilityChart({
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-signal/30 border-t-signal rounded-full animate-spin motion-reduce:animate-none" />
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-72 flex flex-col items-center justify-center text-slate-500 dark:text-gray-400">
+      <div className="h-72 flex flex-col items-center justify-center text-paper-faint">
         <svg className="w-12 h-12 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
         </svg>
@@ -63,8 +69,8 @@ export default function MonitorVolatilityChart({
       }
 
       return (
-        <div className="bg-gray-900 text-slate-900 dark:text-white px-4 py-3 rounded-xl shadow-xl border border-gray-700/50 text-sm min-w-[160px]">
-          <p className="font-semibold mb-2 text-slate-700 dark:text-gray-300">📅 {dateStr}</p>
+        <div className="bg-void-surface text-paper px-4 py-3 rounded-xl shadow-tile border border-edge-strong text-sm min-w-[160px]">
+          <p className="font-semibold mb-2 text-paper-muted">📅 {dateStr}</p>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex justify-between items-center gap-4 py-0.5">
               <div className="flex items-center gap-2">
@@ -72,7 +78,7 @@ export default function MonitorVolatilityChart({
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-slate-700 dark:text-gray-300">{entry.name}</span>
+                <span className="text-paper-muted">{entry.name}</span>
               </div>
               <span className="font-medium">{entry.value}</span>
             </div>
@@ -87,26 +93,26 @@ export default function MonitorVolatilityChart({
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          {/* Gradient definitions */}
+          {/* Gradient definitions — stops resolve through SIGNAL chart tokens */}
           <defs>
             <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#6366F1" stopOpacity={0.02} />
+              <stop offset="5%" stopColor={chartColors.accent} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={chartColors.accent} stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gradNegative" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.02} />
+              <stop offset="5%" stopColor={chartColors.negative} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={chartColors.negative} stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="gradPositive" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
+              <stop offset="5%" stopColor={chartColors.positive} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={chartColors.positive} stopOpacity={0.02} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" strokeOpacity={0.5} />
+          <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} vertical={false} stroke={chartGrid.stroke} />
           <XAxis
             dataKey="date"
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            tick={chartAxisTick}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => {
@@ -118,18 +124,18 @@ export default function MonitorVolatilityChart({
             }}
           />
           <YAxis
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            tick={chartAxisTick}
             tickLine={false}
             axisLine={false}
             allowDecimals={false}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ paddingTop: '16px' }}
+            wrapperStyle={{ paddingTop: '16px', ...chartLegendStyle }}
             iconType="circle"
             iconSize={8}
             formatter={(value: string) => (
-              <span className="text-sm text-gray-600 dark:text-slate-500 dark:text-gray-400">{value}</span>
+              <span className="text-sm text-paper-muted">{value}</span>
             )}
           />
 
@@ -137,33 +143,33 @@ export default function MonitorVolatilityChart({
             type="monotone"
             name="Tổng"
             dataKey="total"
-            stroke="#6366F1"
+            stroke={chartColors.accent}
             strokeWidth={2.5}
             fill="url(#gradTotal)"
             dot={false}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: '#6366F1', fill: '#fff' }}
+            activeDot={{ r: 5, strokeWidth: 0, fill: chartColors.accentBright }}
             animationDuration={1000}
           />
           <Area
             type="monotone"
             name="Tiêu cực"
             dataKey="negative"
-            stroke="#F43F5E"
+            stroke={chartColors.negative}
             strokeWidth={2}
             fill="url(#gradNegative)"
             dot={false}
-            activeDot={{ r: 4, strokeWidth: 2, stroke: '#F43F5E', fill: '#fff' }}
+            activeDot={{ r: 4, strokeWidth: 0 }}
             animationDuration={1200}
           />
           <Area
             type="monotone"
             name="Tích cực"
             dataKey="positive"
-            stroke="#10B981"
+            stroke={chartColors.positive}
             strokeWidth={2}
             fill="url(#gradPositive)"
             dot={false}
-            activeDot={{ r: 4, strokeWidth: 2, stroke: '#10B981', fill: '#fff' }}
+            activeDot={{ r: 4, strokeWidth: 0 }}
             animationDuration={1400}
           />
         </AreaChart>

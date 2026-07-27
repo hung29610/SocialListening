@@ -21,13 +21,13 @@ export default function DashboardQuickActionButton({
   tooltip
 }: QuickActionButtonProps) {
   
-  const baseClasses = "inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
-  
+  const baseClasses = "inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70";
+
   const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-300",
-    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-slate-500 dark:text-gray-400",
-    danger: "bg-white text-red-700 border border-red-300 hover:bg-red-50 focus:ring-red-500 disabled:bg-red-50 disabled:text-red-300",
-    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500"
+    primary: "bg-signal text-white hover:bg-signal-deep dark:hover:bg-signal-bright focus-visible:ring-offset-2 focus-visible:ring-offset-void disabled:opacity-50",
+    secondary: "bg-void-surface text-paper-muted border border-edge-strong hover:bg-void-raised hover:text-paper disabled:opacity-50",
+    danger: "bg-void-surface text-destructive border border-destructive/30 hover:bg-destructive/10 disabled:opacity-50",
+    ghost: "bg-transparent text-paper-muted hover:bg-paper/[0.04] hover:text-paper disabled:opacity-50"
   };
 
   return (
