@@ -78,6 +78,11 @@ The `server_default` values for `sarcasm_possible`, `sensitive_signal`, and
 ### 4. Out-of-Band Pre-existing Column
 - Pre-added `vietnamese_context_label` manually before running `93a03c74c024`.
 - Result: **OK** — migration detected existing column, skipped it, added remaining 5 columns.
+- Residual gap: the guard checks only whether a column exists; it does not reconcile that
+  column's definition. If `sarcasm_possible` or `sensitive_signal` was created out of band
+  without `DEFAULT false`, the migration skips it and does not add the `server_default`.
+  That database therefore remains without the database-level default until a separate
+  corrective migration is applied.
 
 ### 5. Backend Tests
 - `9 passed in 10.47s` (all manual scan and schema regression tests).
