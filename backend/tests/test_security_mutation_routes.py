@@ -3,64 +3,60 @@
 from __future__ import annotations
 
 import ast
-from pathlib import Path
+import inspect
+import textwrap
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import (
+    get_current_active_user,
+    get_current_superuser,
+    get_current_user,
+)
+from app.core.security_operations import get_enabled_superuser
 from app.main import app
 
 
 client = TestClient(app, raise_server_exceptions=False)
 
 PUBLIC_MUTATIONS = {
-    ("backend/app/api/auth.py", "/register"),
-    ("backend/app/api/auth.py", "/login"),
-    ("backend/app/api/webinar.py", "/register"),
+    ("POST", "/api/auth/register"),
+    ("POST", "/api/auth/login"),
+    ("POST", "/api/webinar/register"),
 }
 AUTH_DEPENDENCIES = {
-    "get_current_user",
-    "get_current_active_user",
-    "get_current_superuser",
-    "get_enabled_superuser",
-    "require_roles",
-    "RequirePermission",
+    get_current_user,
+    get_current_active_user,
+    get_current_superuser,
+    get_enabled_superuser,
+}
+OAUTH_GET_WRITE_EXCEPTIONS = {
+    "/api/integrations/meta/auth-url",
+    "/api/integrations/meta/callback",
 }
 
 
-def _mutation_route_inventory() -> list[tuple[str, int, str, str, bool]]:
-    backend_root = Path(__file__).resolve().parents[1]
-    inventory: list[tuple[str, int, str, str, bool]] = []
-    for path in sorted((backend_root / "app").rglob("*.py")):
-        source = path.read_text(encoding="utf-8-sig")
-        tree = ast.parse(source)
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            function_source = ast.get_source_segment(source, node) or ""
-            protected = any(name in function_source for name in AUTH_DEPENDENCIES)
-            for decorator in node.decorator_list:
-                if not (
-                    isinstance(decorator, ast.Call)
-                    and isinstance(decorator.func, ast.Attribute)
-                    and decorator.func.attr in {"post", "put", "patch", "delete"}
-                ):
-                    continue
-                route_path = ast.literal_eval(decorator.args[0])
-                relative_path = path.relative_to(backend_root.parent).as_posix()
-                inventory.append(
-                    (
-                        relative_path,
-                        node.lineno,
-                        decorator.func.attr.upper(),
-                        route_path,
-                        protected,
-                    )
-                )
+def _resolved_dependency_calls(dependant) -> set[object]:
+    calls = {dependant.call}
+    for child in dependant.dependencies:
+        calls.update(_resolved_dependency_calls(child))
+    return calls
+
+
+def _mutation_route_inventory() -> list[tuple[str, str, bool]]:
+    inventory = []
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        calls = _resolved_dependency_calls(route.dependant)
+        protected = bool(calls & AUTH_DEPENDENCIES)
+        for method in sorted(route.methods & {"POST", "PUT", "PATCH", "DELETE"}):
+            inventory.append((method, route.path, protected))
     return inventory
 
 
@@ -68,9 +64,58 @@ def test_every_mutation_route_is_authenticated_or_explicitly_public():
     unprotected = [
         route
         for route in _mutation_route_inventory()
-        if not route[4] and (route[0], route[3]) not in PUBLIC_MUTATIONS
+        if not route[2] and (route[0], route[1]) not in PUBLIC_MUTATIONS
     ]
     assert unprotected == []
+
+
+@pytest.mark.parametrize(
+    ("path", "rate_dependency"),
+    [
+        ("/api/ai/sentiment", "rate_limit_verified_user_ai"),
+        ("/api/crawl/manual-scan", "rate_limit_verified_user_scan"),
+        ("/api/admin/run-migrations", "rate_limit_verified_user_admin"),
+    ],
+)
+def test_protected_route_families_resolve_verified_user_rate_dependency(
+    path,
+    rate_dependency,
+):
+    route = next(
+        route
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.path == path
+    )
+    dependency_names = {
+        getattr(call, "__name__", "")
+        for call in _resolved_dependency_calls(route.dependant)
+    }
+    assert rate_dependency in dependency_names
+
+
+def _endpoint_writes_database(endpoint) -> bool:
+    tree = ast.parse(textwrap.dedent(inspect.getsource(endpoint)))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if (
+            isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "db"
+            and node.func.attr in {"add", "delete", "commit", "flush"}
+        ):
+            return True
+    return False
+
+
+def test_get_database_writes_are_limited_to_documented_oauth_protocol_steps():
+    write_paths = {
+        route.path
+        for route in app.routes
+        if isinstance(route, APIRoute)
+        and "GET" in route.methods
+        and _endpoint_writes_database(route.endpoint)
+    }
+    assert write_paths == OAUTH_GET_WRITE_EXCEPTIONS
 
 
 @pytest.mark.parametrize(
@@ -196,3 +241,126 @@ def test_rate_limit_counter_is_shared_across_redis_compatible_clients():
 
     assert first.check("login", "same-account").allowed is True
     assert second.check("login", "same-account").allowed is False
+
+
+def test_verified_user_limit_uses_stable_database_user_id_not_bearer_token():
+    from app.core.rate_limit import (
+        FixedWindowRateLimiter,
+        MemoryRateLimitStore,
+        make_verified_user_rate_limit,
+    )
+
+    limiter = FixedWindowRateLimiter(
+        MemoryRateLimitStore(),
+        {"scan": (1, 60)},
+    )
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(rate_limiter=limiter)),
+        headers={"authorization": "Bearer first-token"},
+    )
+    dependency = make_verified_user_rate_limit("scan")
+    user = SimpleNamespace(id=314)
+
+    assert dependency(request=request, current_user=user) is user
+    request.headers["authorization"] = "Bearer different-token"
+    with pytest.raises(Exception) as exc_info:
+        dependency(request=request, current_user=user)
+    assert getattr(exc_info.value, "status_code", None) == 429
+
+
+def test_development_allows_configured_local_redis(monkeypatch):
+    from app.core import rate_limit
+
+    monkeypatch.setattr(rate_limit.settings, "ENVIRONMENT", "development")
+    monkeypatch.setattr(
+        rate_limit.settings,
+        "REDIS_URL",
+        "redis://localhost:6379/0",
+    )
+    monkeypatch.setattr(
+        rate_limit,
+        "RedisRateLimitStore",
+        lambda redis_url: rate_limit.MemoryRateLimitStore(),
+    )
+
+    limiter = rate_limit._build_default_rate_limiter()
+    assert isinstance(limiter, rate_limit.FixedWindowRateLimiter)
+
+
+def test_production_rejects_localhost_redis_configuration(monkeypatch):
+    from app.core import rate_limit
+
+    monkeypatch.setattr(rate_limit.settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(
+        rate_limit.settings,
+        "REDIS_URL",
+        "redis://localhost:6379/0",
+    )
+
+    with pytest.raises(rate_limit.RateLimitConfigurationError):
+        rate_limit._build_default_rate_limiter()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/auth/me/notification-settings",
+        "/api/auth/me/preferences",
+        "/api/branding/",
+        "/api/reports/email-schedules",
+        "/api/admin/settings/organization",
+        "/api/admin/settings/email",
+        "/api/admin/settings/notifications",
+        "/api/admin/settings/ai-model",
+    ],
+)
+def test_ordinary_settings_gets_return_defaults_without_writing(path):
+    db = MagicMock()
+    db.execute.return_value.scalar_one_or_none.return_value = None
+    db.execute.return_value.scalars.return_value.first.return_value = None
+    user = SimpleNamespace(
+        id=7,
+        is_active=True,
+        is_superuser=True,
+        role="super_admin",
+    )
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_current_active_user] = lambda: user
+    app.dependency_overrides[get_current_superuser] = lambda: user
+    try:
+        response = client.get(path)
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200, response.text
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+
+
+def test_debug_auto_discovery_does_not_expose_provider_exception(monkeypatch):
+    from app.api import crawl
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "SERPAPI_API_KEY", "configured-for-test")
+    monkeypatch.setattr(
+        "app.services.serpapi_provider.search",
+        lambda **kwargs: (_ for _ in ()).throw(
+            RuntimeError("provider-secret and internal-host")
+        ),
+    )
+    user = SimpleNamespace(id=8, is_active=True, is_superuser=False, role="viewer")
+    app.dependency_overrides[get_current_active_user] = lambda: user
+    try:
+        response = client.post(
+            "/api/crawl/debug-auto-discovery",
+            json={"keyword": "security"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 502
+    body = response.text
+    assert "provider-secret" not in body
+    assert "internal-host" not in body
+    assert response.json()["detail"]["code"] == "DISCOVERY_PROVIDER_FAILED"

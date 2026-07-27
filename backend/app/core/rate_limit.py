@@ -9,11 +9,14 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import Mapping, Protocol
+from urllib.parse import urlparse
 
 import redis
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 
 from app.core.config import settings
+from app.core.security import get_current_active_user
+from app.models.user import User
 
 
 logger = logging.getLogger(__name__)
@@ -54,6 +57,13 @@ return {count, ttl}
             window_seconds,
         )
         return int(count), max(int(ttl), 1)
+
+    def close(self) -> None:
+        self._client.close()
+
+
+class RateLimitConfigurationError(RuntimeError):
+    """Raised when production abuse controls have no shared-store URL."""
 
 
 class MemoryRateLimitStore:
@@ -115,6 +125,27 @@ _default_limiter: FixedWindowRateLimiter | None = None
 _default_limiter_lock = threading.Lock()
 
 
+def _build_default_rate_limiter() -> FixedWindowRateLimiter:
+    environment = settings.ENVIRONMENT.lower()
+    if environment == "test":
+        store: RateLimitStore = MemoryRateLimitStore()
+        test_limits = {
+            scope: (10_000, window)
+            for scope, (_, window) in DEFAULT_LIMITS.items()
+        }
+        return FixedWindowRateLimiter(store, test_limits)
+
+    parsed_url = urlparse(settings.REDIS_URL)
+    if (
+        environment == "production"
+        and parsed_url.hostname in {None, "localhost", "127.0.0.1", "::1"}
+    ):
+        raise RateLimitConfigurationError(
+            "Production rate limiting requires a non-local REDIS_URL."
+        )
+    return FixedWindowRateLimiter(RedisRateLimitStore(settings.REDIS_URL))
+
+
 def get_rate_limiter(request: Request | None = None) -> FixedWindowRateLimiter:
     if request is not None:
         overridden = getattr(request.app.state, "rate_limiter", None)
@@ -125,16 +156,7 @@ def get_rate_limiter(request: Request | None = None) -> FixedWindowRateLimiter:
     if _default_limiter is None:
         with _default_limiter_lock:
             if _default_limiter is None:
-                if settings.ENVIRONMENT.lower() == "test":
-                    store: RateLimitStore = MemoryRateLimitStore()
-                    test_limits = {
-                        scope: (10_000, window)
-                        for scope, (_, window) in DEFAULT_LIMITS.items()
-                    }
-                    _default_limiter = FixedWindowRateLimiter(store, test_limits)
-                else:
-                    store = RedisRateLimitStore(settings.REDIS_URL)
-                    _default_limiter = FixedWindowRateLimiter(store)
+                _default_limiter = _build_default_rate_limiter()
     return _default_limiter
 
 
@@ -143,19 +165,10 @@ def client_identity(request: Request) -> str:
     return f"ip:{host}"
 
 
-def principal_identity(request: Request) -> str | None:
-    authorization = request.headers.get("authorization", "")
-    if not authorization:
-        return None
-    return f"authorization:{authorization}"
-
-
-def enforce_account_rate_limit(request: Request, scope: str, account: str) -> None:
-    """Apply a second account-level limit after request-model parsing."""
-
+def _enforce_identity_rate_limit(request: Request, scope: str, identity: str) -> None:
     try:
-        decision = get_rate_limiter(request).check(scope, f"account:{account.lower()}")
-    except redis.RedisError as exc:
+        decision = get_rate_limiter(request).check(scope, identity)
+    except (redis.RedisError, RateLimitConfigurationError) as exc:
         logger.error("Rate-limit shared store unavailable: %s", type(exc).__name__)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -173,6 +186,35 @@ def enforce_account_rate_limit(request: Request, scope: str, account: str) -> No
             },
             headers={"Retry-After": str(decision.retry_after)},
         )
+
+
+def enforce_account_rate_limit(request: Request, scope: str, account: str) -> None:
+    """Apply a public account-level limit after request-model parsing."""
+
+    _enforce_identity_rate_limit(request, scope, f"account:{account.lower()}")
+
+
+def make_verified_user_rate_limit(scope: str):
+    """Build a dependency keyed only after authentication resolves a database user."""
+
+    def verified_user_rate_limit(
+        request: Request,
+        current_user: User = Depends(get_current_active_user),
+    ) -> User:
+        _enforce_identity_rate_limit(
+            request,
+            scope,
+            f"verified-user:{current_user.id}",
+        )
+        return current_user
+
+    verified_user_rate_limit.__name__ = f"rate_limit_verified_user_{scope}"
+    return verified_user_rate_limit
+
+
+rate_limit_ai_user = make_verified_user_rate_limit("ai")
+rate_limit_scan_user = make_verified_user_rate_limit("scan")
+rate_limit_admin_user = make_verified_user_rate_limit("admin")
 
 
 def classify_rate_limit_scope(path: str) -> str | None:

@@ -211,12 +211,12 @@ def get_my_notification_settings(
         select(UserNotificationSettings).where(UserNotificationSettings.user_id == current_user.id)
     ).scalar_one_or_none()
     
-    # Create default settings if not exists
     if not settings:
-        settings = UserNotificationSettings(user_id=current_user.id)
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
+        return NotificationSettingsResponse(
+            id=0,
+            user_id=current_user.id,
+            created_at=datetime.utcnow(),
+        )
     
     return NotificationSettingsResponse.from_orm(settings)
 
@@ -259,12 +259,12 @@ def get_my_preferences(
         select(UserPreferences).where(UserPreferences.user_id == current_user.id)
     ).scalar_one_or_none()
     
-    # Create default preferences if not exists
     if not prefs:
-        prefs = UserPreferences(user_id=current_user.id)
-        db.add(prefs)
-        db.commit()
-        db.refresh(prefs)
+        return UserPreferencesResponse(
+            id=0,
+            user_id=current_user.id,
+            created_at=datetime.utcnow(),
+        )
     
     return UserPreferencesResponse.from_orm(prefs)
 

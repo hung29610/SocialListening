@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, or_, and_
 from typing import List, Optional
@@ -108,7 +109,14 @@ def debug_auto_discovery(
             ]
         }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logging.getLogger(__name__).exception("Debug auto-discovery failed")
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "DISCOVERY_PROVIDER_FAILED",
+                "message": "Discovery provider request failed.",
+            },
+        ) from e
 
 
 import time

@@ -16,10 +16,13 @@ from app.core.database import engine, Base, SessionLocal
 from app.core.security import get_current_superuser
 from app.core.security_operations import get_enabled_superuser
 from app.core.rate_limit import (
+    RateLimitConfigurationError,
     classify_rate_limit_scope,
     client_identity,
     get_rate_limiter,
-    principal_identity,
+    rate_limit_admin_user,
+    rate_limit_ai_user,
+    rate_limit_scan_user,
 )
 from app.models.user import User
 from app.api import (
@@ -204,9 +207,6 @@ async def security_controls(request: Request, call_next):
     scope = classify_rate_limit_scope(request.url.path)
     if scope:
         identities = [client_identity(request)]
-        principal = principal_identity(request)
-        if principal:
-            identities.append(principal)
         try:
             limiter = get_rate_limiter(request)
             for identity in identities:
@@ -226,7 +226,7 @@ async def security_controls(request: Request, call_next):
                             "X-Correlation-ID": correlation_id,
                         },
                     )
-        except redis.RedisError as exc:
+        except (redis.RedisError, RateLimitConfigurationError) as exc:
             logger.error(
                 "Rate-limit shared store unavailable correlation_id=%s error=%s",
                 correlation_id,
@@ -249,9 +249,13 @@ async def security_controls(request: Request, call_next):
     return response
 
 
+cors_origins = settings.cors_origins
+if settings.ENVIRONMENT.lower() == "production":
+    cors_origins = [settings.FRONTEND_URL.rstrip("/")] if settings.FRONTEND_URL else []
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
@@ -269,10 +273,10 @@ from fastapi.exceptions import HTTPException
 # ─── Global exception handler — ensures 500s return JSON + CORS ───────────────
 def _add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
     origin = request.headers.get("origin")
-    if origin and origin in settings.cors_origins:
+    if origin and origin in cors_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
-    elif "*" in settings.cors_origins:
+    elif "*" in cors_origins:
         response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
@@ -350,11 +354,17 @@ def health_check():
 
 # ─── Debug routes (non-production only) ───────────────────────────────────────
 if settings.ENVIRONMENT != "production":
-    @app.get("/api/debug/routes")
+    @app.get(
+        "/api/debug/routes",
+        dependencies=[Depends(rate_limit_admin_user)],
+    )
     def debug_routes(current_user: User = Depends(get_enabled_superuser)):
         return [{"path": r.path, "methods": list(r.methods or [])} for r in app.routes]
 
-    @app.get("/api/debug/db-tables")
+    @app.get(
+        "/api/debug/db-tables",
+        dependencies=[Depends(rate_limit_admin_user)],
+    )
     def debug_db_tables(current_user: User = Depends(get_enabled_superuser)):
         from sqlalchemy import inspect as sa_inspect
         inspector = sa_inspect(engine)
@@ -365,11 +375,11 @@ if settings.ENVIRONMENT != "production":
 
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
-app.include_router(collectors.router,       prefix="/api/collectors",      tags=["Collectors"])
+app.include_router(collectors.router,       prefix="/api/collectors",      tags=["Collectors"], dependencies=[Depends(rate_limit_scan_user)])
 app.include_router(auth.router,             prefix="/api/auth",             tags=["Authentication"])
 app.include_router(keywords.router,         prefix="/api/keywords",         tags=["Keywords"])
-app.include_router(sources.router,          prefix="/api/sources",          tags=["Sources"])
-app.include_router(crawl.router,            prefix="/api/crawl",            tags=["Crawl"])
+app.include_router(sources.router,          prefix="/api/sources",          tags=["Sources"], dependencies=[Depends(rate_limit_scan_user)])
+app.include_router(crawl.router,            prefix="/api/crawl",            tags=["Crawl"], dependencies=[Depends(rate_limit_scan_user)])
 app.include_router(mentions.router,         prefix="/api/mentions",         tags=["Mentions"])
 app.include_router(alerts.router,           prefix="/api/alerts",           tags=["Alerts"])
 app.include_router(incidents.router,        prefix="/api/incidents",        tags=["Incidents"])
@@ -377,25 +387,25 @@ app.include_router(reports.router,          prefix="/api/reports",          tags
 app.include_router(dashboard.router,        prefix="/api/dashboard",        tags=["Dashboard"])
 app.include_router(takedown.router,         prefix="/api/takedown",         tags=["Legal Response"])
 app.include_router(services.router,         prefix="/api/services",         tags=["Services"])
-app.include_router(admin.router,            prefix="/api/admin",            tags=["Admin"])
-app.include_router(users.router,            prefix="/api/admin",            tags=["User Management"])
-app.include_router(settings_api.router,     prefix="/api/admin/settings",   tags=["System Settings"])
-app.include_router(roles.router,            prefix="/api/admin/roles",      tags=["Role Management"])
-app.include_router(api_keys.router,         prefix="/api/api-keys",         tags=["API Keys"])
-app.include_router(branding.router,         prefix="/api/branding",         tags=["Branding"])
-app.include_router(audit.router,            prefix="/api/admin/audit",      tags=["Audit Logs"])
+app.include_router(admin.router,            prefix="/api/admin",            tags=["Admin"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(users.router,            prefix="/api/admin",            tags=["User Management"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(settings_api.router,     prefix="/api/admin/settings",   tags=["System Settings"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(roles.router,            prefix="/api/admin/roles",      tags=["Role Management"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(api_keys.router,         prefix="/api/api-keys",         tags=["API Keys"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(branding.router,         prefix="/api/branding",         tags=["Branding"], dependencies=[Depends(rate_limit_admin_user)])
+app.include_router(audit.router,            prefix="/api/admin/audit",      tags=["Audit Logs"], dependencies=[Depends(rate_limit_admin_user)])
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
-app.include_router(monitor.router,          prefix="/api/monitor",           tags=["Monitor"])
+app.include_router(monitor.router,          prefix="/api/monitor",           tags=["Monitor"], dependencies=[Depends(rate_limit_scan_user)])
 app.include_router(system.router,           prefix="/api/system",            tags=["System"])
 app.include_router(webinar.router,          prefix="/api/webinar",           tags=["Webinar"])
-app.include_router(ai.router,               prefix="/api/ai",                tags=["AI"])
-app.include_router(ai_chat.router,          prefix="/api/ai",                tags=["AI Chat"])
-app.include_router(ai_config.router,               prefix="/api/ai",                tags=["AI Config"])
+app.include_router(ai.router,               prefix="/api/ai",                tags=["AI"], dependencies=[Depends(rate_limit_ai_user)])
+app.include_router(ai_chat.router,          prefix="/api/ai",                tags=["AI Chat"], dependencies=[Depends(rate_limit_ai_user)])
+app.include_router(ai_config.router,        prefix="/api/ai",                tags=["AI Config"], dependencies=[Depends(rate_limit_ai_user)])
 app.include_router(evidence.router,         prefix="/api/evidence",          tags=["Evidence Locker"])
 app.include_router(competitors.router,      prefix="/api/competitors",       tags=["Competitors"])
 app.include_router(influencers.router,      prefix="/api/influencers",       tags=["Influencers"])
 app.include_router(reputation.router,       prefix="/api/reputation",        tags=["Reputation Handling"])
-app.include_router(discovery.router,        prefix="/api/discovery",         tags=["Auto Discovery"])
+app.include_router(discovery.router,        prefix="/api/discovery",         tags=["Auto Discovery"], dependencies=[Depends(rate_limit_scan_user)])
 app.include_router(integrations.router,     prefix="/api/integrations",      tags=["Integrations"])
 app.include_router(realtime.router,         prefix="/api/realtime",          tags=["Realtime"])
 app.include_router(saved_filters.router,    prefix="/api/saved-filters",    tags=["Saved Filters"])
@@ -412,7 +422,10 @@ from app.core.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-@app.get("/api/sys/db-stats")
+@app.get(
+    "/api/sys/db-stats",
+    dependencies=[Depends(rate_limit_admin_user)],
+)
 def get_db_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
@@ -424,7 +437,10 @@ def get_db_stats(
         stats[row[0] if row[0] is not None else "null"] = row[1]
     return {"status": "ok", "stats": stats}
 
-@app.post("/api/sys/run-backfill")
+@app.post(
+    "/api/sys/run-backfill",
+    dependencies=[Depends(rate_limit_admin_user)],
+)
 def run_prod_backfill(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_enabled_superuser),
@@ -452,7 +468,10 @@ def run_prod_backfill(
             detail={"code": "BACKFILL_FAILED", "message": "Backfill failed."},
         ) from e
 
-@app.post("/api/sys/run-visit-migration")
+@app.post(
+    "/api/sys/run-visit-migration",
+    dependencies=[Depends(rate_limit_admin_user)],
+)
 def run_visit_migration(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_enabled_superuser),
@@ -514,7 +533,11 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 # ─── Debug migration trigger (super-admin only) ───────────────────────────────
-@app.post("/api/debug/migrate", tags=["Debug"])
+@app.post(
+    "/api/debug/migrate",
+    tags=["Debug"],
+    dependencies=[Depends(rate_limit_admin_user)],
+)
 def debug_migrate(
     current_user: User = Depends(get_enabled_superuser),
 ):

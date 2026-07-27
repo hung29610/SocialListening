@@ -9,6 +9,22 @@ afterward. Normal application startup, login, scans, and background workers do
 not require this variable.
 
 The affected mutation endpoints use `POST`; requests using `GET` return 405 and
-cannot execute database changes. Security-sensitive API surfaces use the
-Redis-compatible shared rate-limit store configured by `REDIS_URL`. Production
-fails closed with 503 if that shared abuse-control store is unavailable.
+cannot execute database changes. The Meta OAuth authorization URL and callback
+remain documented GET protocol exceptions because OAuth redirects require
+them; tests explicitly allow only those two GET handlers to write state.
+
+Security-sensitive API surfaces use the Redis-compatible shared rate-limit
+store configured by `REDIS_URL`. In production this variable is mandatory and
+must point to a network-accessible non-local Redis service. A missing value,
+the localhost default, or an unavailable Redis service makes protected
+surfaces fail closed with 503.
+
+The real shared-counter integration test runs when `TEST_REDIS_URL` is set:
+
+```powershell
+$env:TEST_REDIS_URL = "redis://127.0.0.1:6379/15"
+python -m pytest tests/test_security_rate_limit_redis_integration.py -q
+```
+
+The CI workflow owned by issue #224 should provision a Redis service, set
+`TEST_REDIS_URL`, and run this test as a blocking step.
