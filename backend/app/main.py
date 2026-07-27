@@ -1,14 +1,26 @@
 import os
 import logging
 import traceback
+import re
+import uuid
+
+import redis
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 from app.core.security import get_current_superuser
+from app.core.security_operations import get_enabled_superuser
+from app.core.rate_limit import (
+    classify_rate_limit_scope,
+    client_identity,
+    get_rate_limiter,
+    principal_identity,
+)
 from app.models.user import User
 from app.api import (
     collectors,
@@ -180,12 +192,75 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def security_controls(request: Request, call_next):
+    supplied_id = request.headers.get("x-correlation-id", "")
+    if supplied_id and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", supplied_id):
+        correlation_id = supplied_id
+    else:
+        correlation_id = str(uuid.uuid4())
+    request.state.correlation_id = correlation_id
+
+    scope = classify_rate_limit_scope(request.url.path)
+    if scope:
+        identities = [client_identity(request)]
+        principal = principal_identity(request)
+        if principal:
+            identities.append(principal)
+        try:
+            limiter = get_rate_limiter(request)
+            for identity in identities:
+                decision = await run_in_threadpool(limiter.check, scope, identity)
+                if not decision.allowed:
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": {
+                                "code": "RATE_LIMIT_EXCEEDED",
+                                "message": "Too many requests. Try again later.",
+                                "correlation_id": correlation_id,
+                            }
+                        },
+                        headers={
+                            "Retry-After": str(decision.retry_after),
+                            "X-Correlation-ID": correlation_id,
+                        },
+                    )
+        except redis.RedisError as exc:
+            logger.error(
+                "Rate-limit shared store unavailable correlation_id=%s error=%s",
+                correlation_id,
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": {
+                        "code": "RATE_LIMIT_UNAVAILABLE",
+                        "message": "Abuse protection is temporarily unavailable.",
+                        "correlation_id": correlation_id,
+                    }
+                },
+                headers={"X-Correlation-ID": correlation_id},
+            )
+
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Correlation-ID",
+        "X-Requested-With",
+    ],
+    expose_headers=["X-Correlation-ID", "Retry-After"],
 )
 
 
@@ -203,22 +278,52 @@ def _add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
-    # Temporarily expose full detail in production for debugging
+    correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
     if exc.status_code >= 500:
-        logger.error(f"HTTPException 500 on {request.method} {request.url}: {exc.detail}")
+        logger.error(
+            "HTTPException %s on %s %s correlation_id=%s",
+            exc.status_code,
+            request.method,
+            request.url.path,
+            correlation_id,
+        )
+    if exc.status_code == 500:
+        detail = {
+            "code": "INTERNAL_ERROR",
+            "message": "Internal server error.",
+            "correlation_id": correlation_id,
+        }
+    elif isinstance(exc.detail, dict):
+        detail = {**exc.detail, "correlation_id": correlation_id}
+    else:
+        detail = exc.detail
     response = JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content={"detail": detail},
+        headers={**(exc.headers or {}), "X-Correlation-ID": correlation_id},
     )
     return _add_cors_headers(request, response)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception on {request.method} {request.url}: {traceback.format_exc()}")
-    
+    correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+    logger.error(
+        "Unhandled exception on %s %s correlation_id=%s: %s",
+        request.method,
+        request.url.path,
+        correlation_id,
+        traceback.format_exc(),
+    )
     response = JSONResponse(
         status_code=500,
-        content={"detail": f"Internal server error: {str(exc)}"},
+        content={
+            "detail": {
+                "code": "INTERNAL_ERROR",
+                "message": "Internal server error.",
+                "correlation_id": correlation_id,
+            }
+        },
+        headers={"X-Correlation-ID": correlation_id},
     )
     return _add_cors_headers(request, response)
 
@@ -233,8 +338,8 @@ def health_check():
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
         db.close()
         db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
+    except Exception:
+        db_status = "disconnected"
     return {
         "status": "ok" if db_status == "connected" else "degraded",
         "database": db_status,
@@ -246,11 +351,11 @@ def health_check():
 # ─── Debug routes (non-production only) ───────────────────────────────────────
 if settings.ENVIRONMENT != "production":
     @app.get("/api/debug/routes")
-    def debug_routes():
+    def debug_routes(current_user: User = Depends(get_enabled_superuser)):
         return [{"path": r.path, "methods": list(r.methods or [])} for r in app.routes]
 
     @app.get("/api/debug/db-tables")
-    def debug_db_tables():
+    def debug_db_tables(current_user: User = Depends(get_enabled_superuser)):
         from sqlalchemy import inspect as sa_inspect
         inspector = sa_inspect(engine)
         result = {}
@@ -308,7 +413,10 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 
 @app.get("/api/sys/db-stats")
-def get_db_stats(db: Session = Depends(get_db)):
+def get_db_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superuser),
+):
     # Count sentiments
     stats = {}
     mentions = db.execute(text("SELECT sentiment, COUNT(*) as count FROM mentions GROUP BY sentiment")).fetchall()
@@ -316,8 +424,11 @@ def get_db_stats(db: Session = Depends(get_db)):
         stats[row[0] if row[0] is not None else "null"] = row[1]
     return {"status": "ok", "stats": stats}
 
-@app.get("/api/sys/run-backfill")
-def run_prod_backfill(db: Session = Depends(get_db)):
+@app.post("/api/sys/run-backfill")
+def run_prod_backfill(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_enabled_superuser),
+):
     try:
         db.execute(text("UPDATE mentions SET sentiment = 'negative' WHERE sentiment IN ('negative_low', 'negative_medium', 'negative_high')"))
         db.execute(text("UPDATE ai_analysis SET sentiment = 'negative' WHERE sentiment IN ('negative_low', 'negative_medium', 'negative_high')"))
@@ -334,10 +445,18 @@ def run_prod_backfill(db: Session = Depends(get_db)):
         db.commit()
         return {"status": "success"}
     except Exception as e:
-        return {"status": "error", "error": str(e)}
+        db.rollback()
+        logger.exception("Production sentiment backfill failed")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "BACKFILL_FAILED", "message": "Backfill failed."},
+        ) from e
 
-@app.get("/api/sys/run-visit-migration")
-def run_visit_migration(db: Session = Depends(get_db)):
+@app.post("/api/sys/run-visit-migration")
+def run_visit_migration(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_enabled_superuser),
+):
     try:
         # PostgreSQL syntax for adding columns safely
         db.execute(text("ALTER TABLE mentions ADD COLUMN IF NOT EXISTS is_reviewed BOOLEAN DEFAULT FALSE"))
@@ -389,15 +508,15 @@ def run_visit_migration(db: Session = Depends(get_db)):
             """))
         except: pass
         db.commit()
-        return {"status": "partial", "error": str(e), "message": "Ran SQLite fallback migration"}
+        return {"status": "partial", "message": "Ran SQLite fallback migration"}
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 # ─── Debug migration trigger (super-admin only) ───────────────────────────────
-@app.get("/api/debug/migrate", tags=["Debug"])
+@app.post("/api/debug/migrate", tags=["Debug"])
 def debug_migrate(
-    current_user: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_enabled_superuser),
 ):
     """Trigger Alembic upgrade to head. Requires super-admin authentication."""
     import traceback
@@ -412,7 +531,11 @@ def debug_migrate(
         alembic.command.upgrade(alembic_cfg, "head")
         return {"status": "success"}
     except Exception as e:
-        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+        logger.exception("Debug migration failed")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "MIGRATION_FAILED", "message": "Migration failed."},
+        ) from e
     finally:
         os.chdir(original_cwd)
 

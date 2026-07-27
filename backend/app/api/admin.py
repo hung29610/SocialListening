@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
 from app.core.security import get_current_active_user, get_current_superuser
+from app.core.security_operations import get_enabled_superuser
 from app.models.user import User
 from app.models.service import ServiceCategory, Service, ServiceType, Platform, RiskLevel
 from decimal import Decimal
@@ -260,7 +261,7 @@ def seed_services_inline(db: Session):
 @router.post("/run-migrations")
 def run_migrations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_enabled_superuser)
 ):
     """Run database migrations"""
     try:
@@ -468,13 +469,16 @@ def run_migrations(
         
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "MIGRATION_FAILED", "message": "Migration failed."},
+        ) from e
 
 
 @router.post("/seed-services")
 def seed_services_data(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_enabled_superuser)
 ):
     """Seed service catalog data"""
     try:
@@ -493,7 +497,10 @@ def seed_services_data(
         
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Seeding failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "SEED_FAILED", "message": "Service seeding failed."},
+        ) from e
 
 
 @router.get("/service-catalog-status")
@@ -530,14 +537,20 @@ def get_service_catalog_status(
         }
         
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "CATALOG_STATUS_FAILED",
+                "message": "Unable to read service catalog status.",
+            },
+        ) from e
 
 
 
 @router.post("/run-schedule-migration")
 def run_schedule_migration(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_enabled_superuser)
 ):
     """Run migration 013 to add schedule arrays - SUPERUSER ONLY"""
     try:
@@ -583,14 +596,14 @@ def run_schedule_migration(
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Migration failed: {str(e)}"
-        )
+            detail={"code": "MIGRATION_FAILED", "message": "Migration failed."},
+        ) from e
 
 
 @router.post("/add-user-role-column")
 def add_user_role_column(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_enabled_superuser)
 ):
     """Add role column to users table - SUPERUSER ONLY"""
     try:
@@ -643,5 +656,5 @@ def add_user_role_column(
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Migration failed: {str(e)}"
-        )
+            detail={"code": "MIGRATION_FAILED", "message": "Migration failed."},
+        ) from e

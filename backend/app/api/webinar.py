@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 import logging
 
 from app.core.database import get_db
+from app.core.rate_limit import enforce_account_rate_limit
 from app.models.webinar import WebinarRegistration as WebinarRegistrationModel
 from app.services.notification_service import send_email_notification
 
@@ -89,10 +90,12 @@ Event link will be sent later.
 
 @router.post("/register")
 async def register_webinar(
+    request: Request,
     data: WebinarRegistrationRequest,
     db: Session = Depends(get_db)
 ):
     """Register for the upcoming webinar and send confirmation email synchronously"""
+    enforce_account_rate_limit(request, "webinar", data.email)
     
     # 1. Validation is mostly handled by Pydantic (EmailStr, non-empty due to str)
     if not data.name.strip():
