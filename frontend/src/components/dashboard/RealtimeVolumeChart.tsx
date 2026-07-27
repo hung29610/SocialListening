@@ -9,6 +9,7 @@ import {
   chartAxisTick,
   chartTooltipStyle,
   chartTooltipItemStyle,
+  ChartA11ySummary,
 } from './chartTheme';
 
 type VolumePoint = {
@@ -45,7 +46,11 @@ export default function RealtimeVolumeChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <div role="img" aria-labelledby="realtime-volume-chart-summary">
+      <ChartA11ySummary id="realtime-volume-chart-summary">
+        Line chart showing mention volume across {chartData.length} time points.
+      </ChartA11ySummary>
+      <ResponsiveContainer width="100%" height={220}>
       <LineChart data={chartData}>
         <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} stroke={chartGrid.stroke} />
         <XAxis dataKey="label" tick={{ ...chartAxisTick, fontSize: 10 }} interval="preserveStartEnd" />
@@ -55,6 +60,7 @@ export default function RealtimeVolumeChart({
           itemStyle={chartTooltipItemStyle}
         />
         <Line
+          isAnimationActive={false}
           type="monotone"
           dataKey="mentions"
           name="Mentions"
@@ -64,6 +70,7 @@ export default function RealtimeVolumeChart({
           activeDot={{ r: 4, fill: chartColors.accentBright }}
         />
       </LineChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   );
 }

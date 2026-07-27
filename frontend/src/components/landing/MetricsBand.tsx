@@ -6,7 +6,7 @@
  * Constitution: numbers are either VERIFIED in this repo or flagged
  * COPY_TBD — never invented. The four numerals below are all verified:
  *   12 source types   backend/app/models/source.py::SourceType
- *   8 keyword types   backend/app/models/keyword.py::KeywordType
+ *   9 keyword types   backend/app/models/keyword.py::KeywordType
  *   6 scan schedules  backend/app/models/source.py::CrawlFrequency
  *   0–100 risk score  ai_service.py::analyze_mention / mention.py
  * Business metrics (mentions processed, customers, uptime…) are NOT
@@ -19,7 +19,7 @@ import { Reveal } from './scene-motion';
 
 const VERIFIED_METRICS = [
   { value: '12', label: 'Loại nguồn public', hint: 'Facebook · Instagram · YouTube · báo chí · RSS · diễn đàn · web' },
-  { value: '8', label: 'Loại từ khóa', hint: 'Thương hiệu, đối thủ, hashtag, cụm tiêu cực…' },
+  { value: '9', label: 'Loại từ khóa', hint: 'Thương hiệu, đối thủ, hashtag, cụm tiêu cực…' },
   { value: '6', label: 'Lịch quét', hint: 'Từ hằng giờ đến hằng năm, kèm quét thủ công' },
   { value: '0–100', label: 'Thang điểm rủi ro', hint: 'Kèm mức khủng hoảng 1–5 cho từng mention' },
 ] as const;

@@ -1,11 +1,10 @@
 import PublicSiteShell from '@/components/public/PublicSiteShell';
 /* ── HERO SLOT (Epic SIGNAL integration point) ─────────────────────
-   W-B ships the real particle hero on its own branch; its documented
-   mount contract (state/EPIC_SIGNAL_WB_RESULT.md) is a named export
-   with props `{ className?: string }` and it renders the page <h1>
-   (as does this fallback). To mount it, change ONLY the next line to:
-   import { SignalHero as HeroSlot } from '@/components/landing/hero';  */
-import HeroSlot from '@/components/landing/HeroSlot';
+   W-B's real particle hero is mounted below (PRs #181 + #182 merged).
+   The static fallback at components/landing/HeroSlot.tsx is retained
+   for reference until epic close; SignalHero renders the page <h1>,
+   so the page must not add another.  */
+import { SignalHero as HeroSlot } from '@/components/landing/hero';
 import SourcesWall from '@/components/landing/SourcesWall';
 import FeatureScenes from '@/components/landing/FeatureScenes';
 import MetricsBand from '@/components/landing/MetricsBand';

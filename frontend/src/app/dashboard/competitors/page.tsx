@@ -86,7 +86,10 @@ export default function CompetitorsPage() {
             <TrendingUp className="w-5 h-5 mr-2 text-signal dark:text-signal-bright" />
             Share of Voice (Thị phần thảo luận)
           </h3>
-          <div className="h-80">
+          <div className="h-80" role="img" aria-labelledby="competitor-share-chart-summary">
+            <p id="competitor-share-chart-summary" className="sr-only">
+              Share of voice chart showing live comparison values for configured competitors.
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data?.data || []}
@@ -100,7 +103,7 @@ export default function CompetitorsPage() {
                   itemStyle={chartTooltipItemStyle}
                   formatter={(value: number) => [`${value}%`, 'Share of Voice']}
                 />
-                <Bar
+                <Bar isAnimationActive={false}
                   dataKey="share_of_voice"
                   radius={[6, 6, 0, 0]}
                 >
@@ -121,7 +124,10 @@ export default function CompetitorsPage() {
             <BarChartIcon className="w-5 h-5 mr-2 text-paper-faint" />
             Cảm xúc (Sentiment)
           </h3>
-          <div className="h-80">
+          <div className="h-80" role="img" aria-labelledby="competitor-sentiment-chart-summary">
+            <p id="competitor-sentiment-chart-summary" className="sr-only">
+              Sentiment comparison chart showing positive, neutral, and negative analyzed mentions for configured competitors.
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 layout="vertical"
@@ -136,9 +142,9 @@ export default function CompetitorsPage() {
                   itemStyle={chartTooltipItemStyle}
                 />
                 <Legend wrapperStyle={chartLegendStyle} />
-                <Bar dataKey="sentiment.positive" name="Tích cực" stackId="a" fill={chartColors.positive} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="sentiment.neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} />
-                <Bar dataKey="sentiment.negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[0, 4, 4, 0]} />
+                <Bar isAnimationActive={false} dataKey="sentiment.positive" name="Tích cực" stackId="a" fill={chartColors.positive} radius={[0, 0, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="sentiment.neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} />
+                <Bar isAnimationActive={false} dataKey="sentiment.negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

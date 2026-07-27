@@ -18,6 +18,7 @@ import {
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
   chartLegendStyle,
+  ChartA11ySummary,
 } from '@/components/dashboard/chartTheme';
 import { InfographicExportNotice } from '@/components/reports/InfographicExportNotice';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
@@ -157,7 +158,8 @@ export default function InfographicPage() {
             {data?.trend && data.trend.length > 0 && (
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6">{t('reports.volumeOfMentions')}</h3>
-                <div className="h-72">
+                <div className="h-72" role="img" aria-labelledby="infographic-volume-summary">
+                  <ChartA11ySummary id="infographic-volume-summary">Infographic volume chart showing mentions across {data.trend.length} dates.</ChartA11ySummary>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.trend}>
                       <defs>
@@ -181,6 +183,7 @@ export default function InfographicPage() {
                         labelStyle={chartTooltipLabelStyle}
                       />
                       <Area
+                        isAnimationActive={false}
                         type="monotone"
                         dataKey="mentions"
                         stroke={chartColors.accent}
@@ -198,11 +201,13 @@ export default function InfographicPage() {
               {/* Sentiment Pie */}
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.sentimentBreakdown')}</h3>
-                <div className="flex-1 min-h-[300px]">
+                <div className="flex-1 min-h-[300px]" role="img" aria-labelledby="infographic-sentiment-summary">
+                  <ChartA11ySummary id="infographic-sentiment-summary">Infographic sentiment breakdown chart showing analyzed sentiment categories.</ChartA11ySummary>
                   {sentimentData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
+                          isAnimationActive={false}
                           data={sentimentData}
                           cx="50%"
                           cy="50%"
@@ -232,7 +237,8 @@ export default function InfographicPage() {
               {/* Sources Bar Chart */}
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.topSources')}</h3>
-                <div className="flex-1 min-h-[300px]">
+                <div className="flex-1 min-h-[300px]" role="img" aria-labelledby="infographic-sources-summary">
+                  <ChartA11ySummary id="infographic-sources-summary">Infographic source chart showing mention counts by source.</ChartA11ySummary>
                   {data?.top_sources && data.top_sources.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={Array.isArray(data?.top_sources) ? data.top_sources.slice(0, 5) : []} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
@@ -245,7 +251,7 @@ export default function InfographicPage() {
                           itemStyle={chartTooltipItemStyle}
                           labelStyle={chartTooltipLabelStyle}
                         />
-                        <Bar dataKey="count" fill={chartColors.accent} radius={[0, 4, 4, 0]}>
+                        <Bar isAnimationActive={false} dataKey="count" fill={chartColors.accent} radius={[0, 4, 4, 0]}>
                           {Array.isArray(data?.top_sources) && data.top_sources.slice(0, 5).map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={index === 0 ? chartColors.accent : chartColors.inkMuted} />
                           ))}

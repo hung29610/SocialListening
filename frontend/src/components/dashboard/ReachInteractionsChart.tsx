@@ -10,6 +10,7 @@ import {
   chartTooltipStyle,
   chartTooltipItemStyle,
   chartLegendStyle,
+  ChartA11ySummary,
 } from './chartTheme';
 
 type Point = {
@@ -47,7 +48,11 @@ export default function ReachInteractionsChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <div role="img" aria-labelledby="reach-interactions-chart-summary">
+      <ChartA11ySummary id="reach-interactions-chart-summary">
+        Bar chart comparing reach and interactions across {chartData.length} time points.
+      </ChartA11ySummary>
+      <ResponsiveContainer width="100%" height={220}>
       <BarChart data={chartData}>
         <CartesianGrid strokeDasharray={chartGrid.strokeDasharray} stroke={chartGrid.stroke} />
         <XAxis dataKey="label" tick={{ ...chartAxisTick, fontSize: 10 }} />
@@ -57,9 +62,10 @@ export default function ReachInteractionsChart({
           itemStyle={chartTooltipItemStyle}
         />
         <Legend wrapperStyle={chartLegendStyle} />
-        <Bar dataKey="reach" name="Reach" fill={chartColors.accent} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="interactions" name="Tương tác" fill={chartColors.inkMuted} radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="reach" name="Reach" fill={chartColors.accent} radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="interactions" name="Tương tác" fill={chartColors.inkMuted} radius={[4, 4, 0, 0]} />
       </BarChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   );
 }

@@ -37,6 +37,7 @@ import { MentionEmptyResults } from '@/components/mentions/MentionEmptyResults';
 import { AntiNoiseNotice } from '@/components/mentions/AntiNoiseNotice';
 import { MentionFilterErrorState } from '@/components/mentions/MentionFilterErrorState';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SentimentBadge } from '@/components/ui/SentimentBadge';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -179,12 +180,6 @@ function SourceIcon({ type, className }: { type: string; className?: string }) {
     default:
       return <Globe className={baseClass} />;
   }
-}
-
-function SentimentDot({ sentiment }: { sentiment: string | null }) {
-  const opt = SENTIMENT_OPTIONS.find((s) => s.value === sentiment);
-  if (!opt) return <span className="w-2 h-2 rounded-full bg-paper-faint inline-block" />;
-  return <span className={`w-2 h-2 rounded-full ${opt.dot} inline-block`} />;
 }
 
 function formatRelativeTime(dateStr: string | null, t?: any) {
@@ -1300,7 +1295,10 @@ function MentionsPageContent() {
             </div>
           </div>
 
-          <div className="px-5 pt-2 pb-5">
+          <div className="px-5 pt-2 pb-5" role="img" aria-labelledby="mentions-summary-chart">
+            <p id="mentions-summary-chart" className="sr-only">
+              Mentions chart showing mention volume or sentiment across the selected time range.
+            </p>
             {chartLoading ? (
               <div className="w-full h-56 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none text-signal dark:text-signal-bright" />
@@ -1330,12 +1328,12 @@ function MentionsPageContent() {
                     labelStyle={chartTooltipLabelStyle}
                   />
                   {activeChartTab === 'reach' ? (
-                    <Bar dataKey="mentions" name="Mentions" fill={chartColors.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                    <Bar isAnimationActive={false} dataKey="mentions" name="Mentions" fill={chartColors.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
                   ) : (
                     <>
-                      <Bar dataKey="positive" name="Tích cực" stackId="a" fill={chartColors.positive} maxBarSize={36} />
-                      <Bar dataKey="neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} maxBarSize={36} />
-                      <Bar dataKey="negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="positive" name="Tích cực" stackId="a" fill={chartColors.positive} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[5, 5, 0, 0]} maxBarSize={36} />
                     </>
                   )}
                 </BarChart>
@@ -1582,21 +1580,18 @@ return (
                           mention.ai_analysis.ai_provider.toUpperCase()}
                        </span>
                      )}
-                     <div className={`px-2 py-1 rounded-md border text-[11px] font-bold flex items-center whitespace-nowrap ${
-                       mention.sentiment === 'positive' ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/25' :
-                       mention.sentiment === 'negative' ? 'bg-sentiment-negative/10 text-sentiment-negative border-sentiment-negative/25' :
-                       'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/25'
-                     }`}>
+                    <div className="relative inline-flex items-center">
+                      <SentimentBadge sentiment={mention.sentiment} size="sm" />
                        <select
                          value={mention.sentiment === 'positive' ? 'positive' : mention.sentiment === 'negative' ? 'negative' : 'neutral'}
                          onChange={(e) => handleAction(mention.id, 'sentiment', () => mentionsApi.updateSentiment(mention.id, e.target.value), 'Đã cập nhật sentiment')}
-                         className={`bg-transparent border-none outline-none font-bold cursor-pointer appearance-none pr-3 ${focusRing}`}
+                         aria-label="Edit mention sentiment"
+                         className={`absolute inset-0 h-full w-full cursor-pointer opacity-0 ${focusRing}`}
                        >
                          <option value="positive" className="text-sentiment-positive font-bold">Positive</option>
                          <option value="neutral" className="text-sentiment-neutral font-bold">{t('mentions.sentiment.neutral') || 'Neutral'}</option>
                          <option value="negative" className="text-sentiment-negative font-bold">Negative</option>
                        </select>
-                       <ChevronDown className="w-3 h-3 pointer-events-none -ml-2" />
                      </div>
                   </div>
                 </div>

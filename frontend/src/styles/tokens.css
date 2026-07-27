@@ -49,6 +49,16 @@
   --sentiment-negative: 354 72% 42%; /* #B81E2D carmine ink */
   --sentiment-neutral: 228 10% 42%;  /* #606576 slate ink */
 
+  /* Authoritative chart series palette; chart consumers stay token-only. */
+  --chart-1: 243 74% 48%;
+  --chart-2: 243 80% 58%;
+  --chart-3: 152 72% 29%;
+  --chart-4: 228 10% 42%;
+  --chart-5: 354 72% 42%;
+  --chart-6: 240 12% 32%;
+  --chart-7: 35 92% 42%;
+  --chart-8: 240 8% 48%;
+
   --edge: 42 16% 85%;              /* #DFDBD3 warm hairline rule */
   --edge-strong: 42 14% 74%;       /* #C6C0B3 emphasized rule */
 
@@ -121,6 +131,16 @@
   --sentiment-positive: 152 62% 55%; /* #45D391 luminous emerald */
   --sentiment-negative: 354 82% 64%; /* #EE5867 luminous rose */
   --sentiment-neutral: 228 12% 62%;  /* #9297AA cool slate */
+
+  /* Authoritative chart series palette; chart consumers stay token-only. */
+  --chart-1: 243 100% 62%;
+  --chart-2: 243 100% 70%;
+  --chart-3: 152 62% 55%;
+  --chart-4: 228 12% 62%;
+  --chart-5: 354 82% 64%;
+  --chart-6: 45 10% 72%;
+  --chart-7: 35 92% 60%;
+  --chart-8: 240 8% 52%;
 
   --edge: 240 24% 16%;             /* #1F1F33 hairline on void */
   --edge-strong: 240 20% 24%;      /* #313149 emphasized edge */
