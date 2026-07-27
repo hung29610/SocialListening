@@ -36,16 +36,21 @@ depends_on = None
 
 TABLE_NAME = 'ai_analysis'
 
-# Columns owned by this revision, in creation order.  Each entry is applied
-# independently, so a database that already has *some* of them converges
-# correctly instead of aborting on the first duplicate.
+# Columns owned by this revision, in creation order.  Each entry is
+# (name, type, server_default) and is applied independently, so a database
+# that already has *some* of them converges correctly instead of aborting
+# on the first duplicate.
+#
+# server_default values MUST match sibling revision 98958b6e0e48 so that
+# both migrations produce byte-identical schema regardless of which one
+# Alembic happens to execute first.
 COLUMNS = (
-    ('vietnamese_context_label', sa.String(length=100)),
-    ('tone', sa.String(length=50)),
-    ('sarcasm_possible', sa.Boolean()),
-    ('complaint_type', sa.String(length=100)),
-    ('sensitive_signal', sa.Boolean()),
-    ('explanation', sa.Text()),
+    ('vietnamese_context_label', sa.String(length=100), None),
+    ('tone', sa.String(length=50), None),
+    ('sarcasm_possible', sa.Boolean(), 'false'),
+    ('complaint_type', sa.String(length=100), None),
+    ('sensitive_signal', sa.Boolean(), 'false'),
+    ('explanation', sa.Text(), None),
 )
 
 
@@ -66,17 +71,24 @@ def _reflect_columns():
 def upgrade() -> None:
     existing = _reflect_columns()
     if existing is None:
-        # Table not present on this branch/database -- nothing to alter.
-        return
-    for name, column_type in COLUMNS:
+        raise RuntimeError(
+            f"Table '{TABLE_NAME}' does not exist. "
+            f"Migration {revision} cannot proceed without it."
+        )
+    for name, column_type, server_default in COLUMNS:
         if name not in existing:
-            op.add_column(TABLE_NAME, sa.Column(name, column_type, nullable=True))
+            op.add_column(
+                TABLE_NAME,
+                sa.Column(name, column_type, server_default=server_default, nullable=True),
+            )
 
 
 def downgrade() -> None:
     existing = _reflect_columns()
     if existing is None:
+        # Table absent -- nothing to drop.  This is genuinely a no-op,
+        # unlike upgrade() where a missing table signals a broken chain.
         return
-    for name, _column_type in reversed(COLUMNS):
+    for name, _column_type, _server_default in reversed(COLUMNS):
         if name in existing:
             op.drop_column(TABLE_NAME, name)
