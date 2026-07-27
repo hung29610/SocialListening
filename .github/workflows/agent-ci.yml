@@ -1,63 +1,105 @@
-name: Agent CI (Safe Narrow Checks)
+name: Blocking CI
 
 on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend:
+  backend-tests:
+    name: Backend tests (Python 3.11)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install backend deps (if requirements exist)
-        run: |
-          if [ -f backend/requirements.txt ]; then
-            pip install -r backend/requirements.txt
-          elif [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            echo "No requirements file found - skipping install"
-          fi
-      - name: Run narrow safe backend tests (manual scan schema)
-        run: |
-          if [ -d backend ]; then
-            cd backend
-          fi
-          python -m pytest tests/test_manual_scan.py::test_manual_scan_schema_mismatch_missing_scan_schedule_id tests/test_manual_scan_schema_regression.py::test_manual_scan_returns_structured_503_for_missing_crawl_job_columns -q --tb=short || echo "Narrow test command not applicable or tests missing - job continues for logging"
-        continue-on-error: true
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run maintained backend suite
+        run: python -m pytest
 
   frontend:
+    name: Frontend checks (Node 22)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install frontend deps (if package files exist)
-        run: |
-          if [ -f frontend/package.json ]; then
-            cd frontend && npm ci --prefer-offline --no-audit
-          elif [ -f package.json ]; then
-            npm ci --prefer-offline --no-audit
-          else
-            echo "No frontend package.json found - skipping"
-          fi
-      - name: Type-check / lint (if scripts exist)
-        run: |
-          if [ -f frontend/package.json ]; then
-            cd frontend
-          fi
-          npm run type-check --if-present || echo "No type-check script"
-          npm run lint --if-present || echo "No lint script"
-        continue-on-error: true
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --no-audit
+      - name: Type-check
+        run: npm run type-check
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
 
-# Notes:
-# - Conservative jobs: no secrets, no deploy, no migrations.
-# - Backend job uses the exact narrow pytest commands from previous focused runs.
-# - Jobs continue on error for logging only; real gates still enforced locally.
-# - No production config or service_role usage.
+  secret-scan:
+    name: Secret scan (new findings)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the proposed tree and its base
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build the base-tree findings baseline
+        # #218's rotated findings still exist in older commits, and one rotated
+        # provider-shaped value remains in the base tree. Build the baseline
+        # from this PR's immutable base SHA so only newly introduced findings
+        # can pass through to the blocking scan below.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/gitleaks-base"
+          git archive "${BASE_SHA}" | tar -x -C "${RUNNER_TEMP}/gitleaks-base"
+          docker run --rm \
+            -v "${RUNNER_TEMP}/gitleaks-base:/scan:ro" \
+            -v "${RUNNER_TEMP}:/scan-temp" \
+            -v "${GITHUB_WORKSPACE}/.gitleaks.toml:/config/.gitleaks.toml:ro" \
+            -w /scan \
+            zricethezav/gitleaks:v8.24.3 \
+            dir . \
+            --config=/config/.gitleaks.toml \
+            --report-format=json \
+            --report-path=/scan-temp/gitleaks-baseline.json \
+            --redact \
+            --exit-code=0 \
+            --no-banner \
+            --log-level=error
+          test -s "${RUNNER_TEMP}/gitleaks-baseline.json"
+      - name: Block new secrets in the proposed tree
+        run: >-
+          docker run --rm
+          -v "${{ github.workspace }}:/scan:ro"
+          -v "${{ runner.temp }}:/scan-temp:ro"
+          -w /scan
+          zricethezav/gitleaks:v8.24.3
+          dir .
+          --config=/scan/.gitleaks.toml
+          --baseline-path=/scan-temp/gitleaks-baseline.json
+          --redact
