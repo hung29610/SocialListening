@@ -1,6 +1,7 @@
 """
 Script to create an admin user
 """
+import os
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -31,8 +32,8 @@ async def create_admin():
         
         # Create admin user
         admin = User(
-            email="admin@example.com",
-            hashed_password=get_password_hash("admin123"),
+            email=os.environ["ADMIN_EMAIL"],
+            hashed_password=get_password_hash(os.environ["ADMIN_PASSWORD"]),
             full_name="System Administrator",
             is_active=True,
             is_superuser=True

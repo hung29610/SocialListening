@@ -1,12 +1,13 @@
 """
 Verify all main endpoints are working after hotfix
 """
+import os
 import requests
 import json
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+BASE_URL = os.environ["BACKEND_URL"]
+ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 def test_endpoint(name, method, url, token, data=None):
     headers = {"Authorization": f"Bearer {token}"}

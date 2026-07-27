@@ -39,7 +39,7 @@ def run_verification():
     
     user = db.execute(select(User).limit(1)).scalar_one_or_none()
     if not user:
-        user = User(email="test@example.com", full_name="Test User", hashed_password="pw", is_active=True)
+        user = User(email="test@example.com", full_name="Test User", hashed_password=get_password_hash(os.environ["TEST_USER_PASSWORD"]), is_active=True)
         db.add(user)
         db.commit()
         db.refresh(user)

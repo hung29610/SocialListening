@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Import Services from Excel to Database
 """
@@ -7,9 +8,9 @@ import requests
 import json
 
 # Configuration
-BASE_URL = "https://social-listening-backend.onrender.com"
-EMAIL = "admin@sociallistening.com"
-PASSWORD = "Admin@123456"
+BASE_URL = os.environ["BACKEND_URL"]
+EMAIL = os.environ["ADMIN_EMAIL"]
+PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 def login():
     """Login and get access token"""

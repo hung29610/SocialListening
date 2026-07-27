@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+import os
 """Check backend health"""
 import requests
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-EMAIL = "admin@sociallistening.com"
-PASSWORD = "Admin@123456"
+BASE_URL = os.environ["BACKEND_URL"]
+EMAIL = os.environ["ADMIN_EMAIL"]
+PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 # Login
 login_data = {"username": EMAIL, "password": PASSWORD}
