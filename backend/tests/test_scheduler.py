@@ -69,6 +69,8 @@ def test_worker_status_missing_table():
     from fastapi.testclient import TestClient
     from app.main import app
     from app.core.database import get_db
+    from app.core.security import get_current_active_user
+    from app.models.user import User
     from sqlalchemy.exc import ProgrammingError
     
     client = TestClient(app)
@@ -78,6 +80,12 @@ def test_worker_status_missing_table():
     db.query.return_value.filter.return_value.count.side_effect = ProgrammingError("SELECT", {}, Exception("relation missing"))
     
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_active_user] = lambda: User(
+        id=1,
+        email="scheduler-test@example.com",
+        is_active=True,
+        is_superuser=True,
+    )
     
     response = client.get("/api/system/worker-status")
     assert response.status_code == 200
