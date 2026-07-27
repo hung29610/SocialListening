@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Twitter, MessageCircle, Globe, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SentimentBadge } from '@/components/ui/SentimentBadge';
 
 interface Mention {
   id: number;
@@ -48,15 +49,7 @@ export default function MentionsPage() {
   };
 
   const getSentimentBadge = (sentiment: string) => {
-    const baseClasses = "px-2.5 py-0.5 rounded-full text-xs font-medium capitalize border";
-    switch (sentiment.toLowerCase()) {
-      case 'positive':
-        return <span className={`${baseClasses} bg-emerald-500/10 text-emerald-400 border-emerald-500/20`}>{sentiment}</span>;
-      case 'negative':
-        return <span className={`${baseClasses} bg-red-500/10 text-red-400 border-red-500/20`}>{sentiment}</span>;
-      default:
-        return <span className={`${baseClasses} bg-slate-500/10 text-slate-400 border-slate-500/20`}>{sentiment}</span>;
-    }
+    return <SentimentBadge sentiment={sentiment} size="sm" />;
   };
 
   return (

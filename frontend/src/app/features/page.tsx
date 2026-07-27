@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 const MODULES = [
   {
     title: 'Dự án & từ khóa',
-    body: 'Tổ chức workspace theo dự án; khai báo 8 loại từ khóa — thương hiệu, đối thủ, hashtag, cụm tiêu cực và hơn nữa.',
+    body: 'Tổ chức workspace theo dự án; khai báo 9 loại từ khóa — thương hiệu, đối thủ, hashtag, cụm tiêu cực và hơn nữa.',
     route: 'projects · keywords',
   },
   {

@@ -31,7 +31,7 @@ export const HeroInsightCard: React.FC<{ className?: string }> = ({ className = 
             </p>
           </div>
         </div>
-        <SentimentBadge sentiment="negative" size="sm" />
+        <SentimentBadge sentiment={null} label="COPY_TBD" size="sm" />
       </div>
 
       {/* Mention content — quote body is COPY_TBD, never invented */}

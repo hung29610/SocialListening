@@ -103,7 +103,7 @@ export default function CompetitorsPage() {
                   itemStyle={chartTooltipItemStyle}
                   formatter={(value: number) => [`${value}%`, 'Share of Voice']}
                 />
-                <Bar
+                <Bar isAnimationActive={false}
                   dataKey="share_of_voice"
                   radius={[6, 6, 0, 0]}
                 >
@@ -142,9 +142,9 @@ export default function CompetitorsPage() {
                   itemStyle={chartTooltipItemStyle}
                 />
                 <Legend wrapperStyle={chartLegendStyle} />
-                <Bar dataKey="sentiment.positive" name="Tích cực" stackId="a" fill={chartColors.positive} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="sentiment.neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} />
-                <Bar dataKey="sentiment.negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[0, 4, 4, 0]} />
+                <Bar isAnimationActive={false} dataKey="sentiment.positive" name="Tích cực" stackId="a" fill={chartColors.positive} radius={[0, 0, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="sentiment.neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} />
+                <Bar isAnimationActive={false} dataKey="sentiment.negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

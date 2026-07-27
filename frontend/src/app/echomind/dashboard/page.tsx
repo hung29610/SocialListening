@@ -76,9 +76,9 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Mentions" value={analytics.total_mentions} icon={MessageSquare} colorClass="bg-blue-500 text-blue-500" />
-        <StatCard title="Positive Mentions" value={analytics.positive_mentions} icon={ThumbsUp} colorClass="bg-emerald-500 text-emerald-500" />
-        <StatCard title="Negative Mentions" value={analytics.negative_mentions} icon={ThumbsDown} colorClass="bg-red-500 text-red-500" />
-        <StatCard title="Avg Sentiment" value={analytics.avg_sentiment_score.toFixed(2)} icon={Activity} colorClass="bg-purple-500 text-purple-500" />
+        <StatCard title="Positive Mentions" value={analytics.positive_mentions} icon={ThumbsUp} colorClass="bg-sentiment-positive text-sentiment-positive" />
+        <StatCard title="Negative Mentions" value={analytics.negative_mentions} icon={ThumbsDown} colorClass="bg-sentiment-negative text-sentiment-negative" />
+        <StatCard title="Avg Sentiment" value={analytics.avg_sentiment_score.toFixed(2)} icon={Activity} colorClass="bg-signal text-signal" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

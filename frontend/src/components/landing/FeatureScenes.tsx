@@ -284,7 +284,7 @@ const SCENES: Scene[] = [
     index: '01',
     title: 'Giám sát: từ từ khóa đến lần quét',
     body: 'Khai báo thương hiệu, đối thủ, hashtag hay cụm từ tiêu cực cần theo dõi, gán nguồn và để hệ thống quét theo lịch — từ hằng giờ đến hằng năm, hoặc quét thủ công đúng lúc bạn cần.',
-    facts: ['8 loại từ khóa', '6 tần suất quét', 'Quét thủ công theo yêu cầu'],
+    facts: ['9 loại từ khóa', '6 tần suất quét', 'Quét thủ công theo yêu cầu'],
     visual: <MonitorVisual />,
   },
   {

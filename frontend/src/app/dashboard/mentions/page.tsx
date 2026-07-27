@@ -1328,12 +1328,12 @@ function MentionsPageContent() {
                     labelStyle={chartTooltipLabelStyle}
                   />
                   {activeChartTab === 'reach' ? (
-                    <Bar dataKey="mentions" name="Mentions" fill={chartColors.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                    <Bar isAnimationActive={false} dataKey="mentions" name="Mentions" fill={chartColors.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
                   ) : (
                     <>
-                      <Bar dataKey="positive" name="Tích cực" stackId="a" fill={chartColors.positive} maxBarSize={36} />
-                      <Bar dataKey="neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} maxBarSize={36} />
-                      <Bar dataKey="negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="positive" name="Tích cực" stackId="a" fill={chartColors.positive} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="neutral" name="Trung lập" stackId="a" fill={chartColors.neutral} maxBarSize={36} />
+                      <Bar isAnimationActive={false} dataKey="negative" name="Tiêu cực" stackId="a" fill={chartColors.negative} radius={[5, 5, 0, 0]} maxBarSize={36} />
                     </>
                   )}
                 </BarChart>
