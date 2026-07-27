@@ -82,20 +82,20 @@ export default function KeywordsPage() {
 
       <div className="bg-void-surface border border-edge rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-400">Loading keywords...</div>
+          <div className="p-8 text-center text-paper-muted">Loading keywords...</div>
         ) : keywords.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">No keywords added yet. Add one above to start listening.</div>
+          <div className="p-8 text-center text-paper-muted">No keywords added yet. Add one above to start listening.</div>
         ) : (
-          <ul className="divide-y divide-slate-800">
+          <ul className="divide-y divide-edge">
             {keywords.map((kw) => (
-              <li key={kw.id} className="p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors">
+            <li key={kw.id} className="p-4 flex items-center justify-between hover:bg-void-raised/50 transition-colors motion-reduce:transition-none">
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-200">{kw.keyword}</span>
-                  <span className="text-sm text-slate-500">Added {new Date(kw.created_at).toLocaleDateString()}</span>
+                  <span className="font-medium text-paper">{kw.keyword}</span>
+                  <span className="text-sm text-paper-faint">Added {new Date(kw.created_at).toLocaleDateString()}</span>
                 </div>
                 <button
                   onClick={() => handleDelete(kw.id)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="p-2 text-paper-muted hover:text-sentiment-negative hover:bg-sentiment-negative/10 rounded-lg transition-colors motion-reduce:transition-none"
                 >
                   <Trash2 size={18} />
                 </button>

@@ -56,44 +56,44 @@ export default function MentionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">Mentions Feed</h2>
-          <p className="text-slate-400 mt-1">Live stream of conversations across the web.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-paper">Mentions Feed</h2>
+          <p className="text-paper-muted mt-1">Live stream of conversations across the web.</p>
         </div>
         <button
           onClick={() => fetchMentions(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-void-surface border border-edge rounded-lg hover:bg-void-raised text-paper-muted transition-colors motion-reduce:transition-none"
         >
-          <RefreshCw size={16} className={refreshing ? "animate-spin text-blue-500" : ""} />
+          <RefreshCw size={16} className={refreshing ? "animate-spin motion-reduce:animate-none text-signal" : ""} />
           <span>Refresh</span>
         </button>
       </div>
 
       <div className="space-y-4">
         {loading && !mentions.length ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">Loading mentions...</div>
+          <div className="p-8 text-center text-paper-muted bg-void-surface rounded-xl border border-edge">Loading mentions...</div>
         ) : mentions.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">No mentions found yet. Make sure you have active keywords!</div>
+          <div className="p-8 text-center text-paper-muted bg-void-surface rounded-xl border border-edge">No mentions found yet. Make sure you have active keywords!</div>
         ) : (
           mentions.map((mention) => (
-            <div key={mention.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
+            <div key={mention.id} className="bg-void-surface border border-edge rounded-xl p-5 hover:border-edge-strong transition-colors motion-reduce:transition-none">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                  <div className="bg-void p-2 rounded-lg border border-edge">
                     {getSourceIcon(mention.source)}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-200">@{mention.author}</h3>
-                    <p className="text-xs text-slate-500">{new Date(mention.created_at).toLocaleString()}</p>
+                    <h3 className="font-semibold text-paper">@{mention.author}</h3>
+                    <p className="text-xs text-paper-faint">{new Date(mention.created_at).toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-signal/10 text-signal border border-signal/20">
                     #{mention.keyword}
                   </span>
                   {getSentimentBadge(mention.sentiment)}
                 </div>
               </div>
-              <p className="text-slate-300 text-sm leading-relaxed">{mention.content}</p>
+              <p className="text-paper-muted text-sm leading-relaxed">{mention.content}</p>
             </div>
           ))
         )}

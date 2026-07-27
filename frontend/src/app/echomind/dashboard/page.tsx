@@ -69,13 +69,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-white">Dashboard</h2>
-        <p className="text-slate-400 mt-1">Overview of your brand&apos;s social listening performance.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-paper">Dashboard</h2>
+        <p className="text-paper-muted mt-1">Overview of your brand&apos;s social listening performance.</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Mentions" value={analytics.total_mentions} icon={MessageSquare} colorClass="bg-blue-500 text-blue-500" />
+        <StatCard title="Total Mentions" value={analytics.total_mentions} icon={MessageSquare} colorClass="bg-signal text-signal" />
         <StatCard title="Positive Mentions" value={analytics.positive_mentions} icon={ThumbsUp} colorClass="bg-sentiment-positive text-sentiment-positive" />
         <StatCard title="Negative Mentions" value={analytics.negative_mentions} icon={ThumbsDown} colorClass="bg-sentiment-negative text-sentiment-negative" />
         <StatCard title="Avg Sentiment" value={analytics.avg_sentiment_score.toFixed(2)} icon={Activity} colorClass="bg-signal text-signal" />
@@ -83,8 +83,8 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Line Chart */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Mention Volume Over Time</h3>
+        <div className="lg:col-span-2 bg-void-surface border border-edge rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-paper mb-6">Mention Volume Over Time</h3>
           <div className="h-72" role="img" aria-labelledby="echomind-volume-summary">
             <ChartA11ySummary id="echomind-volume-summary">Mention volume over time across {analytics.timeline.length} data points.</ChartA11ySummary>
             {analytics.timeline.length > 0 ? (
@@ -101,14 +101,14 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">No timeline data available</div>
+              <div className="flex h-full items-center justify-center text-paper-faint">No timeline data available</div>
             )}
           </div>
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Sentiment Distribution</h3>
+        <div className="bg-void-surface border border-edge rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-paper mb-6">Sentiment Distribution</h3>
           <div className="h-72" role="img" aria-labelledby="echomind-sentiment-summary">
             <ChartA11ySummary id="echomind-sentiment-summary">Sentiment distribution showing live positive, neutral, and negative mention counts.</ChartA11ySummary>
             {analytics.total_mentions > 0 ? (
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">No sentiment data available</div>
+              <div className="flex h-full items-center justify-center text-paper-faint">No sentiment data available</div>
             )}
           </div>
           {analytics.total_mentions > 0 && (
@@ -143,7 +143,7 @@ export default function DashboardPage() {
               {analytics.sentiment_distribution.map(item => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: (COLORS as any)[item.name] }}></div>
-                  <span className="text-sm text-slate-400">{item.name} ({item.value})</span>
+                  <span className="text-sm text-paper-muted">{item.name} ({item.value})</span>
                 </div>
               ))}
             </div>
