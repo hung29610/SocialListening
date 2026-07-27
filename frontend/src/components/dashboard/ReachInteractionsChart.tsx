@@ -62,8 +62,8 @@ export default function ReachInteractionsChart({
           itemStyle={chartTooltipItemStyle}
         />
         <Legend wrapperStyle={chartLegendStyle} />
-        <Bar dataKey="reach" name="Reach" fill={chartColors.accent} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="interactions" name="Tương tác" fill={chartColors.inkMuted} radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="reach" name="Reach" fill={chartColors.accent} radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="interactions" name="Tương tác" fill={chartColors.inkMuted} radius={[4, 4, 0, 0]} />
       </BarChart>
       </ResponsiveContainer>
     </div>

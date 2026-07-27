@@ -63,10 +63,10 @@ export default function TrendChart({ data, isLoading }: TrendChartProps) {
           <Legend wrapperStyle={{ paddingTop: '20px', ...chartLegendStyle }} />
 
           {/* Accent = the one primary/total series; sentiment + status tokens for the rest */}
-          <Line type="monotone" name="Tổng Mentions" dataKey="total_mentions" stroke={chartColors.accent} strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: chartColors.accentBright }} />
-          <Line type="monotone" name="Tiêu Cực" dataKey="negative_mentions" stroke={chartColors.negative} strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-          <Line type="monotone" name="Cảnh Báo" dataKey="alerts" stroke={chartColors.warning} strokeWidth={2} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-          <Line type="monotone" name="Sự Cố" dataKey="incidents" stroke={chartColors.inkMuted} strokeWidth={2} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+          <Line isAnimationActive={false} type="monotone" name="Tổng Mentions" dataKey="total_mentions" stroke={chartColors.accent} strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: chartColors.accentBright }} />
+          <Line isAnimationActive={false} type="monotone" name="Tiêu Cực" dataKey="negative_mentions" stroke={chartColors.negative} strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+          <Line isAnimationActive={false} type="monotone" name="Cảnh Báo" dataKey="alerts" stroke={chartColors.warning} strokeWidth={2} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+          <Line isAnimationActive={false} type="monotone" name="Sự Cố" dataKey="incidents" stroke={chartColors.inkMuted} strokeWidth={2} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

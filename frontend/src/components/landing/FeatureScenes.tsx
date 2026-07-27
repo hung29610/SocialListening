@@ -141,16 +141,18 @@ function AnalysisVisual() {
       <p className="font-display text-eyebrow font-semibold uppercase text-paper-faint">
         Phân bố sắc thái
       </p>
-      <div className="mt-4 space-y-2.5">
-        {[
-          { tone: 'bg-sentiment-positive', width: '58%' },
-          { tone: 'bg-sentiment-neutral', width: '82%' },
-          { tone: 'bg-sentiment-negative', width: '34%' },
-        ].map((bar) => (
-          <div key={bar.tone} className="h-2 overflow-hidden rounded-full bg-void-raised">
-            <div className={`h-full rounded-full ${bar.tone}`} style={{ width: bar.width }} />
-          </div>
-        ))}
+      <div className="mt-4 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-4">
+        <p className="font-display text-sm font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">
+          COPY_TBD - live sentiment distribution
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-paper-muted">
+          Real analyzed mention distributions appear in the dashboard after a source is connected.
+        </p>
+        <div className="mt-4 space-y-2" aria-hidden="true">
+          <div className="h-2 w-full rounded-full bg-sentiment-positive/20" />
+          <div className="h-2 w-full rounded-full bg-sentiment-neutral/20" />
+          <div className="h-2 w-full rounded-full bg-sentiment-negative/20" />
+        </div>
       </div>
 
       <div className="mt-6 border-t border-edge pt-5">
@@ -158,8 +160,11 @@ function AnalysisVisual() {
           <span>Điểm rủi ro</span>
           <span className="tabular-nums">0 — 100</span>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-void-raised">
-          <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-sentiment-positive via-sentiment-neutral to-sentiment-negative" />
+        <div className="mt-2 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-3">
+          <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - risk value</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-void-raised">
+            <div className="h-full w-full rounded-full bg-gradient-to-r from-sentiment-positive/30 via-sentiment-neutral/30 to-sentiment-negative/30" />
+          </div>
         </div>
         <div className="mt-4 flex items-center justify-between text-xs text-paper-muted">
           <span>Mức khủng hoảng</span>
@@ -167,9 +172,7 @@ function AnalysisVisual() {
             {[1, 2, 3, 4, 5].map((level) => (
               <span
                 key={level}
-                className={`h-2 w-2 rounded-full ${
-                  level <= 2 ? 'bg-sentiment-negative' : 'bg-void-raised border border-edge'
-                }`}
+                className="h-2 w-2 rounded-full border border-edge bg-void-raised"
               />
             ))}
           </span>
@@ -209,18 +212,18 @@ function AlertsVisual() {
           Tín hiệu nóng
         </span>
       </div>
-      <ul className="mt-5 space-y-3">
-        {[
-          { dot: 'bg-sentiment-negative', width: '86%' },
-          { dot: 'bg-sentiment-neutral', width: '68%' },
-          { dot: 'bg-sentiment-neutral', width: '74%' },
-        ].map((row, index) => (
+      <p className="mt-5 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-4 text-sm leading-relaxed text-paper-muted">
+        <span className="font-display font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - live alert preview</span>
+        <br />Real alert rows and mention context appear after a connected source produces analyzed data.
+      </p>
+      <ul className="mt-3 space-y-3" aria-hidden="true">
+        {[1, 2, 3].map((index) => (
           <li
             key={index}
             className="flex items-center gap-3 rounded-xl border border-edge bg-void-raised/60 p-4"
           >
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.dot}`} />
-            <SkeletonLine width={row.width} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-paper-faint/40" />
+            <SkeletonLine width="100%" />
           </li>
         ))}
       </ul>
@@ -249,14 +252,14 @@ function ReportsVisual() {
           <SkeletonLine width="64%" />
         </div>
       </div>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - report preview</p>
       <div className="mt-3 rounded-xl border border-edge bg-void-raised/60 p-4">
         <p className="text-xs font-semibold text-paper-muted">Bản phân tích đầy đủ</p>
         <div className="mt-3 grid grid-cols-3 items-end gap-2">
-          {['40%', '75%', '55%'].map((height, index) => (
+          {[1, 2, 3].map((index) => (
             <div key={index} className="flex h-16 items-end rounded-lg bg-void-raised">
               <div
-                className="w-full rounded-lg bg-signal/50"
-                style={{ height }}
+                className="h-1/2 w-full rounded-lg bg-signal/30"
               />
             </div>
           ))}

@@ -60,6 +60,7 @@ export default function RealtimeVolumeChart({
           itemStyle={chartTooltipItemStyle}
         />
         <Line
+          isAnimationActive={false}
           type="monotone"
           dataKey="mentions"
           name="Mentions"

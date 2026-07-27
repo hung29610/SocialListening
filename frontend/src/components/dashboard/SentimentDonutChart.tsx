@@ -40,6 +40,7 @@ export default function SentimentDonutChart({ data, isLoading }: { data: Sentime
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
+            isAnimationActive={false}
             data={chartData}
             cx="50%"
             cy="50%"

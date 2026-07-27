@@ -9,6 +9,7 @@ import {
   chartTooltipStyle,
   chartTooltipItemStyle,
   chartTooltipLabelStyle,
+  ChartA11ySummary,
 } from '@/components/dashboard/chartTheme';
 
 /* SIGNAL shared micro-interaction primitive (150–250ms, reduced-motion honored) */
@@ -89,12 +90,13 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
           <div key={id} className="space-y-4">
             <h2 className="text-xl font-bold" style={{ color: accentColor }}>Analysis & Trends</h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" style={{ backgroundColor: doc.card }}>
+              <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" role="img" aria-labelledby="pdf-sentiment-summary" style={{ backgroundColor: doc.card }}>
+                <ChartA11ySummary id="pdf-sentiment-summary">PDF sentiment breakdown chart showing analyzed sentiment counts.</ChartA11ySummary>
                 <h3 className="font-bold mb-2">Sentiment Breakdown</h3>
                 {pieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
+                      <Pie isAnimationActive={false} data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
                         {pieData.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -106,7 +108,8 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                   <div className="opacity-50 text-sm">No sentiment data available.</div>
                 )}
               </div>
-              <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" style={{ backgroundColor: doc.card }}>
+              <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" role="img" aria-labelledby="pdf-volume-summary" style={{ backgroundColor: doc.card }}>
+                <ChartA11ySummary id="pdf-volume-summary">PDF daily volume chart showing analyzed mention counts over time.</ChartA11ySummary>
                 <h3 className="font-bold mb-2">Daily Volume</h3>
                 {trendData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -114,7 +117,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                       <XAxis dataKey="date" tick={{ ...chartAxisTick, fontSize: 10 }} stroke={chartGrid.stroke} />
                       <YAxis tick={{ ...chartAxisTick, fontSize: 10 }} stroke={chartGrid.stroke} />
                       <Tooltip contentStyle={chartTooltipStyle} itemStyle={chartTooltipItemStyle} labelStyle={chartTooltipLabelStyle} />
-                      <Bar dataKey="mentions" fill={accentColor} radius={[4,4,0,0]} />
+                      <Bar isAnimationActive={false} dataKey="mentions" fill={chartColors.accent} radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MessageSquare, ThumbsUp, ThumbsDown, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { chartColors, chartGrid, chartAxisTick, chartTooltipStyle, chartTooltipItemStyle, ChartA11ySummary } from '@/components/dashboard/chartTheme';
 
 interface TimelineItem {
   time: string;
@@ -26,11 +27,7 @@ interface Analytics {
   sentiment_distribution: SentimentItem[];
 }
 
-const COLORS = {
-  Positive: '#10b981', // emerald-500
-  Negative: '#ef4444', // red-500
-  Neutral: '#64748b'   // slate-500
-};
+const COLORS = { Positive: chartColors.positive, Negative: chartColors.negative, Neutral: chartColors.neutral };
 
 export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -88,18 +85,19 @@ export default function DashboardPage() {
         {/* Line Chart */}
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Mention Volume Over Time</h3>
-          <div className="h-72">
+          <div className="h-72" role="img" aria-labelledby="echomind-volume-summary">
+            <ChartA11ySummary id="echomind-volume-summary">Mention volume over time across {analytics.timeline.length} data points.</ChartA11ySummary>
             {analytics.timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analytics.timeline}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="time" stroke="#64748b" tick={{ fill: '#64748b' }} />
-                  <YAxis stroke="#64748b" tick={{ fill: '#64748b' }} />
+                  <CartesianGrid {...chartGrid} />
+                  <XAxis dataKey="time" tick={chartAxisTick} />
+                  <YAxis tick={chartAxisTick} />
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                    itemStyle={{ color: '#e2e8f0' }}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
-                  <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 4 }} activeDot={{ r: 6 }} />
+                  <Line isAnimationActive={false} type="monotone" dataKey="count" stroke={chartColors.accent} strokeWidth={3} dot={{ fill: chartColors.accent, r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -111,11 +109,13 @@ export default function DashboardPage() {
         {/* Pie Chart */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Sentiment Distribution</h3>
-          <div className="h-72">
+          <div className="h-72" role="img" aria-labelledby="echomind-sentiment-summary">
+            <ChartA11ySummary id="echomind-sentiment-summary">Sentiment distribution showing live positive, neutral, and negative mention counts.</ChartA11ySummary>
             {analytics.total_mentions > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
+                    isAnimationActive={false}
                     data={analytics.sentiment_distribution}
                     cx="50%"
                     cy="50%"
@@ -129,8 +129,8 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                    itemStyle={{ color: '#e2e8f0' }}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={chartTooltipItemStyle}
                   />
                 </PieChart>
               </ResponsiveContainer>
