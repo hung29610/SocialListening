@@ -9,9 +9,10 @@ afterward. Normal application startup, login, scans, and background workers do
 not require this variable.
 
 The affected mutation endpoints use `POST`; requests using `GET` return 405 and
-cannot execute database changes. The Meta OAuth authorization URL and callback
-remain documented GET protocol exceptions because OAuth redirects require
-them; tests explicitly allow only those two GET handlers to write state.
+cannot execute database changes. Meta OAuth authorization-state creation also
+uses `POST`. The provider callback remains the sole documented state-changing
+GET exception because the OAuth redirect protocol invokes it with query
+parameters; tests explicitly allow only that callback to write state.
 
 Security-sensitive API surfaces use the Redis-compatible shared rate-limit
 store configured by `REDIS_URL`. In production this variable is mandatory and

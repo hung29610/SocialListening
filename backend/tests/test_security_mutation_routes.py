@@ -36,7 +36,6 @@ AUTH_DEPENDENCIES = {
     get_enabled_superuser,
 }
 OAUTH_GET_WRITE_EXCEPTIONS = {
-    "/api/integrations/meta/auth-url",
     "/api/integrations/meta/callback",
 }
 
@@ -124,9 +123,10 @@ def test_get_database_writes_are_limited_to_documented_oauth_protocol_steps():
         "/api/sys/run-backfill",
         "/api/sys/run-visit-migration",
         "/api/debug/migrate",
+        "/api/integrations/meta/auth-url",
     ],
 )
-def test_state_changing_admin_operations_are_not_get_routes(path):
+def test_state_changing_operations_are_not_get_routes(path):
     response = client.get(path)
     assert response.status_code == 405
 
