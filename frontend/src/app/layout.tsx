@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DialogProvider } from '@/components/ui/Dialog'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import { LANGUAGE_BOOTSTRAP_SCRIPT } from '@/i18n'
 
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 
@@ -37,6 +38,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: LANGUAGE_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body className={`${inter.className} ${spaceGrotesk.variable}`}>
         <LanguageProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

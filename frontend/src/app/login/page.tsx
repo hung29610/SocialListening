@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { API_BASE_URL, auth, resetAuthRedirectLock } from '@/lib/api';
+import { API_BASE_URL, api, auth, resetAuthRedirectLock } from '@/lib/api';
+import { syncServerLanguagePreference } from '@/i18n/languagePreferences';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Display } from '@/components/ui/Display';
 import {
@@ -18,18 +19,36 @@ function getBackendUrl() {
   return (API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 }
 
-/** Cache user profile after login so AuthContext reads instantly on next page */
-function cacheUserAfterLogin(token: string) {
+/** Cache signed-in state before the dashboard's first paint. */
+async function cacheSessionAfterLogin(token: string) {
   try {
     const backendUrl = getBackendUrl();
     const meUrl = backendUrl ? `${backendUrl}/api/auth/me` : '/api/auth/me';
-    fetch(meUrl, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
+    const profileRequest = fetch(meUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+      .then(response => (response.ok ? response.json() : null))
       .then(user => {
         if (user) localStorage.setItem('cached_user', JSON.stringify(user));
-      })
-      .catch(() => {});
-  } catch {}
+      });
+    const languageRequest = syncServerLanguagePreference(api, { token });
+    const [profileResult, languageResult] = await Promise.allSettled([
+      profileRequest,
+      languageRequest,
+    ]);
+    if (profileResult.status === 'rejected') {
+      console.warn('[auth] Unable to cache the signed-in profile.', profileResult.reason);
+    }
+    if (languageResult.status === 'rejected') {
+      console.warn(
+        '[i18n] Unable to apply the server language before redirect; keeping the browser mirror.',
+        languageResult.reason,
+      );
+    }
+  } catch (error) {
+    console.warn('[auth] Unable to prepare the signed-in session cache.', error);
+  }
 }
 
 /** Wake up Render backend by calling /health directly to bypass Vercel 10s proxy limit */
@@ -155,7 +174,9 @@ function LoginContent() {
 
       // ── Success ──
       resetAuthRedirectLock();
-      if (result?.access_token) cacheUserAfterLogin(result.access_token);
+      if (result?.access_token) {
+        await cacheSessionAfterLogin(result.access_token);
+      }
       setLoginPhase('redirecting');
       isRedirecting = true;
       window.location.replace('/dashboard');

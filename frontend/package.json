@@ -10,7 +10,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check-i18n": "node scripts/check-i18n-keys.mjs",
+    "check-locales": "node scripts/check-locale-behavior.mjs",
+    "check-hardcoded": "node scripts/check-hardcoded-ui.mjs",
+    "check-hardcoded-ratchet": "node scripts/check-hardcoded-ui.mjs --self-test-ratchet",
+    "check-i18n-all": "npm run check-i18n && npm run check-locales && npm run check-hardcoded && npm run check-hardcoded-ratchet"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

@@ -33,7 +33,9 @@ class NotificationSettingsResponse(NotificationSettingsBase):
 # User Preferences Schemas
 class UserPreferencesBase(BaseModel):
     theme: str = Field('system', pattern='^(light|dark|system)$')
-    language: str = Field('vi', pattern='^(vi|en)$')
+    # Read compatibility: legacy rows must reach the frontend's lazy
+    # normalizer. New writes remain restricted to vi/en below.
+    language: str = 'vi'
     sidebar_collapsed: bool = False
     items_per_page: int = Field(20, ge=10, le=100)
 

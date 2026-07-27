@@ -1,70 +1,136 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Language, dictionaries, Dictionary } from '@/i18n';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
+import {
+  DEFAULT_LANGUAGE,
+  type Language,
+  type TranslationParams,
+  dictionaries,
+  interpolateTranslation,
+} from '@/i18n';
+import {
+  applyLanguageSelection,
+  readLanguageMirror,
+  syncServerLanguagePreference,
+  writeLanguageMirror,
+} from '@/i18n/languagePreferences';
 
 interface LanguageContextType {
   language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (keyPath: string) => string;
+  setLanguage: (language: Language) => void;
+  t: (keyPath: string, params?: TranslationParams) => string;
 }
 
-const defaultLanguage: Language = 'vi';
+function translate(
+  language: Language,
+  keyPath: string,
+  params?: TranslationParams,
+): string {
+  const read = (locale: Language): unknown =>
+    keyPath
+      .split('.')
+      .reduce<unknown>(
+        (current, key) =>
+          current && typeof current === 'object' && key in current
+            ? (current as Record<string, unknown>)[key]
+            : undefined,
+        dictionaries[locale],
+      );
+
+  const value = read(language) ?? read(DEFAULT_LANGUAGE);
+  return typeof value === 'string'
+    ? interpolateTranslation(value, params)
+    : keyPath;
+}
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: defaultLanguage,
+  language: DEFAULT_LANGUAGE,
   setLanguage: () => {},
-  t: () => '',
+  t: keyPath => keyPath,
 });
 
-export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
-  const [language, setLanguageState] = useState<Language>(defaultLanguage);
-  const [mounted, setMounted] = useState(false);
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
+  const [mirrorApplied, setMirrorApplied] = useState(false);
+  const selectionVersion = useRef(0);
+
+  useLayoutEffect(() => {
+    const mirroredLanguage = readLanguageMirror();
+    setLanguageState(mirroredLanguage);
+    setMirrorApplied(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    document.documentElement.lang = language;
+    if (mirrorApplied) {
+      delete document.documentElement.dataset.i18nPending;
+    }
+  }, [language, mirrorApplied]);
 
   useEffect(() => {
-    setMounted(true);
-    const storedLang = localStorage.getItem('app_language') as Language;
-    if (storedLang && dictionaries[storedLang]) {
-      setLanguageState(storedLang);
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem('access_token');
+    } catch {
+      console.warn('[i18n] Browser storage is unavailable; using the session language only.');
     }
-  }, []);
+    if (!token) return;
 
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('app_language', lang);
-    }
-  }, []);
-
-  const t = useCallback((keyPath: string): string => {
-    const keys = keyPath.split('.');
-    let current: any = dictionaries[language] || dictionaries[defaultLanguage];
-    
-    for (const key of keys) {
-      if (current[key] === undefined) {
-        // Fallback to default language if key is missing in current language
-        let fallbackCurrent: any = dictionaries[defaultLanguage];
-        for (const fbKey of keys) {
-          if (fallbackCurrent[fbKey] === undefined) return keyPath; // Return key path if fully missing
-          fallbackCurrent = fallbackCurrent[fbKey];
+    const versionAtRequest = selectionVersion.current;
+    void syncServerLanguagePreference(api, { token, storage: null })
+      .then(serverLanguage => {
+        if (selectionVersion.current === versionAtRequest) {
+          writeLanguageMirror(serverLanguage);
+          setLanguageState(serverLanguage);
         }
-        return fallbackCurrent;
-      }
-      current = current[key];
-    }
-    
-    return current;
-  }, [language]);
+      })
+      .catch(error => {
+        console.warn(
+          '[i18n] Unable to load the server language preference; keeping the browser mirror.',
+          error,
+        );
+      });
+  }, []);
 
-  // Prevent hydration mismatch by rendering children without context translations initially
-  // But actually we can just render context, but the initial HTML uses defaultLanguage
-  // To be safe with hydration in Next.js, we should avoid changing text before mount
-  
+  const setLanguage = useCallback((requested: Language) => {
+    selectionVersion.current += 1;
+    let signedIn = false;
+    try {
+      signedIn = Boolean(localStorage.getItem('access_token'));
+    } catch {
+      // Storage can be unavailable; the in-memory selection still applies.
+    }
+    void applyLanguageSelection({
+      requested,
+      transport: signedIn ? api : null,
+      onApply: setLanguageState,
+      onSaveFailure: language => {
+        toast.error(translate(language, 'i18n.languageSaveFailed'));
+      },
+    });
+  }, []);
+
+  const t = useCallback(
+    (keyPath: string, params?: TranslationParams) =>
+      translate(language, keyPath, params),
+    [language],
+  );
+
   return (
-    <LanguageContext.Provider value={{ language: mounted ? language : defaultLanguage, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
-};
+}
 
 export const useLanguage = () => useContext(LanguageContext);

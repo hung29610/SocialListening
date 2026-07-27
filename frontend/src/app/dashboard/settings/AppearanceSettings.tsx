@@ -5,9 +5,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Palette, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
+import {
+  SUPPORTED_LANGUAGES,
+  languageNames,
+  type Language,
+} from '@/i18n';
 
 export default function AppearanceSettings() {
-  const { t } = useLanguage();
+  const { t, setLanguage } = useLanguage();
   const [settings, setSettings] = useState({
     theme: 'system',
     language: 'vi',
@@ -145,11 +150,18 @@ export default function AppearanceSettings() {
           </label>
           <select
             value={settings.language}
-            onChange={(e) => setSettings({ ...settings, language: e.target.value })}
+            onChange={(e) => {
+              const nextLanguage = e.target.value as Language;
+              setSettings({ ...settings, language: nextLanguage });
+              setLanguage(nextLanguage);
+            }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
+            {SUPPORTED_LANGUAGES.map(language => (
+              <option key={language} value={language}>
+                {languageNames[language]}
+              </option>
+            ))}
           </select>
         </div>
 

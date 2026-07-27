@@ -5,6 +5,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent an English mirror from briefly painting the Vietnamese SSR copy. */
+html[data-i18n-pending='true'] body {
+  visibility: hidden;
+}
+
 @layer base {
   :root {
     /* ── Design tokens ─────────────────────────────────────── */

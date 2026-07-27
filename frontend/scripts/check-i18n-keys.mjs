@@ -1,82 +1,138 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * Enforce the two-locale dictionary contract.
+ *
+ * Run: node scripts/check-i18n-keys.mjs
+ */
+import fs from 'node:fs';
+import path from 'node:path';
 import ts from 'typescript';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const frontendDir = path.resolve(import.meta.dirname, '..');
+const localeDir = path.join(frontendDir, 'src/i18n/locales');
+const supported = ['vi', 'en'];
+const retired = ['th', 'ja', 'ko', 'zh'];
 
-const localesDir = path.join(__dirname, '../src/i18n/locales');
-const locales = ['vi', 'en', 'th', 'ja', 'ko', 'zh'];
+function propertyName(node, sourceFile) {
+  if (
+    ts.isIdentifier(node) ||
+    ts.isStringLiteral(node) ||
+    ts.isNumericLiteral(node)
+  ) {
+    return node.text;
+  }
+  return node.getText(sourceFile);
+}
 
-function extractKeys(node, prefix = '') {
-  let keys = [];
-  if (ts.isObjectLiteralExpression(node)) {
-    node.properties.forEach(prop => {
-      if (ts.isPropertyAssignment(prop)) {
-        const keyName = prop.name.text || prop.name.escapedText;
-        if (ts.isObjectLiteralExpression(prop.initializer)) {
-          keys = keys.concat(extractKeys(prop.initializer, prefix + keyName + '.'));
-        } else {
-          keys.push(prefix + keyName);
-        }
+function localeLeaves(locale) {
+  const file = path.join(localeDir, `${locale}.ts`);
+  const source = fs.readFileSync(file, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    file,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const leaves = new Map();
+
+  function walkObject(node, prefix = '') {
+    for (const property of node.properties) {
+      if (!ts.isPropertyAssignment(property)) continue;
+      const name = propertyName(property.name, sourceFile);
+      const key = prefix ? `${prefix}.${name}` : name;
+      const value = property.initializer;
+      if (ts.isObjectLiteralExpression(value)) {
+        walkObject(value, key);
+      } else if (
+        ts.isStringLiteral(value) ||
+        ts.isNoSubstitutionTemplateLiteral(value)
+      ) {
+        leaves.set(key, value.text);
       }
-    });
+    }
   }
-  return keys;
+
+  function visit(node) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === locale &&
+      node.initializer &&
+      ts.isObjectLiteralExpression(node.initializer)
+    ) {
+      walkObject(node.initializer);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(sourceFile);
+  return leaves;
 }
 
-const allKeys = {};
+const errors = [];
+const localeFiles = fs
+  .readdirSync(localeDir)
+  .filter(file => file.endsWith('.ts'))
+  .map(file => path.basename(file, '.ts'))
+  .sort();
 
-for (const l of locales) {
-  const filePath = path.join(localesDir, `${l}.ts`);
-  const code = fs.readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(`${l}.ts`, code, ts.ScriptTarget.Latest, true);
-  
-  let keys = [];
-  const walk = (node) => {
-    if (ts.isVariableDeclaration(node) && node.initializer && ts.isObjectLiteralExpression(node.initializer)) {
-      keys = extractKeys(node.initializer);
-    }
-    ts.forEachChild(node, walk);
-  };
-  walk(sourceFile);
-  
-  if (keys.length === 0) {
-    console.error(`Failed to parse keys from ${l}.ts.`);
-    process.exit(1);
-  }
-  allKeys[l] = keys;
+if (JSON.stringify(localeFiles) !== JSON.stringify([...supported].sort())) {
+  errors.push(
+    `locale files must be exactly en.ts and vi.ts (found: ${localeFiles.join(', ')})`,
+  );
 }
-
-const reference = new Set(allKeys['vi']);
-let hasError = false;
-
-for (const l of locales) {
-  if (l === 'vi') continue;
-  const curr = new Set(allKeys[l]);
-  const missing = [...reference].filter(x => !curr.has(x));
-  const extra = [...curr].filter(x => !reference.has(x));
-  
-  if (missing.length > 0 || extra.length > 0) {
-    hasError = true;
-    console.log(`\n❌ Locale ${l} parity mismatch!`);
-    if (missing.length > 0) {
-      console.log(`   Missing keys (${missing.length}):`);
-      missing.forEach(k => console.log(`     - ${k}`));
-    }
-    if (extra.length > 0) {
-      console.log(`   Extra keys (${extra.length}):`);
-      extra.forEach(k => console.log(`     - ${k}`));
-    }
-  } else {
-    console.log(`✅ Locale ${l} is COMPLETE relative to vi`);
+for (const locale of retired) {
+  if (fs.existsSync(path.join(localeDir, `${locale}.ts`))) {
+    errors.push(`retired locale file still exists: ${locale}.ts`);
   }
 }
 
-if (hasError) {
-  console.error('\nI18N Parity Check Failed: Key structures do not match across all locales.');
+const maps = Object.fromEntries(supported.map(locale => [locale, localeLeaves(locale)]));
+for (const locale of supported) {
+  for (const [key, value] of maps[locale]) {
+    if (!value.trim()) errors.push(`${locale}.${key} is empty`);
+    if (/^(TODO|TBD|TRANSLATE_ME)$/i.test(value.trim())) {
+      errors.push(`${locale}.${key} is a placeholder value`);
+    }
+  }
+}
+
+for (const key of maps.vi.keys()) {
+  if (!maps.en.has(key)) errors.push(`missing en key: ${key}`);
+}
+for (const key of maps.en.keys()) {
+  if (!maps.vi.has(key)) errors.push(`missing vi key: ${key}`);
+}
+
+function placeholders(value) {
+  return [...value.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort();
+}
+for (const [key, viValue] of maps.vi) {
+  const enValue = maps.en.get(key);
+  if (enValue === undefined) continue;
+  if (
+    JSON.stringify(placeholders(viValue)) !==
+    JSON.stringify(placeholders(enValue))
+  ) {
+    errors.push(`placeholder mismatch at ${key}`);
+  }
+}
+
+const indexSource = fs.readFileSync(
+  path.join(frontendDir, 'src/i18n/index.ts'),
+  'utf8',
+);
+for (const locale of retired) {
+  if (new RegExp(`locales/${locale}['"]`).test(indexSource)) {
+    errors.push(`retired locale import remains in i18n/index.ts: ${locale}`);
+  }
+}
+
+if (errors.length) {
+  console.error(`I18N check failed with ${errors.length} error(s):`);
+  errors.forEach(error => console.error(`  - ${error}`));
   process.exit(1);
-} else {
-  console.log('\nAll locales have identical key structures.');
 }
+
+console.log(
+  `I18N check passed: vi/en only, ${maps.vi.size} keys each, full parity, matching placeholders.`,
+);

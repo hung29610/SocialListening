@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Display } from '@/components/ui/Display';
 import { GlassTile } from '@/components/ui/GlassTile';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 /**
  * AuthShell — two-zone SIGNAL layout for /login and /register
@@ -61,7 +62,7 @@ export function AuthShell({ brandEyebrow, brandHeadline, brandBody, children }: 
       </div>
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-6 py-6 md:px-8">
-        <header>
+        <header className="flex items-center justify-between">
           <Link
             href="/"
             className="inline-flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-void dark:focus-visible:ring-signal-bright"
@@ -76,6 +77,7 @@ export function AuthShell({ brandEyebrow, brandHeadline, brandBody, children }: 
               Nope360
             </span>
           </Link>
+          <LanguageSwitcher />
         </header>
 
         <main className="grid flex-1 content-center gap-12 py-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:items-center lg:gap-16">

@@ -165,9 +165,44 @@ export const en = {
     active: 'Active',
     expand: 'Expand',
     collapse: 'Collapse',
+    changeLanguage: 'Change language',
     uploading: 'Uploading...',
     saving: 'Saving...',
     uploadLogo: 'Click or drag logo here',
+  },
+  i18n: {
+    languageSaveFailed: 'Your language could not be saved to your account. This selection will remain active for this session.',
+  },
+  integrationsPage: {
+    platforms: {
+      youtube: {
+        description: 'Collect videos from YouTube via Data API v3.',
+      },
+    },
+  },
+  errors: {
+    network: 'Unable to connect to the server. Check your connection and try again.',
+    unknown: 'Something went wrong. Please try again.',
+    code: {
+      bad_request: 'The request is invalid.',
+      not_found: 'The requested item was not found.',
+      forbidden: 'You do not have permission to perform this action.',
+      conflict: 'The data changed or already exists.',
+      internal_error: 'The server encountered an error. Please try again later.',
+      invalid_credentials: 'The email or password is incorrect.',
+      email_already_registered: 'This email is already registered.',
+      password_too_short: 'The password is too short.',
+    },
+    status: {
+      badRequest: 'The request is invalid.',
+      unauthorized: 'You are not signed in or do not have permission to perform this action.',
+      notFound: 'The requested item was not found.',
+      conflict: 'The data changed or already exists.',
+      tooLarge: 'The submitted data exceeds the allowed size.',
+      validation: 'The submitted data is invalid.',
+      rateLimited: 'Too many requests. Please try again later.',
+      server: 'The server encountered an error. Please try again later.',
+    },
   },
   reports: {
     noReportData: 'No report data available',
