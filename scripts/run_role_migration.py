@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get backend URL
-BACKEND_URL = os.getenv("BACKEND_URL", "https://social-listening-backend.onrender.com")
+BACKEND_URL = os.environ["BACKEND_URL"]
 
 # Admin credentials
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 def main():
     print("=" * 60)

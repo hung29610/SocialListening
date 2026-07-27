@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Comprehensive Smoke Test - Test ALL Sidebar Modules
 Tests every module with real API calls and reports failures
@@ -8,9 +9,9 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-EMAIL = "admin@sociallistening.com"
-PASSWORD = "Admin@123456"
+BASE_URL = os.environ["BACKEND_URL"]
+EMAIL = os.environ["ADMIN_EMAIL"]
+PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 class TestResult:
     def __init__(self):

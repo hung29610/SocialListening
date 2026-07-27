@@ -1,11 +1,12 @@
 """
 Change tthgroup@gmail.com role from super_admin to viewer
 """
+import os
 import requests
 
-BACKEND_URL = "https://social-listening-backend.onrender.com"
-ADMIN_EMAIL = "honguyenhung2010@gmail.com"
-ADMIN_PASSWORD = "Hungnguyen@1515"
+BACKEND_URL = os.environ["BACKEND_URL"]
+ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 print("=" * 60)
 print("CHANGE TTHGROUP ROLE TO VIEWER")

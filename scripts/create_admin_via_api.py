@@ -2,19 +2,19 @@
 Create admin user via backend API
 This bypasses local bcrypt issues
 """
+import os
 import requests
 import psycopg2
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-DATABASE_URL = "postgresql://social_listening_db_v2_user:6F6oJaZmFDi5xIDGd4lvALUkQIpsxVkQ@dpg-d7vfpv3rjlhs73dnrgf0-a.oregon-postgres.render.com/social_listening_db_v2"
+BASE_URL = os.environ["BACKEND_URL"]
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 def create_admin():
     print("=" * 80)
     print("CREATING ADMIN USER VIA API")
     print("=" * 80)
-    
-    email = "honguyenhung2010@gmail.com"
-    password = "Hungnguyen@1515"
+    email = os.environ["ADMIN_EMAIL"]
+    password = os.environ["ADMIN_PASSWORD"]
     full_name = "Ho Nguyen Hung"
     
     print(f"\n📝 Admin details:")

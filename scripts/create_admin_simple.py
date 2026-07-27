@@ -1,11 +1,12 @@
 """
 Simple script to create admin user directly in database
 """
+import os
 import psycopg2
 from passlib.context import CryptContext
 
 # Database connection
-DATABASE_URL = "postgresql://social_listening_db_v2_user:6F6oJaZmFDi5xIDGd4lvALUkQIpsxVkQ@dpg-d7vfpv3rjlhs73dnrgf0-a.oregon-postgres.render.com/social_listening_db_v2"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -14,9 +15,8 @@ def create_admin():
     print("=" * 80)
     print("CREATING ADMIN USER")
     print("=" * 80)
-    
-    email = "honguyenhung2010@gmail.com"
-    password = "Hungnguyen@1515"
+    email = os.environ["ADMIN_EMAIL"]
+    password = os.environ["ADMIN_PASSWORD"]
     full_name = "Ho Nguyen Hung"
     
     print(f"\n📝 Admin details:")

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Debug Auth Endpoint
 Kiểm tra chi tiết lỗi của /api/auth/me endpoint
@@ -7,9 +8,9 @@ Kiểm tra chi tiết lỗi của /api/auth/me endpoint
 import requests
 import json
 
-BASE_URL = "https://social-listening-backend.onrender.com"
-EMAIL = "admin@sociallistening.com"
-PASSWORD = "Admin@123456"
+BASE_URL = os.environ["BACKEND_URL"]
+EMAIL = os.environ["ADMIN_EMAIL"]
+PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 def login():
     """Login and get token"""
