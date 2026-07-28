@@ -110,6 +110,13 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         )
 
         current_meta = job.meta_data or {}
+        organization_id = current_meta.get("organization_id")
+        user_id = current_meta.get("user_id") or job.user_id
+        if organization_id is None and user_id is not None:
+            from app.models.user import User
+
+            owner = db.get(User, user_id)
+            organization_id = owner.current_organization_id if owner else None
         original_query = current_meta.get("query")
         provider_used = current_meta.get("provider", "none")
         if current_meta.get("expand_keywords") and original_query:
@@ -183,6 +190,8 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         current_meta.update({
             "summary": summary,
             "project_id": project_id,
+            "organization_id": organization_id,
+            "user_id": user_id,
             "keywords": keyword_texts,
             "provider": provider_used,
             "started_at": job.started_at.isoformat() if job.started_at else None
@@ -540,6 +549,8 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
                 m_data["relevance_score"] = r["relevance_score"]
 
             mention = Mention(
+                organization_id=organization_id,
+                user_id=user_id,
                 project_id=project_id,
                 job_id=job_id,
                 keyword_text=matched_kw,
@@ -627,14 +638,35 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         except Exception as e:
             meta_data_final["visible_mentions_for_query"] = -1
 
+        completed_at = datetime.now(timezone.utc)
         job.meta_data = meta_data_final
-        job.completed_at = datetime.now(timezone.utc)
+        job.completed_at = completed_at
         job.mentions_found = meta_data_final["created_mentions_count"]
         pipeline = dict(meta_data_final.get("pipeline") or {})
+        stages = dict(pipeline.get("stages") or {})
+        stages.update({
+            "scan": {
+                "status": "completed",
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "completed_at": completed_at.isoformat(),
+                "crawl_status": job.status.value,
+            },
+            "mention": {
+                "status": "completed",
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "completed_at": completed_at.isoformat(),
+                "count": meta_data_final["created_mentions_count"],
+            },
+            "analysis": {"status": "queued", "queued_at": completed_at.isoformat()},
+            "alert": {"status": "pending", "pending_at": completed_at.isoformat()},
+            "report": {"status": "pending", "pending_at": completed_at.isoformat()},
+        })
         pipeline.update({
             "status": "queued",
-            "queued_at": datetime.now(timezone.utc).isoformat(),
+            "queued_at": completed_at.isoformat(),
             "last_error": None,
+            "attempts": int(pipeline.get("attempts", 0)),
+            "stages": stages,
         })
         meta_data_final["pipeline"] = pipeline
         flag_modified(job, "meta_data")

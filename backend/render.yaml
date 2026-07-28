@@ -15,3 +15,45 @@ services:
         sync: false   # required shared store for production rate limiting
       - key: FRONTEND_URL
         value: https://social-listening-azure.vercel.app
+
+  # Prepared Blueprint only: creating/updating these services remains a
+  # human-reviewed production action.
+  - type: worker
+    name: social-listening-pipeline-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A app.workers.celery_app:celery_app worker --loglevel=INFO --queues=analysis --concurrency=2
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: AI_PROVIDER_CHAIN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+
+  - type: worker
+    name: social-listening-pipeline-beat
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A app.workers.celery_app:celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false

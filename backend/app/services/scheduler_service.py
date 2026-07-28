@@ -790,6 +790,12 @@ def execute_scan_schedule_job(schedule_id: int):
         if len(project_ids) != 1:
             raise ValueError("Scheduled scan must target exactly one project")
         project_id = project_ids.pop()
+        organization_id = None
+        if schedule.user_id is not None:
+            from app.models.user import User
+
+            schedule_owner = db.get(User, schedule.user_id)
+            organization_id = schedule_owner.current_organization_id if schedule_owner else None
         keywords = db.execute(
             select(Keyword).where(
                 Keyword.group_id.in_([group.id for group in groups]),
@@ -805,6 +811,7 @@ def execute_scan_schedule_job(schedule_id: int):
         job = CrawlJob(
             scan_schedule_id=schedule.id,
             job_type='scheduled',
+            user_id=schedule.user_id,
             status=CrawlJobStatus.PENDING,
             source_ids=[], # Can be updated later
             keyword_group_ids=schedule.keyword_group_ids,
@@ -813,6 +820,8 @@ def execute_scan_schedule_job(schedule_id: int):
             mentions_found=0,
             meta_data={
                 "project_id": project_id,
+                "organization_id": organization_id,
+                "user_id": schedule.user_id,
                 "keywords": keyword_texts,
                 "mode": "HYBRID",
                 "scheduled": True,
