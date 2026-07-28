@@ -51,6 +51,12 @@ _MENTIONS_SEARCH_CACHE = {}
 router = APIRouter()
 
 
+def _mention_cache_scope(current_user: User) -> str:
+    organization_id = getattr(current_user, "current_organization_id", None)
+    user_id = getattr(current_user, "id", None)
+    return f"org:{organization_id or 'none'}:user:{user_id or 'none'}"
+
+
 def _encode_mention_cursor(collected_at: datetime, mention_id: int) -> str:
     raw = f"{collected_at.isoformat()}|{mention_id}".encode()
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
@@ -309,71 +315,72 @@ def get_mentions_summary(
             sentiments_list = [s.strip() for s in sentiment.split(",")]
             base_filter.append(Mention.sentiment.in_(sentiments_list))
 
-        # Total mentions
+        # Totals and sentiment counts in one bounded aggregate.
         try:
-            total = db.execute(
-                apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter))
-            ).scalar() or 0
+            totals = db.execute(
+                apply_tenant_filter(
+                    select(
+                        func.count(Mention.id),
+                        func.count(Mention.id).filter(
+                            func.lower(cast(Mention.sentiment, String)) == "positive"
+                        ),
+                        func.count(Mention.id).filter(
+                            func.lower(cast(Mention.sentiment, String)) == "neutral"
+                        ),
+                        func.count(Mention.id).filter(
+                            func.lower(cast(Mention.sentiment, String)) == "negative"
+                        ),
+                    ),
+                    Mention,
+                    current_user,
+                ).where(and_(*base_filter))
+            ).one()
+            total, positive, neutral, negative = (value or 0 for value in totals)
         except Exception as e:
             db.rollback()
-            logger.error(f"Error querying total mentions: {e}")
-            total = 0
+            logger.error(f"Error querying mention totals: {e}")
+            total = positive = neutral = negative = 0
 
-        # Sentiment counts
+        # All source counts in one grouped query.
         try:
-            positive = db.execute(
-                apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter, func.lower(cast(Mention.sentiment, String)) == 'positive'))
-            ).scalar() or 0
-
-            neutral = db.execute(
-                apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter, func.lower(cast(Mention.sentiment, String)) == 'neutral'))
-            ).scalar() or 0
-
-            negative = db.execute(
-                apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter, func.lower(cast(Mention.sentiment, String)) == 'negative'))
-            ).scalar() or 0
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Error querying sentiment counts: {e}")
-            positive = 0
-            neutral = 0
-            negative = 0
-
-        # By source type
-        try:
-            source_type_counts = {}
-            source_types = ['web', 'news', 'blog', 'rss', 'youtube', 'facebook', 'instagram', 'twitter', 'tiktok']
-            for st in source_types:
-                count = db.execute(
-                    apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter, Mention.source_type == st))
-                ).scalar() or 0
-                if count > 0:
-                    source_type_counts[st] = count
+            source_rows = db.execute(
+                apply_tenant_filter(
+                    select(Mention.source_type, func.count(Mention.id)),
+                    Mention,
+                    current_user,
+                )
+                .where(and_(*base_filter))
+                .group_by(Mention.source_type)
+            ).all()
+            source_type_counts = {
+                source_type: count
+                for source_type, count in source_rows
+                if source_type and count
+            }
         except Exception as e:
             db.rollback()
             logger.error(f"Error querying source type counts: {e}")
             source_type_counts = {}
 
-        # By day (last 7 days from latest mention)
+        # Last seven populated dates in one grouped query.
         try:
-            latest_date = db.execute(
-                apply_tenant_filter(select(func.max(Mention.collected_at)), Mention, current_user).where(and_(*base_filter))
-            ).scalar()
-            
-            end_date = latest_date if latest_date else datetime.now(timezone.utc)
-            by_day = []
-            for i in range(7):
-                day_start = (end_date - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-                day_end = day_start + timedelta(days=1)
-                count = db.execute(
-                    apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user).where(and_(*base_filter, Mention.collected_at >= day_start, Mention.collected_at < day_end))
-                ).scalar() or 0
-                if count > 0:
-                    by_day.append({
-                        "date": day_start.strftime("%Y-%m-%d"),
-                        "count": count
-                    })
-            by_day.reverse()
+            day_expr = func.date(Mention.collected_at)
+            day_rows = db.execute(
+                apply_tenant_filter(
+                    select(day_expr.label("day"), func.count(Mention.id)),
+                    Mention,
+                    current_user,
+                )
+                .where(and_(*base_filter))
+                .group_by(day_expr)
+                .order_by(day_expr.desc())
+                .limit(7)
+            ).all()
+            by_day = [
+                {"date": str(day), "count": count}
+                for day, count in reversed(day_rows)
+                if day is not None
+            ]
         except Exception as e:
             db.rollback()
             logger.error(f"Error querying by_day counts: {e}")
@@ -527,7 +534,7 @@ def apply_mention_filters(
     search_term = (q or search_query or "").strip()
     if search_term:
         query = query.where(_mention_search_condition(search_term))
-        
+
     if sentiment:
         sentiments_list = [s.strip() for s in sentiment.split(',')]
         query = query.where(Mention.sentiment.in_(sentiments_list))
@@ -543,18 +550,18 @@ def apply_mention_filters(
         query = query.where(Mention.collected_at >= date_from)
     if date_to:
         query = query.where(Mention.collected_at <= date_to)
-    
+
     if is_muted is not None:
         query = query.where(Mention.is_muted == is_muted)
     else:
         query = query.where(Mention.is_muted == False)
-        
+
     if is_reviewed is not None:
         query = query.where(Mention.is_reviewed == is_reviewed)
-        
+
     if min_influence_score is not None:
         query = query.where(Mention.influence_score >= min_influence_score)
-        
+
     return query
 
 @router.get("")
@@ -591,13 +598,19 @@ def list_mentions(
     import logging
     logger = logging.getLogger(__name__)
     try:
+        if page != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Offset pagination is disabled; use next_cursor as cursor",
+            )
         # Cache implementation
         cache_key = None
         if q and not job_id and not refresh:
             try:
                 # Create a deterministic key based on search parameters
                 params_str = (
-                    f"proj:{project_id}_kw:{keyword_id}_q:{q}_src:{source_type}_{source_types}"
+                    f"scope:{_mention_cache_scope(current_user)}"
+                    f"_proj:{project_id}_kw:{keyword_id}_q:{q}_src:{source_type}_{source_types}"
                     f"_sent:{sentiment}_{sentiments}_d:{date_from}_{date_to}_p:{page}"
                     f"_ps:{page_size}_cursor:{cursor}_expand:{expand}_sort:{sort_by}"
                     f"_risk:{min_risk_score}"
@@ -664,6 +677,7 @@ def list_mentions(
         # Mentions filtering directly
         query = query.where(Mention.verification_status != 'synthetic')
         query = query.where(Mention.is_deleted == False)
+        query = query.where(Mention.collected_at.isnot(None))
 
         global_valid_url_cond = or_(
             Mention.url.is_(None),
@@ -780,6 +794,7 @@ def list_mentions(
             count_base = apply_tenant_filter(select(Mention), Mention, current_user)
             count_base = count_base.where(Mention.verification_status != 'synthetic')
             count_base = count_base.where(Mention.is_deleted == False)
+            count_base = count_base.where(Mention.collected_at.isnot(None))
 
             global_valid_url_cond_count = or_(
                 Mention.url.is_(None),
@@ -898,8 +913,6 @@ def list_mentions(
                 total = 0
 
         from sqlalchemy import nullslast, case
-        offset = (page - 1) * page_size
-
         relevance_expr = None
         if q and not job_id:
             search_term = f"%{q}%"
@@ -932,7 +945,7 @@ def list_mentions(
             query = query.order_by(nullslast(Mention.collected_at.desc()), Mention.id.desc())
 
         query = _apply_mention_cursor(query, cursor, sort_by)
-        query = query.offset(0 if cursor else offset).limit(page_size + 1)
+        query = query.limit(page_size + 1)
 
         try:
             mentions = db.execute(query).unique().scalars().all()
@@ -1040,7 +1053,7 @@ def list_mentions(
         from unittest.mock import MagicMock
         if isinstance(total, MagicMock):
             total = 0
-            
+
         total_pages = ceil(total / page_size) if total > 0 else 1
 
         next_cursor = None
@@ -1160,9 +1173,9 @@ def get_mention_topics(
         project_id=project_id, is_muted=is_muted, is_reviewed=is_reviewed,
         min_influence_score=min_influence_score
     )
-    
+
     mentions = db.execute(query.order_by(Mention.collected_at.desc()).limit(2000)).scalars().all()
-    
+
     topic_counts = {}
     for m in mentions:
         # Extract from tags
@@ -1170,15 +1183,15 @@ def get_mention_topics(
             for t in m.tags_json:
                 t_lower = t.strip().lower()
                 topic_counts[t_lower] = topic_counts.get(t_lower, 0) + 1
-        
+
         # Fallback to keyword if tags are empty
         elif m.keyword:
             kw_lower = m.keyword.strip().lower()
             topic_counts[kw_lower] = topic_counts.get(kw_lower, 0) + 1
-            
+
     # Sort by count
     sorted_topics = sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)
-    
+
     results = [{"topic": k, "count": v} for k, v in sorted_topics[:limit]]
     return {"topics": results}
 
@@ -1208,7 +1221,7 @@ def get_mention_charts(
 ):
     from sqlalchemy import or_
     from app.models.source import Source
-    
+
     query = apply_tenant_filter(select(Mention), Mention, current_user)
     query = query.where(Mention.verification_status != 'synthetic')
     query = query.where(Mention.is_deleted == False)
@@ -1236,18 +1249,18 @@ def get_mention_charts(
         query = query.where(Mention.is_reviewed == is_reviewed)
     if min_influence_score is not None:
         query = query.where(Mention.influence_score >= min_influence_score)
-        
+
     if sentiment:
         sentiments_list = [s.strip() for s in sentiment.split(",")]
         query = query.where(Mention.sentiment.in_(sentiments_list))
     elif sentiments:
         query = query.where(Mention.sentiment.in_(sentiments))
-        
+
     if date_from:
         query = query.where(Mention.collected_at >= date_from)
     if date_to:
         query = query.where(Mention.collected_at <= date_to)
-        
+
     if q:
         search_term = f"%{q}%"
         query = query.where(or_(
@@ -1257,22 +1270,22 @@ def get_mention_charts(
         ))
 
     mentions = db.execute(query).scalars().all()
-    
+
     groups = {}
     for m in mentions:
         d = m.collected_at
         if not d: continue
-        
+
         if granularity == "daily":
             key = d.strftime("%Y-%m-%d")
         elif granularity == "weekly":
             key = d.strftime("%Y-W%W")
         else:
             key = d.strftime("%Y-%m")
-            
+
         if key not in groups:
             groups[key] = {"date": key, "total_mentions": 0, "reach": 0, "sentiment_positive": 0, "sentiment_neutral": 0, "sentiment_negative": 0}
-            
+
         groups[key]["total_mentions"] += 1
         groups[key]["reach"] += int(m.reach_estimate or (m.influence_score or 1) * 10)
         s = (m.sentiment or "").lower()
@@ -1817,7 +1830,7 @@ def summarize_mentions(
         snippet = (m.snippet or m.content or "")[:200]
         sent = m.sentiment or "neutral"
         context_lines.append(f"[{idx+1}] [{sent.upper()}] {title} - {snippet}")
-    
+
     context_text = "\n".join(context_lines)
 
     # 5. Build prompt
@@ -1853,7 +1866,7 @@ CHÚ Ý:
 
     try:
         response_text, usage = _call_ai_provider(config, prompt, max_tokens=1500)
-        
+
         # Clean response if wrapped in markdown code blocks
         if response_text.startswith("```json"):
             response_text = response_text[7:]
@@ -1861,7 +1874,7 @@ CHÚ Ý:
             response_text = response_text[3:]
         if response_text.endswith("```"):
             response_text = response_text[:-3]
-            
+
         import json
         result = json.loads(response_text.strip())
         return result
