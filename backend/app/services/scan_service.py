@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 
 _EXPANDED_KEYWORDS_CACHE = {}
 
+
+def enqueue_scan_pipeline(job_id: int) -> None:
+    """Queue durable downstream processing only after the scan commit succeeds."""
+    from app.tasks.scan_pipeline import process_scan_pipeline
+
+    process_scan_pipeline.delay(job_id)
+
 def expand_scan_keyword(q: str):
     q_lower = q.lower().strip()
     expansions = [q_lower] if q_lower else []
@@ -71,7 +78,6 @@ def expand_scan_keyword(q: str):
 
 
 def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: str, max_results: int, source_types: List[str] = None):
-    from app.core.database import SessionLocal
     from app.models.crawl import CrawlJob, CrawlJobStatus
     from app.models.mention import Mention
     from app.core.config import settings
@@ -624,8 +630,32 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         job.meta_data = meta_data_final
         job.completed_at = datetime.now(timezone.utc)
         job.mentions_found = meta_data_final["created_mentions_count"]
+        pipeline = dict(meta_data_final.get("pipeline") or {})
+        pipeline.update({
+            "status": "queued",
+            "queued_at": datetime.now(timezone.utc).isoformat(),
+            "last_error": None,
+        })
+        meta_data_final["pipeline"] = pipeline
         flag_modified(job, "meta_data")
         db.commit()
+
+        # This happens strictly after the mention/job transaction commits.  If
+        # Redis is unavailable, reconciliation can resume the durable state.
+        try:
+            enqueue_scan_pipeline(job.id)
+        except Exception as enqueue_error:
+            logger.exception("PIPELINE_ENQUEUE_FAILED job_id=%s", job.id)
+            latest_meta = dict(job.meta_data or {})
+            latest_pipeline = dict(latest_meta.get("pipeline") or {})
+            latest_pipeline.update({
+                "status": "enqueue_failed",
+                "last_error": str(enqueue_error)[:500],
+            })
+            latest_meta["pipeline"] = latest_pipeline
+            job.meta_data = latest_meta
+            flag_modified(job, "meta_data")
+            db.commit()
 
         # Comprehensive logging
         job_type = job.job_type.upper() if getattr(job, "job_type", None) else "SCAN"

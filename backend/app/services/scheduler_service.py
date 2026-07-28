@@ -779,6 +779,28 @@ def execute_scan_schedule_job(schedule_id: int):
         db.add(log_entry)
         db.commit()
         
+        # Resolve the schedule to the same concrete scan contract used by
+        # manual scans. A schedule spanning projects is ambiguous and must not
+        # silently mix tenant data into one job.
+        from app.models.keyword import Keyword, KeywordGroup
+        groups = db.execute(
+            select(KeywordGroup).where(KeywordGroup.id.in_(schedule.keyword_group_ids or []))
+        ).scalars().all()
+        project_ids = {group.project_id for group in groups if group.project_id is not None}
+        if len(project_ids) != 1:
+            raise ValueError("Scheduled scan must target exactly one project")
+        project_id = project_ids.pop()
+        keywords = db.execute(
+            select(Keyword).where(
+                Keyword.group_id.in_([group.id for group in groups]),
+                Keyword.is_active == True,
+                Keyword.is_excluded == False,
+            )
+        ).scalars().all()
+        keyword_texts = list(dict.fromkeys(keyword.keyword.strip() for keyword in keywords if keyword.keyword and keyword.keyword.strip()))
+        if not keyword_texts:
+            raise ValueError("Scheduled scan has no active keywords")
+
         # Create a CrawlJob associated with this schedule
         job = CrawlJob(
             scan_schedule_id=schedule.id,
@@ -788,7 +810,13 @@ def execute_scan_schedule_job(schedule_id: int):
             keyword_group_ids=schedule.keyword_group_ids,
             total_sources=0,
             processed_sources=0,
-            mentions_found=0
+            mentions_found=0,
+            meta_data={
+                "project_id": project_id,
+                "keywords": keyword_texts,
+                "mode": "HYBRID",
+                "scheduled": True,
+            },
         )
         db.add(job)
         db.commit()
@@ -801,34 +829,23 @@ def execute_scan_schedule_job(schedule_id: int):
         # Execute the scan logic using `app.services.scan_service.execute_scan`
         from app.services.scan_service import execute_scan
         
-        job.status = CrawlJobStatus.RUNNING
-        job.started_at = datetime.now(timezone.utc)
-        db.commit()
-        
         try:
-            # We map source_group_ids/keyword_group_ids to the execute_scan params
-            # mode="HYBRID" uses keyword_group_ids and auto-discovers if sources not provided
-            result = execute_scan(
-                db=db,
-                user_id=schedule.user_id,
-                keyword_group_ids=schedule.keyword_group_ids or [],
-                keywords=[],
-                source_ids=[], # You might want to resolve source_group_ids to source_ids if needed
-                mode="HYBRID",
+            execute_scan(
                 job_id=job.id,
-                project_id=None
+                project_id=project_id,
+                keyword_texts=keyword_texts,
+                mode="HYBRID",
+                max_results=20,
+                source_types=[],
             )
-            
-            job.status = CrawlJobStatus.COMPLETED
-            job.completed_at = datetime.now(timezone.utc)
-            job.mentions_found = result.get('created_mentions_count', 0)
+            db.refresh(job)
             
             # Log success
             db.add(ScanLog(
                 scan_schedule_id=schedule.id,
                 job_id=job.id,
                 level="INFO",
-                message=f"Scan completed successfully. Mentions found: {job.mentions_found}"
+                message=f"Scan completed with status {job.status.value}. Mentions found: {job.mentions_found}"
             ))
             db.commit()
             
