@@ -96,6 +96,9 @@ class Mention(Base):
         Index('idx_mention_source', 'source_id'),
         Index('idx_mention_job', 'job_id'),
         Index('idx_mention_domain', 'domain'),
+        Index('idx_mentions_org_collected_id', 'organization_id', 'collected_at', 'id'),
+        Index('idx_mentions_project_collected_id', 'project_id', 'collected_at', 'id'),
+        Index('idx_mentions_keyword_collected_id', 'keyword_id', 'collected_at', 'id'),
     )
 
 
