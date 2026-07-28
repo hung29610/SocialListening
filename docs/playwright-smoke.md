@@ -9,10 +9,14 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The suite intercepts backend API calls with deterministic fixtures. It covers
-the landing page, login, dashboard, mentions, reports, and a manual scan that
-reaches a completed crawl-history row. Every test fails on uncaught page
-errors, `console.error`, or HTTP 5xx responses.
+Authenticated routes use a Playwright `storageState` fixture. The suite uses a
+strict, allowlisted local API contract fixture: unexpected API calls fail the
+test instead of receiving a catch-all response. This is the deterministic local
+equivalent of running the backend: it validates frontend request methods,
+paths, response handling, and the manual scan's pending-to-running-to-completed
+polling contract without credentials, external providers, or nondeterministic
+crawler traffic.
 
-CI runs Chromium only with one worker and a five-minute job timeout; the target
-runtime for the six-test suite is under three minutes.
+CI runs Chromium only with one worker. `npm run test:e2e:ci` measures the full
+Playwright command and fails at 180 seconds; the surrounding job timeout is four
+minutes only to allow runner cleanup and log upload.

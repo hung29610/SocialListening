@@ -72,7 +72,7 @@ jobs:
   playwright-smoke:
     name: Playwright smoke (Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Set up Node 22
