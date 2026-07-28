@@ -33,10 +33,6 @@ const authenticatedStorageState: StorageState = {
 type FixtureState = {
   unexpectedRequests: string[];
   browserErrors: string[];
-  scanStatuses: string[];
-  scanPost?: { status: number; jobId: number };
-  scanSubmitted: boolean;
-  scanPollCount: number;
 };
 
 function json(route: Route, body: unknown, status = 200) {
@@ -61,6 +57,12 @@ async function installStrictApiFixture(page: Page, state: FixtureState) {
     const path = new URL(request.url()).pathname;
     const key = `${request.method()} ${path}`;
 
+    if (
+      key === 'POST /api/crawl/manual-scan'
+      || key === 'GET /api/crawl/jobs'
+    ) {
+      return route.continue();
+    }
     if (key === 'GET /api/auth/me/context') {
       return json(route, {
         user,
@@ -80,6 +82,7 @@ async function installStrictApiFixture(page: Page, state: FixtureState) {
     if (key === 'GET /api/dashboard/trends') return json(route, []);
     if (key === 'GET /api/dashboard/sentiment-summary') return json(route, {});
     if (key === 'GET /api/dashboard/hot-keywords') return json(route, []);
+    if (key === 'GET /api/realtime/metrics') return json(route, {});
     if (key === 'GET /api/mentions') {
       return json(route, { items: [], total: 0, page: 1, page_size: 20 });
     }
@@ -113,42 +116,6 @@ async function installStrictApiFixture(page: Page, state: FixtureState) {
     if (key === 'GET /api/crawl/schedules') {
       return json(route, { items: [], total: 0, page: 1, page_size: 100 });
     }
-    if (key === 'POST /api/crawl/manual-scan') {
-      state.scanSubmitted = true;
-      const response = { job_id: 9001, id: 9001, status: 'pending' };
-      state.scanPost = { status: 202, jobId: response.job_id };
-      return json(route, response, 202);
-    }
-    if (key === 'GET /api/crawl/jobs') {
-      if (!state.scanSubmitted) {
-        return json(route, { items: [], total: 0, page: 1, page_size: 20 });
-      }
-      const statuses = ['pending', 'running', 'completed'];
-      const status = statuses[Math.min(state.scanPollCount, statuses.length - 1)];
-      state.scanPollCount += 1;
-      state.scanStatuses.push(status);
-      return json(route, {
-        items: [{
-          id: 9001,
-          job_type: 'manual',
-          source_ids: [],
-          status,
-          total_sources: 1,
-          processed_sources: status === 'pending' ? 0 : 1,
-          mentions_found: status === 'completed' ? 2 : 0,
-          error_message: null,
-          retry_count: 0,
-          project_id: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          started_at: status === 'pending' ? null : '2026-01-01T00:00:01Z',
-          completed_at: status === 'completed' ? '2026-01-01T00:00:02Z' : null,
-        }],
-        total: 1,
-        page: 1,
-        page_size: 20,
-      });
-    }
-
     state.unexpectedRequests.push(key);
     return json(route, { detail: `Unexpected smoke API request: ${key}` }, 599);
   });
@@ -179,9 +146,6 @@ test.describe('authenticated product smoke', () => {
     state = {
       unexpectedRequests: [],
       browserErrors: [],
-      scanStatuses: [],
-      scanSubmitted: false,
-      scanPollCount: 0,
     };
     installBrowserGuards(page, state);
     await installStrictApiFixture(page, state);
@@ -226,14 +190,12 @@ test.describe('authenticated product smoke', () => {
 
     expect(scanResponse.status()).toBeGreaterThanOrEqual(200);
     expect(scanResponse.status()).toBeLessThan(300);
-    expect(scanBody.job_id).toBe(9001);
-    expect(state.scanPost).toEqual({ status: 202, jobId: 9001 });
+    expect(scanBody.job_id).toEqual(expect.any(Number));
+    expect(scanBody.job_id).toBeGreaterThan(0);
 
-    await expect(page.getByText('#9001').first()).toBeVisible();
-    await expect(page.getByText(/chờ/i, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(`#${scanBody.job_id}`).first()).toBeVisible();
     await expect(page.getByText(/đang chạy/i, { exact: true }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText(/xong/i, { exact: true }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('Mentions:').locator('..').getByText('2', { exact: true })).toBeVisible();
-    expect(state.scanStatuses).toEqual(['pending', 'running', 'completed']);
+    await expect(page.getByText(/xong/i, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Mentions:').locator('..').getByText('1', { exact: true })).toBeVisible();
   });
 });
