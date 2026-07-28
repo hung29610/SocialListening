@@ -159,7 +159,7 @@ class Settings(BaseSettings):
     def cors_origin_regex(self) -> str:
         """Allow project-owned Vercel production and preview deployment origins."""
         return (
-            r"^https://social-listening-[a-z0-9]+-"
+            r"^https://social-listening-[a-z0-9-]+-"
             r"hung307-s-projects\.vercel\.app$"
         )
     

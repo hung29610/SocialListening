@@ -277,10 +277,17 @@ def test_rate_limit_429_response_keeps_cors_headers():
     assert response.headers["Access-Control-Allow-Origin"] == PRODUCTION_ORIGIN
 
 
-def test_project_vercel_preview_origin_is_allowed():
-    preview_origin = (
-        "https://social-listening-cos3yuhhx-hung307-s-projects.vercel.app"
-    )
+@pytest.mark.parametrize(
+    "preview_origin",
+    [
+        "https://social-listening-cos3yuhhx-hung307-s-projects.vercel.app",
+        (
+            "https://social-listening-git-hotfix-p0-cors-p-27456a-"
+            "hung307-s-projects.vercel.app"
+        ),
+    ],
+)
+def test_project_vercel_preview_origin_is_allowed(preview_origin):
     response = client.options(
         "/api/crawl/schedules",
         headers={
