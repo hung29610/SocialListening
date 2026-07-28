@@ -301,6 +301,24 @@ def test_project_vercel_preview_origin_is_allowed(preview_origin):
     assert response.headers["Access-Control-Allow-Origin"] == preview_origin
 
 
+def test_login_preflight_allows_frontend_auth_headers():
+    response = client.options(
+        "/api/auth/login",
+        headers={
+            "Origin": PRODUCTION_ORIGIN,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": (
+                "cache-control,content-type,expires,pragma"
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == PRODUCTION_ORIGIN
+    allowed = {item.strip().lower() for item in response.headers["Access-Control-Allow-Headers"].split(",")}
+    assert {"cache-control", "content-type", "expires", "pragma"} <= allowed
+
+
 def test_rate_limit_counter_is_shared_across_redis_compatible_clients():
     from app.core.rate_limit import FixedWindowRateLimiter, RedisRateLimitStore
 
