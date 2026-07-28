@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_superuser, get_current_user
@@ -24,15 +25,12 @@ def get_branding_settings(
     ).scalar_one_or_none()
     
     if not settings:
-        # Create default if not exists
-        settings = BrandingSettings(
+        return BrandingSettingsResponse(
             id=1,
             primary_color='#3B82F6',
-            secondary_color='#10B981'
+            secondary_color='#10B981',
+            created_at=datetime.utcnow(),
         )
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
     
     return BrandingSettingsResponse.from_orm(settings)
 

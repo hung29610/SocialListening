@@ -62,6 +62,7 @@ export default function MetaIntegrationPage() {
     try {
       setActionLoading(true);
       const res = await fetch(`/api/integrations/meta/auth-url`, {
+        method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
