@@ -11,5 +11,7 @@ services:
         sync: false   # set manually in Render dashboard
       - key: SECRET_KEY
         sync: false   # set manually in Render dashboard
+      - key: REDIS_URL
+        sync: false   # required shared store for production rate limiting
       - key: FRONTEND_URL
         value: https://social-listening-azure.vercel.app

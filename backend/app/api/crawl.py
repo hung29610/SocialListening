@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, or_, and_
 from typing import List, Optional
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 from app.core.database import get_db, SessionLocal
 from app.core.tenant import apply_tenant_filter
 from app.core.security import get_current_active_user
+from app.core.security_operations import get_enabled_superuser
 from app.models.user import User
 from app.models.source import Source, SourceType
 from app.models.keyword import Keyword, KeywordGroup
@@ -107,7 +109,14 @@ def debug_auto_discovery(
             ]
         }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logging.getLogger(__name__).exception("Debug auto-discovery failed")
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "DISCOVERY_PROVIDER_FAILED",
+                "message": "Discovery provider request failed.",
+            },
+        ) from e
 
 
 import time
@@ -1237,7 +1246,8 @@ async def test_crawl(
     keyword: str,
     platform: str = "web",
     limit: int = 5,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_enabled_superuser),
 ):
     import logging
     logger = logging.getLogger(__name__)
@@ -1256,11 +1266,17 @@ async def test_crawl(
             "raw_count": len(raw),
             "inserted": success_count,
             "failed": error_count,
-            "errors": errors[:10]
+            "error_code": "PARTIAL_PERSIST_FAILURE" if error_count else None,
         }
     except Exception as e:
-        logger.error(f"[DEBUG] test-crawl failed: {e}")
-        return { "error": str(e) }
+        logger.exception("[DEBUG] test-crawl failed")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "DEBUG_CRAWL_FAILED",
+                "message": "Debug crawl failed.",
+            },
+        ) from e
 
 
 # --- SCAN SCHEDULES ---

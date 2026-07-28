@@ -65,7 +65,7 @@ export default function IntegrationsPage() {
 
   const handleMetaConnect = async () => {
     try {
-      const res = await api.get('/api/integrations/meta/auth-url');
+      const res = await api.post('/api/integrations/meta/auth-url');
       if (res.data?.url) {
         window.location.href = res.data.url;
       } else {
