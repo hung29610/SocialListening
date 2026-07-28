@@ -23,6 +23,7 @@ from app.main import app
 
 
 client = TestClient(app, raise_server_exceptions=False)
+PRODUCTION_ORIGIN = "https://social-listening-azure.vercel.app"
 
 PUBLIC_MUTATIONS = {
     ("POST", "/api/auth/register"),
@@ -216,6 +217,81 @@ def test_rate_limit_returns_429_with_public_error_and_correlation_id():
     assert response.status_code == 429
     assert response.json()["detail"]["code"] == "RATE_LIMIT_EXCEEDED"
     assert response.headers["X-Correlation-ID"]
+
+
+def test_protected_route_preflight_needs_no_authentication_or_rate_limit():
+    class FailIfCalledLimiter:
+        def check(self, scope, identity):
+            raise AssertionError("preflight reached the rate limiter")
+
+    app.state.rate_limiter = FailIfCalledLimiter()
+    try:
+        response = client.options(
+            "/api/crawl/schedules",
+            headers={
+                "Origin": PRODUCTION_ORIGIN,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+    finally:
+        del app.state.rate_limiter
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == PRODUCTION_ORIGIN
+
+
+def test_anonymous_401_response_keeps_cors_headers():
+    response = client.get(
+        "/api/crawl/schedules",
+        headers={"Origin": PRODUCTION_ORIGIN},
+    )
+
+    assert response.status_code in {401, 403}
+    assert response.headers["Access-Control-Allow-Origin"] == PRODUCTION_ORIGIN
+
+
+def test_rate_limit_429_response_keeps_cors_headers():
+    from app.core.rate_limit import FixedWindowRateLimiter, MemoryRateLimitStore
+
+    app.state.rate_limiter = FixedWindowRateLimiter(
+        store=MemoryRateLimitStore(),
+        limits={"webinar": (0, 60)},
+    )
+    try:
+        response = client.post(
+            "/api/webinar/register",
+            headers={"Origin": PRODUCTION_ORIGIN},
+            json={
+                "name": "CORS regression",
+                "email": "cors-rate-limit@example.com",
+                "webinar_title": "Security",
+                "webinar_time": "now",
+                "timezone": "UTC",
+            },
+        )
+    finally:
+        del app.state.rate_limiter
+
+    assert response.status_code == 429
+    assert response.headers["Access-Control-Allow-Origin"] == PRODUCTION_ORIGIN
+
+
+def test_project_vercel_preview_origin_is_allowed():
+    preview_origin = (
+        "https://social-listening-cos3yuhhx-hung307-s-projects.vercel.app"
+    )
+    response = client.options(
+        "/api/crawl/schedules",
+        headers={
+            "Origin": preview_origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == preview_origin
 
 
 def test_rate_limit_counter_is_shared_across_redis_compatible_clients():

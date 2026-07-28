@@ -154,6 +154,14 @@ class Settings(BaseSettings):
             if clean_url not in origins:
                 origins.append(clean_url)
         return origins
+
+    @property
+    def cors_origin_regex(self) -> str:
+        """Allow project-owned Vercel production and preview deployment origins."""
+        return (
+            r"^https://social-listening-[a-z0-9]+-"
+            r"hung307-s-projects\.vercel\.app$"
+        )
     
     if SettingsConfigDict:
         model_config = SettingsConfigDict(
