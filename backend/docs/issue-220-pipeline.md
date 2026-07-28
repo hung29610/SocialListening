@@ -90,19 +90,41 @@ Local evidence on 2026-07-28:
 - A dedicated `issue220_pipeline_test_20260728` database was created, the
   isolated-engine test passed, and that exact disposable database was dropped.
 - Redis/Valkey, Docker, Podman, WSL distributions, and Redis listeners were not
-  available, so both real Redis gates remain externally blocked.
+  available locally.
+- Blocking GitHub Actions supplies isolated PostgreSQL and Redis service
+  containers per workflow run. The named `Pipeline PostgreSQL + Redis
+  redelivery` check executes the full integration module with
+  `TEST_DATABASE_URL` and `TEST_REDIS_URL`, including forced worker-process
+  loss and broker redelivery.
 
-## Required staging evidence after human deployment
+## Post-merge production verification plan
 
-1. Use a dedicated non-production project/keyword and record its crawl job ID.
-2. Verify Render worker and beat both connect to Redis and consume `analysis`.
-3. Record one row and timestamps for scan, mention, analysis, alert, and report.
-4. Repeat the automated process-kill/redelivery gate against staging Redis,
-   then restart the deployed worker after enqueue; verify lease expiry/requeue
-   and exactly-one downstream row counts.
-5. Inject provider errors through six attempts; verify terminal `failed`,
-   `dead_lettered_at`, and no further reconciliation enqueue.
-6. Confirm another organization cannot query the mention, alert, or report.
+There is no separate staging environment. After human merge and Render
+deployment:
+
+1. Confirm the web, `social-listening-pipeline-worker`, and
+   `social-listening-pipeline-beat` services are healthy and connected to the
+   configured production Redis instance.
+2. Record the current row counts for `ai_analysis`, `alerts`, and `reports`.
+   The observed alert and report counts are currently zero.
+3. Trigger exactly **one** real manual scan for one existing production
+   project/keyword. Record its crawl job ID; do not trigger a second scan.
+4. Poll that job to a terminal pipeline state and verify its durable scan,
+   mention, analysis, alert, and report stage timestamps.
+5. Query by that crawl job/mention and prove the scan created:
+   - at least one new `ai_analysis` row;
+   - at least one new `alerts` row;
+   - one new `reports` row.
+   Because alerts and reports currently have zero rows, the first new rows are
+   unambiguous end-to-end production evidence.
+6. Verify the rows belong to the expected organization/project and that a
+   duplicate delivery of the completed job does not create duplicates.
+
+Rollback: if the single scan fails to reach the complete chain, immediately
+revert the merged #220 PR, redeploy the previous Render revision for web,
+worker, and beat, stop further scan triggers, and preserve the failed crawl job
+ID plus service logs for diagnosis. Do not retry production scans until the
+revert is confirmed healthy.
 
 ## Supabase development schema drift
 
