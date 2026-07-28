@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 
 _EXPANDED_KEYWORDS_CACHE = {}
 
+
+def enqueue_scan_pipeline(job_id: int) -> None:
+    """Queue durable downstream processing only after the scan commit succeeds."""
+    from app.tasks.scan_pipeline import process_scan_pipeline
+
+    process_scan_pipeline.delay(job_id)
+
 def expand_scan_keyword(q: str):
     q_lower = q.lower().strip()
     expansions = [q_lower] if q_lower else []
@@ -71,7 +78,6 @@ def expand_scan_keyword(q: str):
 
 
 def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: str, max_results: int, source_types: List[str] = None):
-    from app.core.database import SessionLocal
     from app.models.crawl import CrawlJob, CrawlJobStatus
     from app.models.mention import Mention
     from app.core.config import settings
@@ -104,6 +110,13 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         )
 
         current_meta = job.meta_data or {}
+        organization_id = current_meta.get("organization_id")
+        user_id = current_meta.get("user_id") or job.user_id
+        if organization_id is None and user_id is not None:
+            from app.models.user import User
+
+            owner = db.get(User, user_id)
+            organization_id = owner.current_organization_id if owner else None
         original_query = current_meta.get("query")
         provider_used = current_meta.get("provider", "none")
         if current_meta.get("expand_keywords") and original_query:
@@ -177,6 +190,8 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         current_meta.update({
             "summary": summary,
             "project_id": project_id,
+            "organization_id": organization_id,
+            "user_id": user_id,
             "keywords": keyword_texts,
             "provider": provider_used,
             "started_at": job.started_at.isoformat() if job.started_at else None
@@ -534,6 +549,8 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
                 m_data["relevance_score"] = r["relevance_score"]
 
             mention = Mention(
+                organization_id=organization_id,
+                user_id=user_id,
                 project_id=project_id,
                 job_id=job_id,
                 keyword_text=matched_kw,
@@ -621,11 +638,56 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         except Exception as e:
             meta_data_final["visible_mentions_for_query"] = -1
 
+        completed_at = datetime.now(timezone.utc)
         job.meta_data = meta_data_final
-        job.completed_at = datetime.now(timezone.utc)
+        job.completed_at = completed_at
         job.mentions_found = meta_data_final["created_mentions_count"]
+        pipeline = dict(meta_data_final.get("pipeline") or {})
+        stages = dict(pipeline.get("stages") or {})
+        stages.update({
+            "scan": {
+                "status": "completed",
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "completed_at": completed_at.isoformat(),
+                "crawl_status": job.status.value,
+            },
+            "mention": {
+                "status": "completed",
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "completed_at": completed_at.isoformat(),
+                "count": meta_data_final["created_mentions_count"],
+            },
+            "analysis": {"status": "queued", "queued_at": completed_at.isoformat()},
+            "alert": {"status": "pending", "pending_at": completed_at.isoformat()},
+            "report": {"status": "pending", "pending_at": completed_at.isoformat()},
+        })
+        pipeline.update({
+            "status": "queued",
+            "queued_at": completed_at.isoformat(),
+            "last_error": None,
+            "attempts": int(pipeline.get("attempts", 0)),
+            "stages": stages,
+        })
+        meta_data_final["pipeline"] = pipeline
         flag_modified(job, "meta_data")
         db.commit()
+
+        # This happens strictly after the mention/job transaction commits.  If
+        # Redis is unavailable, reconciliation can resume the durable state.
+        try:
+            enqueue_scan_pipeline(job.id)
+        except Exception as enqueue_error:
+            logger.exception("PIPELINE_ENQUEUE_FAILED job_id=%s", job.id)
+            latest_meta = dict(job.meta_data or {})
+            latest_pipeline = dict(latest_meta.get("pipeline") or {})
+            latest_pipeline.update({
+                "status": "enqueue_failed",
+                "last_error": str(enqueue_error)[:500],
+            })
+            latest_meta["pipeline"] = latest_pipeline
+            job.meta_data = latest_meta
+            flag_modified(job, "meta_data")
+            db.commit()
 
         # Comprehensive logging
         job_type = job.job_type.upper() if getattr(job, "job_type", None) else "SCAN"
