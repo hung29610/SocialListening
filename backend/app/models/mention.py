@@ -51,7 +51,7 @@ class Mention(Base):
     
     # Timestamps
     published_at = Column(DateTime(timezone=True), index=True)
-    collected_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    collected_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     
     # Matched keywords
     matched_keywords = Column(JSON)  # List of matched keyword IDs and positions
@@ -96,6 +96,9 @@ class Mention(Base):
         Index('idx_mention_source', 'source_id'),
         Index('idx_mention_job', 'job_id'),
         Index('idx_mention_domain', 'domain'),
+        Index('idx_mentions_org_collected_id', 'organization_id', 'collected_at', 'id'),
+        Index('idx_mentions_project_collected_id', 'project_id', 'collected_at', 'id'),
+        Index('idx_mentions_keyword_collected_id', 'keyword_id', 'collected_at', 'id'),
     )
 
 
