@@ -9,9 +9,9 @@ runs used the same Python 3.11 environment, in-memory SQLAlchemy database,
 | Commit | SELECTs | p95 | median | response bytes |
 |---|---:|---:|---:|---:|
 | `bb13a9d` before | 104 | 238.77 ms | 154.28 ms | 367,950 |
-| issue #221 after (final rerun) | 5 | 68.93 ms | 59.29 ms | 100,896 |
+| issue #221 after (composite-cursor rerun) | 5 | 54.98 ms | 41.20 ms | 100,896 |
 
-The result is 99 queries removed, approximately 71.1% lower p95, and 72.6%
+The result is 99 queries removed, approximately 77.0% lower p95, and 72.6%
 fewer response bytes. The endpoint-level SQLAlchemy event regression test
 creates 100 mentions and fails above five SELECT statements.
 
@@ -31,15 +31,22 @@ payload. Other consumers receive the slim representation by default: full `conte
 
 Cursor semantics by sort:
 
-- `newest`, `oldest`, and `engagement_high` paginate with the stable
-  `(collected_at,id)` tuple;
-- `risk_high`, `risk_low`, and `influence_high` are explicitly single-page,
-  return no `next_cursor`, and reject any supplied cursor with HTTP 400;
-- searched lists use the same date/id ordering instead of an incomplete
-  relevance cursor, so pages cannot overlap or skip due to mismatched keys.
+- `newest` and `oldest` use `(collected_at,id)`;
+- `risk_high` and `risk_low` use `(risk_score,collected_at,id)`;
+- `influence_high` uses `(influence_score,collected_at,id)`;
+- `engagement_high` uses
+  `(views+comments+likes+shares,collected_at,id)`.
 
-The frontend only enables Next when `next_cursor` exists, making unsupported
-single-page sorts safe. Search cache keys are SHA-256 hashes over tenant,
+Every score/value sort applies `NULLS LAST`. Once a cursor reaches the null
+partition, subsequent pages remain inside that partition and continue by
+descending `(collected_at,id)`. Cursors embed and validate the requested sort,
+preventing accidental reuse across incompatible orderings. Multi-page endpoint
+tests traverse all 100 rows for every value sort and assert exact ordering,
+zero duplicates, and zero gaps.
+
+Searched lists use the same composite/date ordering instead of an incomplete
+relevance cursor, so pages cannot overlap or skip due to mismatched keys.
+Search cache keys are SHA-256 hashes over tenant,
 user, pagination, expansion, and every list filter. Regression coverage mutates
 each filter independently and proves the key changes.
 

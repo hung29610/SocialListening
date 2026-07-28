@@ -73,7 +73,11 @@ def mention_feed(monkeypatch):
                     url=f"https://example{organization_id}.test/{position}",
                     canonical_url=f"https://example{organization_id}.test/{position}",
                     sentiment="negative",
-                    influence_score=position,
+                    influence_score=None if position % 13 == 0 else position % 9,
+                    views_count=position % 7,
+                    comments_count=position % 3,
+                    likes_count=position % 5,
+                    shares_count=position % 2,
                     verification_status="verified",
                     is_reviewed=position % 2 == 0,
                     is_muted=False,
@@ -81,16 +85,17 @@ def mention_feed(monkeypatch):
                     collected_at=collected_base - timedelta(seconds=position),
                 )
                 mentions.append(mention)
-                analyses.append(
-                    AIAnalysis(
-                        mention_id=mention_id,
-                        sentiment=SentimentScore.NEGATIVE,
-                        risk_score=75,
-                        crisis_level=3,
-                        summary_vi="Benchmark analysis",
-                        ai_provider="test",
+                if position % 11 != 0:
+                    analyses.append(
+                        AIAnalysis(
+                            mention_id=mention_id,
+                            sentiment=SentimentScore.NEGATIVE,
+                            risk_score=(position % 7) * 10,
+                            crisis_level=3,
+                            summary_vi="Benchmark analysis",
+                            ai_provider="test",
+                        )
                     )
-                )
         db.add_all(mentions + analyses)
         db.commit()
 
@@ -213,25 +218,6 @@ def test_offset_pages_are_rejected_and_cursor_advances(mention_feed):
     assert first.json()["items"][-1]["id"] != second.json()["items"][0]["id"]
 
 
-@pytest.mark.parametrize("sort_by", ["risk_high", "risk_low", "influence_high"])
-def test_unsupported_sort_pagination_is_explicit_and_single_page(
-    mention_feed, sort_by
-):
-    client, _engine, _ = mention_feed
-    first = client.get("/api/mentions", params={"page_size": 10, "sort_by": sort_by})
-    assert first.status_code == 200
-    assert first.json()["next_cursor"] is None
-    assert first.json()["has_next"] is False
-    assert first.json()["pagination_mode"] == "single_page_unsupported_sort"
-
-    rejected = client.get(
-        "/api/mentions",
-        params={"page_size": 10, "sort_by": sort_by, "cursor": "invalid"},
-    )
-    assert rejected.status_code == 400
-    assert "single-page only" in rejected.json()["detail"]
-
-
 def test_engagement_and_search_cursor_pages_are_stable(mention_feed):
     client, _engine, _ = mention_feed
     first = client.get(
@@ -252,7 +238,80 @@ def test_engagement_and_search_cursor_pages_are_stable(mention_feed):
     second_ids = [item["id"] for item in second.json()["items"]]
     assert cursor
     assert not set(first_ids).intersection(second_ids)
-    assert min(second_ids) > max(first_ids)
+
+
+@pytest.mark.parametrize(
+    "sort_by",
+    ["risk_high", "risk_low", "influence_high", "engagement_high"],
+)
+def test_composite_sort_cursors_cover_all_rows_without_gaps_or_duplicates(
+    mention_feed, sort_by
+):
+    client, _engine, _ = mention_feed
+    collected_ids = []
+    cursor = None
+
+    while True:
+        params = {"page_size": 13, "sort_by": sort_by}
+        if cursor:
+            params["cursor"] = cursor
+        response = client.get("/api/mentions", params=params)
+        assert response.status_code == 200
+        payload = response.json()
+        collected_ids.extend(item["id"] for item in payload["items"])
+        cursor = payload["next_cursor"]
+        if cursor is None:
+            break
+
+    assert len(collected_ids) == 100
+    assert len(set(collected_ids)) == 100
+    positions = {mention_id: mention_id - 1 for mention_id in range(1, 101)}
+
+    def risk(position):
+        return None if position % 11 == 0 else (position % 7) * 10
+
+    def influence(position):
+        return None if position % 13 == 0 else position % 9
+
+    def engagement(position):
+        return position % 7 + position % 3 + position % 5 + position % 2
+
+    if sort_by == "risk_high":
+        expected = sorted(
+            positions,
+            key=lambda mention_id: (
+                risk(positions[mention_id]) is None,
+                -(risk(positions[mention_id]) or 0),
+                positions[mention_id],
+            ),
+        )
+    elif sort_by == "risk_low":
+        expected = sorted(
+            positions,
+            key=lambda mention_id: (
+                risk(positions[mention_id]) is None,
+                risk(positions[mention_id]) or 0,
+                positions[mention_id],
+            ),
+        )
+    elif sort_by == "influence_high":
+        expected = sorted(
+            positions,
+            key=lambda mention_id: (
+                influence(positions[mention_id]) is None,
+                -(influence(positions[mention_id]) or 0),
+                positions[mention_id],
+            ),
+        )
+    else:
+        expected = sorted(
+            positions,
+            key=lambda mention_id: (
+                -engagement(positions[mention_id]),
+                positions[mention_id],
+            ),
+        )
+    assert collected_ids == expected
 
 
 def test_slim_payload_is_opt_in_without_breaking_expanded_clients(mention_feed):
@@ -306,7 +365,7 @@ def test_chart_aggregation_is_one_select_and_preserves_results(mention_feed):
             {
                 "date": "2026-07-28",
                 "total_mentions": 100,
-                "reach": 49500,
+                "reach": 3730,
                 "sentiment_positive": 0,
                 "sentiment_neutral": 0,
                 "sentiment_negative": 100,
