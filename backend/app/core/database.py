@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 # Use psycopg2 (sync)
@@ -39,6 +40,9 @@ async_engine = create_async_engine(
     _async_database_url(database_url),
     echo=settings.DEBUG,
     pool_pre_ping=True,
+    # Legacy Celery tasks call asyncio.run() per delivery. Do not retain async
+    # connections across the separate event loops created by those calls.
+    poolclass=NullPool,
 )
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,

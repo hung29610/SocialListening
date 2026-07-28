@@ -151,6 +151,8 @@ async def _process_mention(db, source, content_data, keyword_groups):
     # Create mention
     mention = Mention(
         source_id=source.id,
+        organization_id=source.organization_id,
+        user_id=source.user_id,
         title=title,
         content=content,
         content_hash=content_hash,
@@ -622,6 +624,23 @@ async def _run_scheduled_crawl_async(schedule_id: int):
             
             if not schedule or not schedule.is_active:
                 return {"error": "Schedule not found or inactive"}
+
+            if schedule.user_id is None:
+                return {"error": "Scheduled crawl requires an owner"}
+            from app.models.user import User
+
+            result = await db.execute(
+                select(User).where(User.id == schedule.user_id)
+            )
+            schedule_owner = result.scalar_one_or_none()
+            if (
+                schedule_owner is None
+                or schedule_owner.current_organization_id is None
+            ):
+                return {
+                    "error": "Scheduled crawl owner requires an active organization"
+                }
+            organization_id = schedule_owner.current_organization_id
             
             # Get sources from source groups
             source_ids = []
@@ -630,7 +649,8 @@ async def _run_scheduled_crawl_async(schedule_id: int):
                 result = await db.execute(
                     select(Source.id).where(
                         Source.group_id.in_(schedule.source_group_ids),
-                        Source.is_active == True
+                        Source.is_active == True,
+                        Source.organization_id == organization_id,
                     )
                 )
                 source_ids = [row[0] for row in result.all()]
@@ -642,10 +662,16 @@ async def _run_scheduled_crawl_async(schedule_id: int):
             from app.models.crawl import CrawlJob
             crawl_job = CrawlJob(
                 job_type="scheduled",
+                user_id=schedule_owner.id,
                 source_ids=source_ids,
                 keyword_group_ids=schedule.keyword_group_ids or [],
                 status=CrawlJobStatus.PENDING,
-                total_sources=len(source_ids)
+                total_sources=len(source_ids),
+                meta_data={
+                    "organization_id": organization_id,
+                    "user_id": schedule_owner.id,
+                    "scheduled": True,
+                },
             )
             
             db.add(crawl_job)

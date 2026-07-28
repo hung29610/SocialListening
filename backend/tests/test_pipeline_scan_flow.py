@@ -395,3 +395,62 @@ def test_scheduled_scan_owner_context_returns_explicit_tenant():
         db,
         SimpleNamespace(user_id=42),
     ) == (42, 17)
+
+
+def test_legacy_scheduled_crawl_fails_closed_without_owner(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+
+    from app.workers import tasks
+
+    class Result:
+        def scalar_one_or_none(self):
+            return SimpleNamespace(id=1, is_active=True, user_id=None)
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def execute(self, _):
+            return Result()
+
+        async def rollback(self):
+            return None
+
+    monkeypatch.setattr(tasks, "AsyncSessionLocal", Session)
+    result = asyncio.run(tasks._run_scheduled_crawl_async(1))
+    assert result == {"error": "Scheduled crawl requires an owner"}
+
+
+def test_legacy_async_tasks_do_not_reuse_connections_across_event_loops():
+    from sqlalchemy.pool import NullPool
+
+    from app.core.database import async_engine
+
+    assert isinstance(async_engine.pool, NullPool)
+
+
+def test_render_worker_consumes_every_registered_queue():
+    from pathlib import Path
+
+    import yaml
+
+    blueprint = yaml.safe_load(
+        (Path(__file__).parents[1] / "render.yaml").read_text(encoding="utf-8")
+    )
+    worker = next(
+        service
+        for service in blueprint["services"]
+        if service["name"] == "social-listening-pipeline-worker"
+    )
+    queues = worker["startCommand"].split("--queues=", 1)[1].split()[0].split(",")
+    assert set(queues) >= {
+        "analysis",
+        "crawl",
+        "notifications",
+        "reports",
+        "celery",
+    }
