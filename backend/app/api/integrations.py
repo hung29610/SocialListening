@@ -166,9 +166,9 @@ def get_meta_status(db: Session = Depends(get_db), current_user: User = Depends(
         ]
     }
 
-@router.get("/meta/auth-url")
+@router.post("/meta/auth-url")
 def get_meta_auth_url(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    """Get OAuth URL to redirect user."""
+    """Create one-time OAuth state and return the provider redirect URL."""
     if not meta_connector.validate_config():
         raise HTTPException(status_code=400, detail="Meta App chưa được cấu hình.")
     

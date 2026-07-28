@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_superuser, get_current_user
@@ -31,16 +32,13 @@ def get_organization_settings(
     ).scalar_one_or_none()
     
     if not settings:
-        # Create default if not exists
-        settings = OrganizationSettings(
+        return OrganizationSettingsResponse(
             id=1,
             organization_name='Social Listening Platform',
             timezone='Asia/Ho_Chi_Minh',
-            language='vi'
+            language='vi',
+            created_at=datetime.utcnow(),
         )
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
     
     return OrganizationSettingsResponse.from_orm(settings)
 
@@ -84,17 +82,14 @@ def get_email_settings(
     ).scalar_one_or_none()
     
     if not settings:
-        # Create default if not exists
-        settings = EmailSettings(
+        return EmailSettingsResponse(
             id=1,
             smtp_port=587,
             use_tls=True,
             use_ssl=False,
-            is_configured=False
+            is_configured=False,
+            created_at=datetime.utcnow(),
         )
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
     
     return EmailSettingsResponse.from_orm(settings)
 
@@ -205,8 +200,7 @@ def get_system_notification_settings(
         settings = None
     
     if not settings:
-        # Create default if not exists
-        settings = SystemNotificationSettings(
+        return SystemNotificationSettingsResponse(
             id=1,
             system_alerts_enabled=True,
             alert_channels=['email'],
@@ -214,14 +208,9 @@ def get_system_notification_settings(
             daily_report_time='09:00',
             weekly_report_enabled=False,
             weekly_report_day=0,
-            weekly_report_time='09:00'
+            weekly_report_time='09:00',
+            created_at=datetime.utcnow(),
         )
-        try:
-            db.add(settings)
-            db.commit()
-            db.refresh(settings)
-        except Exception:
-            db.rollback()
     
     return SystemNotificationSettingsResponse.from_orm(settings)
 
@@ -402,15 +391,19 @@ def get_ai_model_config(
         ).scalar_one_or_none()
 
         if not config:
-            config = AIModelConfig(
-                user_id=current_user.id,
-                provider='gemini',
-                model_name='gemini-2.5-flash',
-                is_enabled=True
-            )
-            db.add(config)
-            db.commit()
-            db.refresh(config)
+            return {
+                "id": 0,
+                "provider": "gemini",
+                "api_key_masked": "",
+                "model_name": "gemini-2.5-flash",
+                "base_url": None,
+                "max_tokens": 2048,
+                "temperature": 0.7,
+                "is_enabled": True,
+                "system_prompt": "",
+                "created_at": None,
+                "updated_at": None,
+            }
     except Exception as e:
         db.rollback()
         # Fallback to default mock config if DB is missing

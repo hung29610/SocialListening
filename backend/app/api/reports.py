@@ -501,11 +501,6 @@ def get_email_schedules(db: Session = Depends(get_db), current_user: User = Depe
         
     try:
         sys_settings = db.execute(select(SystemNotificationSettings)).scalars().first()
-        if not sys_settings:
-            sys_settings = SystemNotificationSettings()
-            db.add(sys_settings)
-            db.commit()
-            db.refresh(sys_settings)
     except SQLAlchemyError as e:
         db.rollback()
         import logging
