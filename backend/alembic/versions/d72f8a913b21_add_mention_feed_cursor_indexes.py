@@ -7,6 +7,7 @@ Create Date: 2026-07-28
 HIGH RISK: human diff review is required before deployment.
 """
 from alembic import op
+import sqlalchemy as sa
 
 
 revision = "d72f8a913b21"
@@ -16,27 +17,39 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_index(
-        "idx_mentions_org_collected_id",
-        "mentions",
-        ["organization_id", "collected_at", "id"],
-        unique=False,
+    op.execute(
+        "UPDATE mentions SET collected_at = CURRENT_TIMESTAMP "
+        "WHERE collected_at IS NULL"
     )
-    op.create_index(
-        "idx_mentions_project_collected_id",
+    op.alter_column(
         "mentions",
-        ["project_id", "collected_at", "id"],
-        unique=False,
+        "collected_at",
+        existing_type=sa.DateTime(timezone=True),
+        nullable=False,
     )
-    op.create_index(
-        "idx_mentions_keyword_collected_id",
-        "mentions",
-        ["keyword_id", "collected_at", "id"],
-        unique=False,
-    )
+    with op.get_context().autocommit_block():
+        op.execute(
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mentions_org_collected_id "
+            "ON mentions (organization_id, collected_at, id)"
+        )
+        op.execute(
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mentions_project_collected_id "
+            "ON mentions (project_id, collected_at, id)"
+        )
+        op.execute(
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mentions_keyword_collected_id "
+            "ON mentions (keyword_id, collected_at, id)"
+        )
 
 
 def downgrade() -> None:
-    op.drop_index("idx_mentions_keyword_collected_id", table_name="mentions")
-    op.drop_index("idx_mentions_project_collected_id", table_name="mentions")
-    op.drop_index("idx_mentions_org_collected_id", table_name="mentions")
+    with op.get_context().autocommit_block():
+        op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_keyword_collected_id")
+        op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_project_collected_id")
+        op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_org_collected_id")
+    op.alter_column(
+        "mentions",
+        "collected_at",
+        existing_type=sa.DateTime(timezone=True),
+        nullable=True,
+    )

@@ -297,6 +297,8 @@ function MentionsPageContent() {
   const [loading, setLoading] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
   const [page, setPage] = useState(1);
+  const [cursorByPage, setCursorByPage] = useState<Record<number, string | undefined>>({ 1: undefined });
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(initialSearch || '');
   const [searchInput, setSearchInput] = useState(initialSearch || '');
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -613,10 +615,15 @@ function MentionsPageContent() {
       }
 
       const params: any = {
-        page: currentPage,
         page_size: 20,
         sort_by: filters.sort_by,
+        // Preserve the existing rich mention cards while the API also offers
+        // an explicit slim representation for other list consumers.
+        expand: true,
       };
+      if (currentPage > 1) {
+        params.cursor = cursorByPage[currentPage];
+      }
       if (forceRefresh === true) {
         params.refresh = true;
       }
@@ -653,6 +660,7 @@ function MentionsPageContent() {
       setMentionsList(data.items);
       setTotalMentions(data.total);
       setTotalPages(data.total_pages);
+      setNextCursor(data.next_cursor || null);
 
       // Auto-trigger scan on EVERY search (not just empty results) if < threshold
       if (searchTerm && !initialJobId && !activeScanJobId && activeProject) {
@@ -723,7 +731,17 @@ function MentionsPageContent() {
         setLoading(false);
       }
     }
-  }, [page, filters, initialJobId, searchTerm, activeProject?.id, dateRange]);
+  }, [page, cursorByPage, filters, initialJobId, searchTerm, activeProject?.id, dateRange]);
+
+  const goToNextPage = useCallback(() => {
+    if (!nextCursor) return;
+    setCursorByPage((current) => ({ ...current, [page + 1]: nextCursor }));
+    setPage((current) => current + 1);
+  }, [nextCursor, page]);
+
+  const goToPreviousPage = useCallback(() => {
+    setPage((current) => Math.max(1, current - 1));
+  }, []);
 
   const fetchMentionsRef = useRef(fetchMentions);
   useEffect(() => {
@@ -1366,21 +1384,14 @@ function MentionsPageContent() {
              {loading && !mentionsList.length ? t('common.loading') : totalMentions >= 0 ? `${totalMentions.toLocaleString()} ${t('common.results')} ${searchTerm ? `${t('common.for')} '${searchTerm}'` : ''}` : t('common.loading')}
            </div>
 
-           {totalPages > 1 && (
+           {(page > 1 || nextCursor) && (
              <div className="flex items-center gap-1 text-sm text-paper-muted">
-               {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => (
-                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === i + 1 ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
-                   {i + 1}
-                 </button>
-               ))}
-               {totalPages > 5 && <span className="px-1">...</span>}
-               {totalPages > 5 && (
-                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === totalPages ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
-                   {totalPages}
-                 </button>
-               )}
-               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
-                 <ChevronRight className="w-5 h-5" />
+               <button onClick={goToPreviousPage} disabled={page === 1} aria-label="Previous mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+                 <ChevronLeft className="w-5 h-5" />
+               </button>
+               <span className="px-2 tabular-nums">{page}</span>
+               <button onClick={goToNextPage} disabled={!nextCursor} aria-label="Next mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+                  <ChevronRight className="w-5 h-5" />
                </button>
              </div>
            )}
@@ -1819,20 +1830,16 @@ return (
         </div>
 
         {/* Pagination Bar Bottom */}
-        {totalPages > 1 && (
+        {(page > 1 || nextCursor) && (
            <div className="flex items-center justify-end bg-void-surface px-4 py-3 rounded-xl border border-edge mt-2 mb-8">
              <div className="flex items-center gap-1 text-sm text-paper-muted">
-               {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => (
-                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === i + 1 ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
-                   {i + 1}
-                 </button>
-               ))}
-               {totalPages > 5 && <span className="px-1">...</span>}
-               {totalPages > 5 && (
-                 <button onClick={() => setPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded-md tabular-nums transition-colors duration-150 motion-reduce:transition-none ${focusRing} ${page === totalPages ? 'text-signal dark:text-signal-bright font-bold bg-signal/10' : 'hover:bg-void-raised'}`}>
-                   {totalPages}
-                 </button>
-               )}
+               <button onClick={goToPreviousPage} disabled={page === 1} aria-label="Previous mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+                 <ChevronLeft className="w-5 h-5" />
+               </button>
+               <span className="px-2 tabular-nums">{page}</span>
+               <button onClick={goToNextPage} disabled={!nextCursor} aria-label="Next mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+                 <ChevronRight className="w-5 h-5" />
+               </button>
              </div>
            </div>
         )}

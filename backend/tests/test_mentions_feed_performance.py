@@ -1,88 +1,202 @@
-"""Regression evidence for issue #221 mention-feed query behavior."""
-from datetime import datetime, timezone
-from unittest.mock import MagicMock
-import importlib.util
-from pathlib import Path
+"""Endpoint-level regression evidence for issue #221."""
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
-from app.api.mentions import (
-    _apply_mention_cursor,
-    _batch_load_mention_relations,
-    _decode_mention_cursor,
-    _encode_mention_cursor,
-)
-from app.models.mention import Mention
-from sqlalchemy import select
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-
-def test_100_row_relation_load_is_three_statements_not_101():
-    """Baseline was 101 relation statements: source + visit + 100 AI lookups."""
-    db = MagicMock()
-    source_result = MagicMock()
-    source_result.scalars.return_value.all.return_value = []
-    visit_result = MagicMock()
-    visit_result.scalars.return_value.all.return_value = []
-    analysis_result = MagicMock()
-    analysis_result.scalars.return_value.all.return_value = []
-    db.execute.side_effect = [source_result, visit_result, analysis_result]
-
-    mentions = [
-        MagicMock(id=index, source_id=index, collected_at=datetime.now(timezone.utc))
-        for index in range(1, 101)
-    ]
-    _batch_load_mention_relations(db, mentions, user_id=7)
-
-    assert db.execute.call_count == 3
-    # Full page: count + page + these three relation loads = five statements.
-    assert 2 + db.execute.call_count <= 5
+from app.api import mentions as mentions_module
+from app.core.database import get_db
+from app.core.security import get_current_active_user
+from app.main import app
+from app.models.mention import AIAnalysis, Mention, MentionVisit, SentimentScore
+from app.models.source import Source, SourceType
 
 
-def test_newest_cursor_round_trips_and_adds_stable_tuple_boundary():
-    collected_at = datetime(2026, 7, 28, 8, 30, tzinfo=timezone.utc)
-    cursor = _encode_mention_cursor(collected_at, 42)
-    assert _decode_mention_cursor(cursor) == (collected_at, 42)
+@pytest.fixture()
+def mention_feed(monkeypatch):
+    from app.core.config import settings
 
-    query = _apply_mention_cursor(select(Mention), cursor, "newest")
-    sql = str(query).lower()
-    assert "mentions.collected_at <" in sql
-    assert "mentions.id <" in sql
-
-
-def test_oldest_cursor_uses_forward_tuple_boundary():
-    collected_at = datetime(2026, 7, 28, 8, 30, tzinfo=timezone.utc)
-    query = _apply_mention_cursor(
-        select(Mention), _encode_mention_cursor(collected_at, 42), "oldest"
+    monkeypatch.setattr(settings, "REDIS_URL", "")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
-    sql = str(query).lower()
-    assert "mentions.collected_at >" in sql
-    assert "mentions.id >" in sql
+    for table in (
+        Source.__table__,
+        Mention.__table__,
+        AIAnalysis.__table__,
+        MentionVisit.__table__,
+    ):
+        table.create(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with session_factory() as db:
+        sources = [
+            Source(
+                id=organization_id,
+                organization_id=organization_id,
+                user_id=organization_id,
+                group_id=organization_id,
+                name=f"Source {organization_id}",
+                source_type=SourceType.NEWS,
+                url=f"https://example{organization_id}.test",
+            )
+            for organization_id in (1, 2)
+        ]
+        db.add_all(sources)
+        collected_base = datetime(2026, 7, 28, 8, tzinfo=timezone.utc)
+        mentions = []
+        analyses = []
+        for organization_id in (1, 2):
+            for position in range(100):
+                mention_id = (organization_id - 1) * 100 + position + 1
+                mention = Mention(
+                    id=mention_id,
+                    organization_id=organization_id,
+                    user_id=organization_id,
+                    project_id=organization_id,
+                    keyword_id=organization_id,
+                    source_id=organization_id,
+                    title=f"tenant-{organization_id} benchmark mention {position}",
+                    snippet=f"Compact list snippet {position}",
+                    content="x" * 2048,
+                    meta_data={"media_url": "https://example.test/video.mp4", "blob": "y" * 512},
+                    url=f"https://example{organization_id}.test/{position}",
+                    canonical_url=f"https://example{organization_id}.test/{position}",
+                    sentiment="negative",
+                    verification_status="verified",
+                    is_muted=False,
+                    is_deleted=False,
+                    collected_at=collected_base - timedelta(seconds=position),
+                )
+                mentions.append(mention)
+                analyses.append(
+                    AIAnalysis(
+                        mention_id=mention_id,
+                        sentiment=SentimentScore.NEGATIVE,
+                        risk_score=75,
+                        crisis_level=3,
+                        summary_vi="Benchmark analysis",
+                        ai_provider="test",
+                    )
+                )
+        db.add_all(mentions + analyses)
+        db.commit()
+
+    user_holder = {
+        "user": SimpleNamespace(
+            id=1,
+            current_organization_id=1,
+            role="viewer",
+            is_superuser=False,
+            is_active=True,
+        )
+    }
+
+    def override_db():
+        with session_factory() as db:
+            yield db
+
+    def override_user():
+        return user_holder["user"]
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_current_active_user] = override_user
+    mentions_module._MENTIONS_SEARCH_CACHE.clear()
+    try:
+        yield TestClient(app), engine, user_holder
+    finally:
+        mentions_module._MENTIONS_SEARCH_CACHE.clear()
+        app.dependency_overrides.clear()
+        engine.dispose()
 
 
-def test_index_migration_upgrade_and_downgrade_are_symmetric(monkeypatch):
-    migration_path = (
-        Path(__file__).parents[1]
-        / "alembic"
-        / "versions"
-        / "d72f8a913b21_add_mention_feed_cursor_indexes.py"
+def test_actual_100_row_request_uses_at_most_five_selects(mention_feed):
+    client, engine, _ = mention_feed
+    statements = []
+
+    def record_statement(_conn, _cursor, statement, _parameters, _context, _many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_statement)
+    try:
+        response = client.get("/api/mentions?page_size=100&expand=false")
+    finally:
+        event.remove(engine, "before_cursor_execute", record_statement)
+
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 100
+    assert len(statements) <= 5, statements
+    assert sum("ai_analysis" in statement.lower() for statement in statements) == 1
+
+
+def test_cache_is_scoped_by_organization_and_user(mention_feed):
+    client, _engine, user_holder = mention_feed
+
+    first = client.get("/api/mentions?q=benchmark&page_size=1")
+    assert first.status_code == 200
+    assert first.json()["items"][0]["title"].startswith("tenant-1")
+
+    user_holder["user"] = SimpleNamespace(
+        id=2,
+        current_organization_id=2,
+        role="viewer",
+        is_superuser=False,
+        is_active=True,
     )
-    spec = importlib.util.spec_from_file_location("issue_221_migration", migration_path)
-    migration = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(migration)
-    create_index = MagicMock()
-    drop_index = MagicMock()
-    monkeypatch.setattr(migration.op, "create_index", create_index)
-    monkeypatch.setattr(migration.op, "drop_index", drop_index)
+    second = client.get("/api/mentions?q=benchmark&page_size=1")
 
-    migration.upgrade()
-    migration.downgrade()
+    assert second.status_code == 200
+    assert second.json()["items"][0]["title"].startswith("tenant-2")
+    assert len(mentions_module._MENTIONS_SEARCH_CACHE) == 2
 
-    assert [call.args[0] for call in create_index.call_args_list] == [
-        "idx_mentions_org_collected_id",
-        "idx_mentions_project_collected_id",
-        "idx_mentions_keyword_collected_id",
-    ]
-    assert [call.args[0] for call in drop_index.call_args_list] == [
-        "idx_mentions_keyword_collected_id",
-        "idx_mentions_project_collected_id",
-        "idx_mentions_org_collected_id",
-    ]
+
+def test_offset_pages_are_rejected_and_cursor_advances(mention_feed):
+    client, _engine, _ = mention_feed
+
+    rejected = client.get("/api/mentions?page=2&page_size=10")
+    assert rejected.status_code == 400
+    assert "cursor" in rejected.json()["detail"].lower()
+
+    first = client.get("/api/mentions?page_size=10")
+    cursor = first.json()["next_cursor"]
+    second = client.get("/api/mentions?page_size=10", params={"cursor": cursor})
+
+    assert second.status_code == 200
+    assert first.json()["items"][-1]["id"] != second.json()["items"][0]["id"]
+
+
+def test_slim_payload_is_opt_in_without_breaking_expanded_clients(mention_feed):
+    client, _engine, _ = mention_feed
+    slim = client.get("/api/mentions?page_size=1&expand=false").json()["items"][0]
+    expanded = client.get("/api/mentions?page_size=1&expand=true").json()["items"][0]
+
+    assert slim["content"] is None
+    assert slim["metadata"] is None
+    assert expanded["content"]
+    assert expanded["metadata"]
+
+
+def test_summary_aggregations_are_bounded_to_three_selects(mention_feed):
+    client, engine, _ = mention_feed
+    statements = []
+
+    def record_statement(_conn, _cursor, statement, _parameters, _context, _many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_statement)
+    try:
+        response = client.get("/api/mentions/summary")
+    finally:
+        event.remove(engine, "before_cursor_execute", record_statement)
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 100
+    assert len(statements) <= 3, statements

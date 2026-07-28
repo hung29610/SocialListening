@@ -51,7 +51,7 @@ class Mention(Base):
     
     # Timestamps
     published_at = Column(DateTime(timezone=True), index=True)
-    collected_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    collected_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     
     # Matched keywords
     matched_keywords = Column(JSON)  # List of matched keyword IDs and positions
