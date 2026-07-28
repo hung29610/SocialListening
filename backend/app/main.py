@@ -197,6 +197,11 @@ app = FastAPI(
 
 @app.middleware("http")
 async def security_controls(request: Request, call_next):
+    # Browser CORS preflights intentionally carry no bearer token. They must be
+    # answered by the outer CORSMiddleware without touching abuse controls.
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
     supplied_id = request.headers.get("x-correlation-id", "")
     if supplied_id and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", supplied_id):
         correlation_id = supplied_id
@@ -250,12 +255,11 @@ async def security_controls(request: Request, call_next):
 
 
 cors_origins = settings.cors_origins
-if settings.ENVIRONMENT.lower() == "production":
-    cors_origins = [settings.FRONTEND_URL.rstrip("/")] if settings.FRONTEND_URL else []
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
