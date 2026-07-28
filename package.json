@@ -9,7 +9,10 @@
   "directories": {
     "doc": "docs"
   },
-  "scripts": {},
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --reporter=line"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nope-chouhi/SocialListening.git"
