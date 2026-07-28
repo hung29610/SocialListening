@@ -44,10 +44,84 @@ from math import ceil
 import time
 import json
 import hashlib
+import base64
 
 _MENTIONS_SEARCH_CACHE = {}
 
 router = APIRouter()
+
+
+def _encode_mention_cursor(collected_at: datetime, mention_id: int) -> str:
+    raw = f"{collected_at.isoformat()}|{mention_id}".encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _decode_mention_cursor(cursor: str) -> tuple[datetime, int]:
+    try:
+        raw = base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)).decode()
+        timestamp, mention_id = raw.rsplit("|", 1)
+        return datetime.fromisoformat(timestamp), int(mention_id)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid mention cursor") from exc
+
+
+def _apply_mention_cursor(query, cursor: Optional[str], sort_by: str):
+    if not cursor:
+        return query
+    if sort_by not in ("newest", "oldest"):
+        raise HTTPException(
+            status_code=400,
+            detail="Cursor pagination supports sort_by=newest or sort_by=oldest",
+        )
+    collected_at, mention_id = _decode_mention_cursor(cursor)
+    if sort_by == "oldest":
+        boundary = or_(
+            Mention.collected_at > collected_at,
+            and_(Mention.collected_at == collected_at, Mention.id > mention_id),
+        )
+    else:
+        boundary = or_(
+            Mention.collected_at < collected_at,
+            and_(Mention.collected_at == collected_at, Mention.id < mention_id),
+        )
+    return query.where(boundary)
+
+
+def _batch_load_mention_relations(db: Session, mentions, user_id: int):
+    """Load all per-page relations in three bounded statements."""
+    from app.models.source import Source
+    from app.models.mention import MentionVisit
+
+    source_ids = {mention.source_id for mention in mentions if mention.source_id}
+    mention_ids = [mention.id for mention in mentions]
+
+    sources = (
+        db.execute(select(Source).where(Source.id.in_(source_ids))).scalars().all()
+        if source_ids
+        else []
+    )
+    visits = (
+        db.execute(
+            select(MentionVisit.mention_id).where(
+                MentionVisit.user_id == user_id,
+                MentionVisit.mention_id.in_(mention_ids),
+            )
+        ).scalars().all()
+        if mention_ids
+        else []
+    )
+    analyses = (
+        db.execute(
+            select(AIAnalysis).where(AIAnalysis.mention_id.in_(mention_ids))
+        ).scalars().all()
+        if mention_ids
+        else []
+    )
+    return (
+        {source.id: source for source in sources},
+        set(visits),
+        {analysis.mention_id: analysis for analysis in analyses},
+    )
 
 
 def _safe_domain(domain: Optional[str]) -> Optional[str]:
@@ -487,6 +561,8 @@ def apply_mention_filters(
 def list_mentions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    cursor: Optional[str] = Query(None),
+    expand: bool = Query(False, description="Include full content and metadata"),
     source_id: Optional[int] = None,
     source_type: Optional[str] = None,
     source_types: Optional[List[str]] = Query(None),
@@ -500,6 +576,7 @@ def list_mentions(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     job_id: Optional[int] = Query(None),
+    keyword_id: Optional[int] = Query(None),
     keyword: Optional[str] = Query(None),
     project_id: Optional[int] = Query(None),
     is_muted: Optional[bool] = Query(None),
@@ -519,7 +596,12 @@ def list_mentions(
         if q and not job_id and not refresh:
             try:
                 # Create a deterministic key based on search parameters
-                params_str = f"proj:{project_id}_q:{q}_src:{source_type}_{source_types}_sent:{sentiment}_{sentiments}_d:{date_from}_{date_to}_p:{page}_ps:{page_size}_sort:{sort_by}_risk:{min_risk_score}"
+                params_str = (
+                    f"proj:{project_id}_kw:{keyword_id}_q:{q}_src:{source_type}_{source_types}"
+                    f"_sent:{sentiment}_{sentiments}_d:{date_from}_{date_to}_p:{page}"
+                    f"_ps:{page_size}_cursor:{cursor}_expand:{expand}_sort:{sort_by}"
+                    f"_risk:{min_risk_score}"
+                )
                 cache_key = f"mentions_search:{hashlib.md5(params_str.encode()).hexdigest()}"
 
                 # Check redis first
@@ -545,7 +627,6 @@ def list_mentions(
                 logger.error(f"Cache check error: {e}")
 
         from sqlalchemy import or_
-        from app.models.source import Source
 
         # ── Early validation of source_type aliases (Bug C hardening) ──────
         # Validate ALL source_type params before touching the DB.
@@ -600,6 +681,8 @@ def list_mentions(
             query = query.where(Mention.project_id == project_id)
         if job_id:
             query = query.where(Mention.job_id == job_id)
+        if keyword_id:
+            query = query.where(Mention.keyword_id == keyword_id)
         if keyword:
             query = query.where(Mention.keyword_text.ilike(f"%{keyword}%"))
         if is_muted is not None:
@@ -718,6 +801,8 @@ def list_mentions(
                 count_base = count_base.where(Mention.project_id == project_id)
             if job_id:
                 count_base = count_base.where(Mention.job_id == job_id)
+            if keyword_id:
+                count_base = count_base.where(Mention.keyword_id == keyword_id)
             if keyword:
                 count_base = count_base.where(Mention.keyword_text.ilike(f"%{keyword}%"))
             if is_muted is not None:
@@ -846,53 +931,29 @@ def list_mentions(
         else:
             query = query.order_by(nullslast(Mention.collected_at.desc()), Mention.id.desc())
 
-        query = query.offset(offset).limit(page_size)
+        query = _apply_mention_cursor(query, cursor, sort_by)
+        query = query.offset(0 if cursor else offset).limit(page_size + 1)
 
         try:
-            mentions = db.execute(query).scalars().all()
+            mentions = db.execute(query).unique().scalars().all()
         except Exception as e:
             db.rollback()
             logger.error(f"Error querying mentions page: {e}")
             raise HTTPException(status_code=500, detail=f"Lỗi khi truy vấn dữ liệu mentions: {str(e)}")
 
-        # Pre-load sources for this batch
-        source_ids = list(set(m.source_id for m in mentions if m.source_id))
-        sources_map = {}
-        if source_ids:
-            try:
-                source_rows = db.execute(
-                    select(Source).where(Source.id.in_(source_ids))
-                ).scalars().all()
-                sources_map = {s.id: s for s in source_rows}
-            except Exception:
-                pass
-
-        # Pre-load visit tracking for this user
-        mention_ids = [m.id for m in mentions]
-        visited_map = {}
-        if mention_ids:
-            try:
-                from app.models.mention import MentionVisit
-                visits = db.execute(
-                    select(MentionVisit.mention_id)
-                    .where(
-                        MentionVisit.user_id == current_user.id,
-                        MentionVisit.mention_id.in_(mention_ids)
-                    )
-                ).scalars().all()
-                for vid in visits:
-                    visited_map[vid] = True
-            except Exception as e:
-                logger.error(f"Error querying visit status: {e}")
+        has_next_cursor = len(mentions) > page_size
+        mentions = mentions[:page_size]
+        try:
+            sources_map, visited_ids, analyses_map = _batch_load_mention_relations(
+                db, mentions, current_user.id
+            )
+        except Exception as exc:
+            logger.error(f"Error batch-loading mention relations: {exc}")
+            sources_map, visited_ids, analyses_map = {}, set(), {}
 
         result_items = []
         for m in mentions:
-            try:
-                analysis = db.execute(
-                    select(AIAnalysis).where(AIAnalysis.mention_id == m.id)
-                ).scalar_one_or_none()
-            except Exception:
-                analysis = None
+            analysis = analyses_map.get(m.id)
 
             src = sources_map.get(m.source_id)
 
@@ -939,15 +1000,15 @@ def list_mentions(
                 "platform": m.platform,
                 "domain": display_domain,
                 "title": m.title or m.domain or m.url or "Không có tiêu đề",
-                "content": m.content,
+                "content": m.content if expand else None,
                 "snippet": m.snippet or "Không có đoạn trích",
                 "url": visit_url,
                 "canonical_url": visit_url,
-                "original_url": m.original_url,
+                "original_url": m.original_url if expand else None,
                 "visit_url_invalid_reason": visit_url_invalid_reason,
                 "source_integrity_level": metadata.get("source_integrity_level", "unavailable"),
                 "verification_status": m.verification_status,
-                "verification_error": m.verification_error,
+                "verification_error": m.verification_error if expand else None,
                 "ai_provider": analysis.ai_provider if analysis else None,
                 "sentiment": m.sentiment or (analysis.sentiment.value if analysis and hasattr(analysis.sentiment, 'value') else (analysis.sentiment if analysis else "neutral")),
                 "sentiment_confidence": m.sentiment_confidence,
@@ -960,7 +1021,7 @@ def list_mentions(
                 "collected_at": m.collected_at.isoformat() if m.collected_at else None,
                 "is_reviewed": m.is_reviewed,
                 "matched_keywords": m.matched_keywords or [],
-                "metadata": metadata,
+                "metadata": metadata if expand else None,
                 "ai_analysis": {
                     "sentiment": analysis.sentiment.value if analysis and hasattr(analysis.sentiment, 'value') else (analysis.sentiment if analysis else None),
                     "risk_score": analysis.risk_score if analysis else None,
@@ -971,7 +1032,7 @@ def list_mentions(
                 } if analysis else None,
                 "visit_count": m.visit_count or 0,
                 "last_visited_at": m.last_visited_at.isoformat() if m.last_visited_at else None,
-                "is_visited": visited_map.get(m.id, False),
+                "is_visited": m.id in visited_ids,
                 "matched_in": matched_in,
                 "match_strength": match_strength
             })
@@ -982,14 +1043,21 @@ def list_mentions(
             
         total_pages = ceil(total / page_size) if total > 0 else 1
 
+        next_cursor = None
+        if has_next_cursor and mentions and sort_by in ("newest", "oldest"):
+            last = mentions[-1]
+            if last.collected_at:
+                next_cursor = _encode_mention_cursor(last.collected_at, last.id)
+
         response_data = {
             "items": result_items,
             "total": total,
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
-            "has_next": page < total_pages,
-            "has_prev": page > 1
+            "has_next": has_next_cursor if cursor else page < total_pages,
+            "has_prev": bool(cursor) or page > 1,
+            "next_cursor": next_cursor,
         }
 
         if cache_key:
@@ -1868,4 +1936,4 @@ def mute_author(
         m.is_muted = True
     db.commit()
     return {"status": "success", "muted_mentions": len(mentions), "author": req.author}
-
+
