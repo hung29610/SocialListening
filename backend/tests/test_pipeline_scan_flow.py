@@ -436,17 +436,14 @@ def test_legacy_async_tasks_do_not_reuse_connections_across_event_loops():
 def test_render_worker_consumes_every_registered_queue():
     from pathlib import Path
 
-    import yaml
-
-    blueprint = yaml.safe_load(
-        (Path(__file__).parents[1] / "render.yaml").read_text(encoding="utf-8")
-    )
-    worker = next(
-        service
-        for service in blueprint["services"]
-        if service["name"] == "social-listening-pipeline-worker"
-    )
-    queues = worker["startCommand"].split("--queues=", 1)[1].split()[0].split(",")
+    blueprint = (
+        Path(__file__).parents[1] / "render.yaml"
+    ).read_text(encoding="utf-8")
+    worker_section = blueprint.split(
+        "name: social-listening-pipeline-worker",
+        1,
+    )[1].split("name: social-listening-pipeline-beat", 1)[0]
+    queues = worker_section.split("--queues=", 1)[1].split()[0].split(",")
     assert set(queues) >= {
         "analysis",
         "crawl",
