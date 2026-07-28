@@ -72,19 +72,34 @@ $env:TEST_REDIS_URL = '<dedicated Redis test database URL>'
 D:\desktop_file\Project\SocialListening\.audit-venv311\Scripts\python.exe -m pytest tests/test_pipeline_pg_redis_integration.py -q
 ```
 
-The integration test starts a real Celery worker against Redis, delivers the
-pipeline task, stops it, starts a second worker, redelivers the same job, and
-proves exactly one analysis, alert, and report. It also verifies `acks_late` and
-`reject_on_worker_lost`. A forced process kill is not portable in the in-process
-pytest worker; actual worker-loss recovery requires staging termination evidence.
+The test module constructs its own SQLAlchemy engine and session factory from
+`TEST_DATABASE_URL`; it never reuses the application's import-time engine.
+`TEST_REDIS_URL` is explicitly installed as both Celery broker and result
+backend.
+
+The first Redis gate starts a real Celery worker, delivers the real pipeline
+task, stops it, starts a second worker, redelivers the same job, and proves
+exactly one analysis, alert, and report. The second Redis gate launches a Celery
+worker subprocess, waits until an `acks_late` probe is unacknowledged in Redis,
+kills the worker process, and proves a second worker receives and completes the
+restored message after the visibility timeout.
+
+Local evidence on 2026-07-28:
+
+- PostgreSQL 17.9 accepted passwordless localhost test-administrator access.
+- A dedicated `issue220_pipeline_test_20260728` database was created, the
+  isolated-engine test passed, and that exact disposable database was dropped.
+- Redis/Valkey, Docker, Podman, WSL distributions, and Redis listeners were not
+  available, so both real Redis gates remain externally blocked.
 
 ## Required staging evidence after human deployment
 
 1. Use a dedicated non-production project/keyword and record its crawl job ID.
 2. Verify Render worker and beat both connect to Redis and consume `analysis`.
 3. Record one row and timestamps for scan, mention, analysis, alert, and report.
-4. Restart the worker after enqueue; verify the lease expires/requeues and all
-   downstream row counts remain exactly one.
+4. Repeat the automated process-kill/redelivery gate against staging Redis,
+   then restart the deployed worker after enqueue; verify lease expiry/requeue
+   and exactly-one downstream row counts.
 5. Inject provider errors through six attempts; verify terminal `failed`,
    `dead_lettered_at`, and no further reconciliation enqueue.
 6. Confirm another organization cannot query the mention, alert, or report.
