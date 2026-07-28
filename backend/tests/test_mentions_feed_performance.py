@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api import mentions as mentions_module
+from app.api.mentions import _mention_cache_key
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.main import app
@@ -62,6 +63,9 @@ def mention_feed(monkeypatch):
                     project_id=organization_id,
                     keyword_id=organization_id,
                     source_id=organization_id,
+                    source_type="news",
+                    domain=f"example{organization_id}.test",
+                    author="alpha" if position % 2 == 0 else "beta",
                     title=f"tenant-{organization_id} benchmark mention {position}",
                     snippet=f"Compact list snippet {position}",
                     content="x" * 2048,
@@ -69,7 +73,9 @@ def mention_feed(monkeypatch):
                     url=f"https://example{organization_id}.test/{position}",
                     canonical_url=f"https://example{organization_id}.test/{position}",
                     sentiment="negative",
+                    influence_score=position,
                     verification_status="verified",
+                    is_reviewed=position % 2 == 0,
                     is_muted=False,
                     is_deleted=False,
                     collected_at=collected_base - timedelta(seconds=position),
@@ -157,6 +163,41 @@ def test_cache_is_scoped_by_organization_and_user(mention_feed):
     assert len(mentions_module._MENTIONS_SEARCH_CACHE) == 2
 
 
+def test_cache_key_covers_every_list_filter():
+    user = SimpleNamespace(id=7, current_organization_id=9)
+    filters = {
+        "page": 1,
+        "page_size": 20,
+        "cursor": None,
+        "expand": False,
+        "source_id": 1,
+        "source_type": "news",
+        "source_types": ["news"],
+        "sentiment": "negative",
+        "sentiments": ["negative"],
+        "min_risk_score": 50,
+        "search_query": "needle",
+        "q": "needle",
+        "author": "alpha",
+        "domain": "example.test",
+        "date_from": "2026-07-01T00:00:00Z",
+        "date_to": "2026-07-31T00:00:00Z",
+        "job_id": None,
+        "keyword_id": 3,
+        "keyword": "brand",
+        "project_id": 4,
+        "is_muted": False,
+        "is_reviewed": True,
+        "min_influence_score": 10,
+        "sort_by": "newest",
+    }
+    baseline = _mention_cache_key(user, **filters)
+    for name, value in filters.items():
+        changed = dict(filters)
+        changed[name] = f"changed-{name}" if not isinstance(value, bool) else not value
+        assert _mention_cache_key(user, **changed) != baseline, name
+
+
 def test_offset_pages_are_rejected_and_cursor_advances(mention_feed):
     client, _engine, _ = mention_feed
 
@@ -170,6 +211,48 @@ def test_offset_pages_are_rejected_and_cursor_advances(mention_feed):
 
     assert second.status_code == 200
     assert first.json()["items"][-1]["id"] != second.json()["items"][0]["id"]
+
+
+@pytest.mark.parametrize("sort_by", ["risk_high", "risk_low", "influence_high"])
+def test_unsupported_sort_pagination_is_explicit_and_single_page(
+    mention_feed, sort_by
+):
+    client, _engine, _ = mention_feed
+    first = client.get("/api/mentions", params={"page_size": 10, "sort_by": sort_by})
+    assert first.status_code == 200
+    assert first.json()["next_cursor"] is None
+    assert first.json()["has_next"] is False
+    assert first.json()["pagination_mode"] == "single_page_unsupported_sort"
+
+    rejected = client.get(
+        "/api/mentions",
+        params={"page_size": 10, "sort_by": sort_by, "cursor": "invalid"},
+    )
+    assert rejected.status_code == 400
+    assert "single-page only" in rejected.json()["detail"]
+
+
+def test_engagement_and_search_cursor_pages_are_stable(mention_feed):
+    client, _engine, _ = mention_feed
+    first = client.get(
+        "/api/mentions",
+        params={"page_size": 10, "sort_by": "engagement_high", "q": "benchmark"},
+    )
+    cursor = first.json()["next_cursor"]
+    second = client.get(
+        "/api/mentions",
+        params={
+            "page_size": 10,
+            "sort_by": "engagement_high",
+            "q": "benchmark",
+            "cursor": cursor,
+        },
+    )
+    first_ids = [item["id"] for item in first.json()["items"]]
+    second_ids = [item["id"] for item in second.json()["items"]]
+    assert cursor
+    assert not set(first_ids).intersection(second_ids)
+    assert min(second_ids) > max(first_ids)
 
 
 def test_slim_payload_is_opt_in_without_breaking_expanded_clients(mention_feed):
@@ -200,3 +283,34 @@ def test_summary_aggregations_are_bounded_to_three_selects(mention_feed):
     assert response.status_code == 200
     assert response.json()["total"] == 100
     assert len(statements) <= 3, statements
+
+
+def test_chart_aggregation_is_one_select_and_preserves_results(mention_feed):
+    client, engine, _ = mention_feed
+    statements = []
+
+    def record_statement(_conn, _cursor, statement, _parameters, _context, _many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_statement)
+    try:
+        response = client.get("/api/mentions/charts?granularity=daily")
+    finally:
+        event.remove(engine, "before_cursor_execute", record_statement)
+
+    assert response.status_code == 200
+    assert len(statements) == 1, statements
+    assert response.json() == {
+        "items": [
+            {
+                "date": "2026-07-28",
+                "total_mentions": 100,
+                "reach": 49500,
+                "sentiment_positive": 0,
+                "sentiment_neutral": 0,
+                "sentiment_negative": 100,
+            }
+        ],
+        "granularity": "daily",
+    }

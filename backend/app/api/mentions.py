@@ -49,12 +49,19 @@ import base64
 _MENTIONS_SEARCH_CACHE = {}
 
 router = APIRouter()
+_CURSOR_SORTS = {"newest", "oldest", "engagement_high"}
 
 
 def _mention_cache_scope(current_user: User) -> str:
     organization_id = getattr(current_user, "current_organization_id", None)
     user_id = getattr(current_user, "id", None)
     return f"org:{organization_id or 'none'}:user:{user_id or 'none'}"
+
+
+def _mention_cache_key(current_user: User, **filters) -> str:
+    payload = {"scope": _mention_cache_scope(current_user), **filters}
+    serialized = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+    return f"mentions_search:{hashlib.sha256(serialized.encode()).hexdigest()}"
 
 
 def _encode_mention_cursor(collected_at: datetime, mention_id: int) -> str:
@@ -74,10 +81,13 @@ def _decode_mention_cursor(cursor: str) -> tuple[datetime, int]:
 def _apply_mention_cursor(query, cursor: Optional[str], sort_by: str):
     if not cursor:
         return query
-    if sort_by not in ("newest", "oldest"):
+    if sort_by not in _CURSOR_SORTS:
         raise HTTPException(
             status_code=400,
-            detail="Cursor pagination supports sort_by=newest or sort_by=oldest",
+            detail=(
+                "Cursor pagination supports sort_by=newest, oldest, or "
+                "engagement_high; risk and influence sorts are single-page only"
+            ),
         )
     collected_at, mention_id = _decode_mention_cursor(cursor)
     if sort_by == "oldest":
@@ -608,14 +618,33 @@ def list_mentions(
         if q and not job_id and not refresh:
             try:
                 # Create a deterministic key based on search parameters
-                params_str = (
-                    f"scope:{_mention_cache_scope(current_user)}"
-                    f"_proj:{project_id}_kw:{keyword_id}_q:{q}_src:{source_type}_{source_types}"
-                    f"_sent:{sentiment}_{sentiments}_d:{date_from}_{date_to}_p:{page}"
-                    f"_ps:{page_size}_cursor:{cursor}_expand:{expand}_sort:{sort_by}"
-                    f"_risk:{min_risk_score}"
+                cache_key = _mention_cache_key(
+                    current_user,
+                    page=page,
+                    page_size=page_size,
+                    cursor=cursor,
+                    expand=expand,
+                    source_id=source_id,
+                    source_type=source_type,
+                    source_types=source_types,
+                    sentiment=sentiment,
+                    sentiments=sentiments,
+                    min_risk_score=min_risk_score,
+                    search_query=search_query,
+                    q=q,
+                    author=author,
+                    domain=domain,
+                    date_from=date_from,
+                    date_to=date_to,
+                    job_id=job_id,
+                    keyword_id=keyword_id,
+                    keyword=keyword,
+                    project_id=project_id,
+                    is_muted=is_muted,
+                    is_reviewed=is_reviewed,
+                    min_influence_score=min_influence_score,
+                    sort_by=sort_by,
                 )
-                cache_key = f"mentions_search:{hashlib.md5(params_str.encode()).hexdigest()}"
 
                 # Check redis first
                 try:
@@ -913,25 +942,10 @@ def list_mentions(
                 total = 0
 
         from sqlalchemy import nullslast, case
-        relevance_expr = None
-        if q and not job_id:
-            search_term = f"%{q}%"
-            # Build relevance score based on match location
-            exact_title = case((Mention.title.ilike(f"{q}"), 100), else_=0)
-            word_title = case((Mention.title.ilike(f"% {q} %"), 85), else_=0)
-            sub_title = case((Mention.title.ilike(search_term), 60), else_=0)
-            word_snippet = case((Mention.snippet.ilike(f"% {q} %"), 35), else_=0)
-            sub_snippet = case((Mention.snippet.ilike(search_term), 15), else_=0)
-            word_content = case((Mention.content.ilike(f"% {q} %"), 40), else_=0)
-            sub_content = case((Mention.content.ilike(search_term), 20), else_=0)
-
-            relevance_expr = exact_title + word_title + sub_title + word_snippet + sub_snippet + word_content + sub_content
-
         # Sorting
-        if q and not job_id and relevance_expr is not None:
-            # Always prioritize relevance when searching by query string
-            query = query.order_by(relevance_expr.desc(), nullslast(Mention.collected_at.desc()), Mention.id.desc())
-        elif sort_by == "oldest":
+        # Search uses the same stable tuple ordering as ordinary cursor pages.
+        # Relevance is intentionally a filter concern, not an unstable cursor key.
+        if sort_by == "oldest":
             query = query.order_by(Mention.collected_at.asc(), Mention.id.asc())
         elif sort_by == "risk_high":
             query = query.order_by(nullslast(AIAnalysis.risk_score.desc()), Mention.id.desc())
@@ -945,7 +959,7 @@ def list_mentions(
             query = query.order_by(nullslast(Mention.collected_at.desc()), Mention.id.desc())
 
         query = _apply_mention_cursor(query, cursor, sort_by)
-        query = query.limit(page_size + 1)
+        query = query.limit(page_size + 1 if sort_by in _CURSOR_SORTS else page_size)
 
         try:
             mentions = db.execute(query).unique().scalars().all()
@@ -954,7 +968,8 @@ def list_mentions(
             logger.error(f"Error querying mentions page: {e}")
             raise HTTPException(status_code=500, detail=f"Lỗi khi truy vấn dữ liệu mentions: {str(e)}")
 
-        has_next_cursor = len(mentions) > page_size
+        cursor_supported = sort_by in _CURSOR_SORTS
+        has_next_cursor = cursor_supported and len(mentions) > page_size
         mentions = mentions[:page_size]
         try:
             sources_map, visited_ids, analyses_map = _batch_load_mention_relations(
@@ -1057,7 +1072,7 @@ def list_mentions(
         total_pages = ceil(total / page_size) if total > 0 else 1
 
         next_cursor = None
-        if has_next_cursor and mentions and sort_by in ("newest", "oldest"):
+        if has_next_cursor and mentions and cursor_supported:
             last = mentions[-1]
             if last.collected_at:
                 next_cursor = _encode_mention_cursor(last.collected_at, last.id)
@@ -1068,9 +1083,12 @@ def list_mentions(
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
-            "has_next": has_next_cursor if cursor else page < total_pages,
+            "has_next": has_next_cursor,
             "has_prev": bool(cursor) or page > 1,
             "next_cursor": next_cursor,
+            "pagination_mode": (
+                "cursor" if cursor_supported else "single_page_unsupported_sort"
+            ),
         }
 
         if cache_key:
@@ -1219,82 +1237,84 @@ def get_mention_charts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    from sqlalchemy import or_
-    from app.models.source import Source
-
-    query = apply_tenant_filter(select(Mention), Mention, current_user)
-    query = query.where(Mention.verification_status != 'synthetic')
-    query = query.where(Mention.is_deleted == False)
-
-    global_valid_url_cond = or_(
-        Mention.url.is_(None),
-        and_(
-            Mention.url.notilike('%news.google.com/rss/articles/%'),
-            Mention.url.notilike('%googleusercontent.com%'),
-            Mention.url.notilike('%corp.google.com%'),
-            Mention.url.notilike('%uberproxy%'),
-            Mention.url.notilike('%/rss%'),
-            Mention.url.notilike('%.xml')
-        )
-    )
-    query = query.where(global_valid_url_cond)
-
-    if project_id:
-        query = query.where(Mention.project_id == project_id)
-    if is_muted is not None:
-        query = query.where(Mention.is_muted == is_muted)
+    dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
+        bucket_format = {
+            "daily": "YYYY-MM-DD",
+            "weekly": "IYYY-\"W\"IW",
+            "monthly": "YYYY-MM",
+        }[granularity]
+        bucket = func.to_char(Mention.collected_at, bucket_format)
     else:
-        query = query.where(Mention.is_muted == False)
-    if is_reviewed is not None:
-        query = query.where(Mention.is_reviewed == is_reviewed)
-    if min_influence_score is not None:
-        query = query.where(Mention.influence_score >= min_influence_score)
+        bucket_format = {
+            "daily": "%Y-%m-%d",
+            "weekly": "%Y-W%W",
+            "monthly": "%Y-%m",
+        }[granularity]
+        bucket = func.strftime(bucket_format, Mention.collected_at)
 
-    if sentiment:
-        sentiments_list = [s.strip() for s in sentiment.split(",")]
-        query = query.where(Mention.sentiment.in_(sentiments_list))
-    elif sentiments:
-        query = query.where(Mention.sentiment.in_(sentiments))
-
-    if date_from:
-        query = query.where(Mention.collected_at >= date_from)
-    if date_to:
-        query = query.where(Mention.collected_at <= date_to)
-
-    if q:
-        search_term = f"%{q}%"
-        query = query.where(or_(
-            Mention.title.ilike(search_term),
-            Mention.snippet.ilike(search_term),
-            Mention.content.ilike(search_term)
-        ))
-
-    mentions = db.execute(query).scalars().all()
-
-    groups = {}
-    for m in mentions:
-        d = m.collected_at
-        if not d: continue
-
-        if granularity == "daily":
-            key = d.strftime("%Y-%m-%d")
-        elif granularity == "weekly":
-            key = d.strftime("%Y-W%W")
-        else:
-            key = d.strftime("%Y-%m")
-
-        if key not in groups:
-            groups[key] = {"date": key, "total_mentions": 0, "reach": 0, "sentiment_positive": 0, "sentiment_neutral": 0, "sentiment_negative": 0}
-
-        groups[key]["total_mentions"] += 1
-        groups[key]["reach"] += int(m.reach_estimate or (m.influence_score or 1) * 10)
-        s = (m.sentiment or "").lower()
-        if s == "positive": groups[key]["sentiment_positive"] += 1
-        elif s == "negative": groups[key]["sentiment_negative"] += 1
-        elif s == "neutral": groups[key]["sentiment_neutral"] += 1
-
-    sorted_groups = [groups[k] for k in sorted(groups.keys())]
-    return {"items": sorted_groups, "granularity": granularity}
+    sentiment_value = func.lower(cast(Mention.sentiment, String))
+    reach_value = func.coalesce(
+        Mention.reach_estimate,
+        func.coalesce(Mention.influence_score, 1) * 10,
+    )
+    query = select(
+        bucket.label("date"),
+        func.count(Mention.id).label("total_mentions"),
+        func.coalesce(func.sum(reach_value), 0).label("reach"),
+        func.count(Mention.id).filter(sentiment_value == "positive").label(
+            "sentiment_positive"
+        ),
+        func.count(Mention.id).filter(sentiment_value == "neutral").label(
+            "sentiment_neutral"
+        ),
+        func.count(Mention.id).filter(sentiment_value == "negative").label(
+            "sentiment_negative"
+        ),
+    )
+    query = apply_tenant_filter(query, Mention, current_user)
+    query = query.where(
+        Mention.verification_status != "synthetic",
+        Mention.is_deleted == False,
+        Mention.collected_at.isnot(None),
+    )
+    query = apply_mention_filters(
+        query=query,
+        source_type=source_type,
+        source_types=source_types,
+        sentiment=sentiment,
+        sentiments=sentiments,
+        min_risk_score=min_risk_score,
+        search_query=search_query,
+        q=q,
+        author=author,
+        domain=domain,
+        date_from=date_from,
+        date_to=date_to,
+        job_id=job_id,
+        keyword=keyword,
+        project_id=project_id,
+        is_muted=is_muted,
+        is_reviewed=is_reviewed,
+        min_influence_score=min_influence_score,
+    )
+    rows = db.execute(
+        query.group_by(bucket).order_by(bucket.asc())
+    ).mappings().all()
+    return {
+        "items": [
+            {
+                "date": row["date"],
+                "total_mentions": row["total_mentions"],
+                "reach": int(row["reach"] or 0),
+                "sentiment_positive": row["sentiment_positive"],
+                "sentiment_neutral": row["sentiment_neutral"],
+                "sentiment_negative": row["sentiment_negative"],
+            }
+            for row in rows
+        ],
+        "granularity": granularity,
+    }
 
 @router.post("/{mention_id}/visit")
 def record_mention_visit(
@@ -1949,4 +1969,3 @@ def mute_author(
         m.is_muted = True
     db.commit()
     return {"status": "success", "muted_mentions": len(mentions), "author": req.author}
-

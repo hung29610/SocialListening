@@ -9,14 +9,16 @@ runs used the same Python 3.11 environment, in-memory SQLAlchemy database,
 | Commit | SELECTs | p95 | median | response bytes |
 |---|---:|---:|---:|---:|
 | `bb13a9d` before | 104 | 238.77 ms | 154.28 ms | 367,950 |
-| issue #221 after | 5 | 129.83 ms | 97.22 ms | 100,869 |
+| issue #221 after (final rerun) | 5 | 68.93 ms | 59.29 ms | 100,896 |
 
-The result is 99 queries removed, approximately 45.6% lower p95, and 72.6%
+The result is 99 queries removed, approximately 71.1% lower p95, and 72.6%
 fewer response bytes. The endpoint-level SQLAlchemy event regression test
 creates 100 mentions and fails above five SELECT statements.
 
 Summary aggregation is independently bounded to three SELECT statements:
 totals/sentiments, source grouping, and daily grouping.
+Chart aggregation is one grouped SELECT for daily, weekly, and monthly
+granularity; its endpoint regression verifies statement count and result values.
 
 ## Pagination and payload
 
@@ -26,6 +28,20 @@ The endpoint accepts an opaque `cursor` based on the stable
 previous/next cursor navigation and explicitly requests its existing rich card
 payload. Other consumers receive the slim representation by default: full `content`, `metadata`,
 `original_url`, and `verification_error` require `expand=true`.
+
+Cursor semantics by sort:
+
+- `newest`, `oldest`, and `engagement_high` paginate with the stable
+  `(collected_at,id)` tuple;
+- `risk_high`, `risk_low`, and `influence_high` are explicitly single-page,
+  return no `next_cursor`, and reject any supplied cursor with HTTP 400;
+- searched lists use the same date/id ordering instead of an incomplete
+  relevance cursor, so pages cannot overlap or skip due to mismatched keys.
+
+The frontend only enables Next when `next_cursor` exists, making unsupported
+single-page sorts safe. Search cache keys are SHA-256 hashes over tenant,
+user, pagination, expansion, and every list filter. Regression coverage mutates
+each filter independently and proves the key changes.
 
 Legacy null `collected_at` rows are backfilled during migration, the column is
 made `NOT NULL`, and the model has the same invariant. List/count queries also
@@ -65,6 +81,29 @@ Representative `EXPLAIN (ANALYZE, BUFFERS)` results:
 | exact keyword + cursor date | backward index-only scan on `idx_mentions_keyword_collected_id` | 0.087 ms |
 
 The disposable database was dropped after verification.
+
+### Interrupted concurrent index recovery
+
+The migration reads `pg_index.indisvalid` for each expected index. A missing
+index is created concurrently, a valid index is retained, and an invalid
+leftover is dropped concurrently before recreation. This was tested on
+PostgreSQL by intentionally leaving an invalid
+`idx_mentions_org_collected_id` after a failed concurrent unique build. Upgrade
+recovered it as a valid non-unique three-column index, backfilled the null
+timestamp, and downgrade completed successfully.
+
+Operational check before/after migration:
+
+```sql
+SELECT c.relname, i.indisvalid, pg_get_indexdef(i.indexrelid)
+FROM pg_index i
+JOIN pg_class c ON c.oid = i.indexrelid
+WHERE c.relname IN (
+  'idx_mentions_org_collected_id',
+  'idx_mentions_project_collected_id',
+  'idx_mentions_keyword_collected_id'
+);
+```
 
 ## Human review gate
 
