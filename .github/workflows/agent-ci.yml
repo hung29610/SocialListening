@@ -91,7 +91,28 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://issue220:issue220-isolated-ci@localhost:5432/issue220_pipeline
           TEST_REDIS_URL: redis://localhost:6379/15
-        run: python -m pytest tests/test_pipeline_pg_redis_integration.py -q -rs
+        run: |
+          python -m pytest tests/test_pipeline_pg_redis_integration.py \
+            -q -rs --junitxml="${RUNNER_TEMP}/pipeline-redelivery.xml"
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path("${{ runner.temp }}/pipeline-redelivery.xml")
+          root = ET.parse(report).getroot()
+          suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+          totals = {
+              key: sum(int(suite.attrib.get(key, 0)) for suite in suites)
+              for key in ("tests", "failures", "errors", "skipped")
+          }
+          assert totals == {
+              "tests": 3,
+              "failures": 0,
+              "errors": 0,
+              "skipped": 0,
+          }, f"pipeline integration gate did not run exactly three passing tests: {totals}"
+          print(f"pipeline integration gate: {totals}")
+          PY
 
   frontend:
     name: Frontend checks (Node 22)

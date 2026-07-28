@@ -10,7 +10,7 @@ celery_app = Celery(
     "social_listening",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.scan_pipeline"]
+    include=["app.workers.tasks", "app.tasks.scan_pipeline"]
 )
 
 # Configure Celery
@@ -32,12 +32,32 @@ celery_app.conf.update(
 
 # Task routes
 celery_app.conf.task_routes = {
+    "app.workers.tasks.crawl_source": {"queue": "crawl"},
+    "app.workers.tasks.analyze_mention": {"queue": "analysis"},
+    "app.workers.tasks.send_alert": {"queue": "notifications"},
+    "app.workers.tasks.generate_report": {"queue": "reports"},
     "app.tasks.scan_pipeline.process_scan_pipeline": {"queue": "analysis"},
     "app.tasks.scan_pipeline.reconcile_scan_pipelines": {"queue": "analysis"},
 }
 
 # Celery Beat Schedule - Scheduled tasks
 celery_app.conf.beat_schedule = {
+    "check-overdue-incidents": {
+        "task": "app.workers.tasks.check_overdue_incidents",
+        "schedule": crontab(minute=0),
+    },
+    "run-scheduled-crawls": {
+        "task": "app.workers.tasks.process_scheduled_crawls",
+        "schedule": crontab(minute="*/15"),
+    },
+    "daily-summary-report": {
+        "task": "app.workers.tasks.generate_daily_summary",
+        "schedule": crontab(hour=8, minute=0),
+    },
+    "weekly-report": {
+        "task": "app.workers.tasks.generate_weekly_report",
+        "schedule": crontab(hour=9, minute=0, day_of_week=1),
+    },
     "reconcile-scan-pipelines": {
         "task": "app.tasks.scan_pipeline.reconcile_scan_pipelines",
         "schedule": crontab(minute="*/5"),

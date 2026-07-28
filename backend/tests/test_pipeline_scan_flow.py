@@ -13,8 +13,8 @@ from app.models.mention import AIAnalysis, Mention
 from app.models.report import Report
 
 
-def test_pipeline_tasks_register_without_legacy_async_task_import():
-    """The worker can start without importing the incompatible legacy task module."""
+def test_pipeline_and_existing_tasks_register_together():
+    """The worker loads both existing background tasks and the new pipeline."""
     from app.workers.celery_app import celery_app
 
     celery_app.loader.import_default_modules()
@@ -348,3 +348,50 @@ def test_reconciliation_only_enqueues_stale_bounded_work(monkeypatch, tmp_path):
         exhausted = db.get(CrawlJob, exhausted_id).meta_data["pipeline"]
         assert exhausted["status"] == "failed"
         assert exhausted["dead_lettered_at"]
+
+
+def test_celery_registration_preserves_existing_and_pipeline_tasks():
+    from app.workers.celery_app import celery_app
+
+    assert set(celery_app.conf.include) >= {
+        "app.workers.tasks",
+        "app.tasks.scan_pipeline",
+    }
+    assert "app.workers.tasks.crawl_source" in celery_app.conf.task_routes
+    assert "app.tasks.scan_pipeline.process_scan_pipeline" in celery_app.conf.task_routes
+    assert set(celery_app.conf.beat_schedule) >= {
+        "check-overdue-incidents",
+        "run-scheduled-crawls",
+        "daily-summary-report",
+        "weekly-report",
+        "reconcile-scan-pipelines",
+    }
+
+
+def test_scheduled_scan_owner_context_fails_closed_without_tenant():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from app.services.scheduler_service import _resolve_schedule_owner_context
+
+    db = Mock()
+    db.get.return_value = None
+    with pytest.raises(ValueError, match="active organization"):
+        _resolve_schedule_owner_context(db, SimpleNamespace(user_id=42))
+
+    with pytest.raises(ValueError, match="requires an owner"):
+        _resolve_schedule_owner_context(db, SimpleNamespace(user_id=None))
+
+
+def test_scheduled_scan_owner_context_returns_explicit_tenant():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from app.services.scheduler_service import _resolve_schedule_owner_context
+
+    db = Mock()
+    db.get.return_value = SimpleNamespace(id=42, current_organization_id=17)
+    assert _resolve_schedule_owner_context(
+        db,
+        SimpleNamespace(user_id=42),
+    ) == (42, 17)

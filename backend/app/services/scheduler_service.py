@@ -757,6 +757,18 @@ def get_worker_status(db: Session) -> dict:
 
 # --- PHASE 4: AUTOMATED SCAN SCHEDULES ---
 
+def _resolve_schedule_owner_context(db: Session, schedule) -> tuple[int, int]:
+    """Resolve a scheduled scan's tenant owner or fail closed."""
+    if schedule.user_id is None:
+        raise ValueError("Scheduled scan requires an owner")
+    from app.models.user import User
+
+    schedule_owner = db.get(User, schedule.user_id)
+    if schedule_owner is None or schedule_owner.current_organization_id is None:
+        raise ValueError("Scheduled scan owner requires an active organization")
+    return schedule_owner.id, schedule_owner.current_organization_id
+
+
 def execute_scan_schedule_job(schedule_id: int):
     """Execute a scan schedule job, logs to ScanLog and creates a CrawlJob."""
     db = get_db()
@@ -790,12 +802,7 @@ def execute_scan_schedule_job(schedule_id: int):
         if len(project_ids) != 1:
             raise ValueError("Scheduled scan must target exactly one project")
         project_id = project_ids.pop()
-        organization_id = None
-        if schedule.user_id is not None:
-            from app.models.user import User
-
-            schedule_owner = db.get(User, schedule.user_id)
-            organization_id = schedule_owner.current_organization_id if schedule_owner else None
+        owner_user_id, organization_id = _resolve_schedule_owner_context(db, schedule)
         keywords = db.execute(
             select(Keyword).where(
                 Keyword.group_id.in_([group.id for group in groups]),
@@ -811,7 +818,7 @@ def execute_scan_schedule_job(schedule_id: int):
         job = CrawlJob(
             scan_schedule_id=schedule.id,
             job_type='scheduled',
-            user_id=schedule.user_id,
+            user_id=owner_user_id,
             status=CrawlJobStatus.PENDING,
             source_ids=[], # Can be updated later
             keyword_group_ids=schedule.keyword_group_ids,
@@ -821,7 +828,7 @@ def execute_scan_schedule_job(schedule_id: int):
             meta_data={
                 "project_id": project_id,
                 "organization_id": organization_id,
-                "user_id": schedule.user_id,
+                "user_id": owner_user_id,
                 "keywords": keyword_texts,
                 "mode": "HYBRID",
                 "scheduled": True,
