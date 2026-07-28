@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 from typing import Optional
 
 from app.core.database import get_db
+from app.core.rate_limit import enforce_account_rate_limit
 from app.core.security import (
     verify_password, get_password_hash, create_access_token,
     get_current_active_user
@@ -52,8 +53,9 @@ class Token(BaseModel):
 
 
 @router.post("/register", response_model=UserResponse)
-def register(user_data: UserCreate, db = Depends(get_db)):
+def register(request: Request, user_data: UserCreate, db = Depends(get_db)):
     """Register a new user"""
+    enforce_account_rate_limit(request, "registration", user_data.email)
     # Check if user exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     
@@ -81,12 +83,14 @@ def register(user_data: UserCreate, db = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db = Depends(get_db)
 ):
     """Login and get access token"""
-    from fastapi import Request
     import uuid
+
+    enforce_account_rate_limit(request, "login", form_data.username)
     
     # Get user
     user = db.query(User).filter(User.email == form_data.username).first()
@@ -207,12 +211,12 @@ def get_my_notification_settings(
         select(UserNotificationSettings).where(UserNotificationSettings.user_id == current_user.id)
     ).scalar_one_or_none()
     
-    # Create default settings if not exists
     if not settings:
-        settings = UserNotificationSettings(user_id=current_user.id)
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
+        return NotificationSettingsResponse(
+            id=0,
+            user_id=current_user.id,
+            created_at=datetime.utcnow(),
+        )
     
     return NotificationSettingsResponse.from_orm(settings)
 
@@ -255,12 +259,12 @@ def get_my_preferences(
         select(UserPreferences).where(UserPreferences.user_id == current_user.id)
     ).scalar_one_or_none()
     
-    # Create default preferences if not exists
     if not prefs:
-        prefs = UserPreferences(user_id=current_user.id)
-        db.add(prefs)
-        db.commit()
-        db.refresh(prefs)
+        return UserPreferencesResponse(
+            id=0,
+            user_id=current_user.id,
+            created_at=datetime.utcnow(),
+        )
     
     return UserPreferencesResponse.from_orm(prefs)
 
