@@ -49,7 +49,14 @@ import base64
 _MENTIONS_SEARCH_CACHE = {}
 
 router = APIRouter()
-_CURSOR_SORTS = {"newest", "oldest", "engagement_high"}
+_CURSOR_SORTS = {
+    "newest",
+    "oldest",
+    "risk_high",
+    "risk_low",
+    "influence_high",
+    "engagement_high",
+}
 
 
 def _mention_cache_scope(current_user: User) -> str:
@@ -64,17 +71,64 @@ def _mention_cache_key(current_user: User, **filters) -> str:
     return f"mentions_search:{hashlib.sha256(serialized.encode()).hexdigest()}"
 
 
-def _encode_mention_cursor(collected_at: datetime, mention_id: int) -> str:
-    raw = f"{collected_at.isoformat()}|{mention_id}".encode()
+def _engagement_expression():
+    return (
+        func.coalesce(Mention.views_count, 0)
+        + func.coalesce(Mention.comments_count, 0)
+        + func.coalesce(Mention.likes_count, 0)
+        + func.coalesce(Mention.shares_count, 0)
+    )
+
+
+def _mention_sort_value(mention: Mention, analysis: Optional[AIAnalysis], sort_by: str):
+    if sort_by in ("risk_high", "risk_low"):
+        return analysis.risk_score if analysis else None
+    if sort_by == "influence_high":
+        return mention.influence_score
+    if sort_by == "engagement_high":
+        return sum(
+            value or 0
+            for value in (
+                mention.views_count,
+                mention.comments_count,
+                mention.likes_count,
+                mention.shares_count,
+            )
+        )
+    return None
+
+
+def _encode_mention_cursor(
+    collected_at: datetime,
+    mention_id: int,
+    sort_by: str = "newest",
+    value=None,
+) -> str:
+    raw = json.dumps(
+        {
+            "version": 2,
+            "sort": sort_by,
+            "value": value,
+            "collected_at": collected_at.isoformat(),
+            "id": mention_id,
+        },
+        separators=(",", ":"),
+    ).encode()
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
-def _decode_mention_cursor(cursor: str) -> tuple[datetime, int]:
+def _decode_mention_cursor(cursor: str, sort_by: str):
     try:
         raw = base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)).decode()
-        timestamp, mention_id = raw.rsplit("|", 1)
-        return datetime.fromisoformat(timestamp), int(mention_id)
-    except (ValueError, UnicodeDecodeError) as exc:
+        payload = json.loads(raw)
+        if payload.get("version") != 2 or payload.get("sort") != sort_by:
+            raise ValueError("cursor sort mismatch")
+        return (
+            payload.get("value"),
+            datetime.fromisoformat(payload["collected_at"]),
+            int(payload["id"]),
+        )
+    except (KeyError, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=400, detail="Invalid mention cursor") from exc
 
 
@@ -82,24 +136,35 @@ def _apply_mention_cursor(query, cursor: Optional[str], sort_by: str):
     if not cursor:
         return query
     if sort_by not in _CURSOR_SORTS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Cursor pagination supports sort_by=newest, oldest, or "
-                "engagement_high; risk and influence sorts are single-page only"
-            ),
-        )
-    collected_at, mention_id = _decode_mention_cursor(cursor)
+        raise HTTPException(status_code=400, detail="Unsupported mention cursor sort")
+    value, collected_at, mention_id = _decode_mention_cursor(cursor, sort_by)
+    descending_tie = or_(
+        Mention.collected_at < collected_at,
+        and_(Mention.collected_at == collected_at, Mention.id < mention_id),
+    )
     if sort_by == "oldest":
         boundary = or_(
             Mention.collected_at > collected_at,
             and_(Mention.collected_at == collected_at, Mention.id > mention_id),
         )
+    elif sort_by == "newest":
+        boundary = descending_tie
     else:
-        boundary = or_(
-            Mention.collected_at < collected_at,
-            and_(Mention.collected_at == collected_at, Mention.id < mention_id),
-        )
+        primary = {
+            "risk_high": AIAnalysis.risk_score,
+            "risk_low": AIAnalysis.risk_score,
+            "influence_high": Mention.influence_score,
+            "engagement_high": _engagement_expression(),
+        }[sort_by]
+        if value is None:
+            boundary = and_(primary.is_(None), descending_tie)
+        else:
+            primary_after = primary > value if sort_by == "risk_low" else primary < value
+            boundary = or_(
+                primary_after,
+                and_(primary == value, descending_tie),
+                primary.is_(None),
+            )
     return query.where(boundary)
 
 
@@ -948,18 +1013,34 @@ def list_mentions(
         if sort_by == "oldest":
             query = query.order_by(Mention.collected_at.asc(), Mention.id.asc())
         elif sort_by == "risk_high":
-            query = query.order_by(nullslast(AIAnalysis.risk_score.desc()), Mention.id.desc())
+            query = query.order_by(
+                nullslast(AIAnalysis.risk_score.desc()),
+                Mention.collected_at.desc(),
+                Mention.id.desc(),
+            )
         elif sort_by == "risk_low":
-            query = query.order_by(nullslast(AIAnalysis.risk_score.asc()), Mention.id.asc())
+            query = query.order_by(
+                nullslast(AIAnalysis.risk_score.asc()),
+                Mention.collected_at.desc(),
+                Mention.id.desc(),
+            )
         elif sort_by == "influence_high":
-            query = query.order_by(nullslast(Mention.influence_score.desc()), Mention.id.desc())
+            query = query.order_by(
+                nullslast(Mention.influence_score.desc()),
+                Mention.collected_at.desc(),
+                Mention.id.desc(),
+            )
         elif sort_by == "engagement_high":
-            query = query.order_by(nullslast(Mention.collected_at.desc()), Mention.id.desc())
+            query = query.order_by(
+                _engagement_expression().desc(),
+                Mention.collected_at.desc(),
+                Mention.id.desc(),
+            )
         else:
             query = query.order_by(nullslast(Mention.collected_at.desc()), Mention.id.desc())
 
         query = _apply_mention_cursor(query, cursor, sort_by)
-        query = query.limit(page_size + 1 if sort_by in _CURSOR_SORTS else page_size)
+        query = query.limit(page_size + 1)
 
         try:
             mentions = db.execute(query).unique().scalars().all()
@@ -969,7 +1050,7 @@ def list_mentions(
             raise HTTPException(status_code=500, detail=f"Lỗi khi truy vấn dữ liệu mentions: {str(e)}")
 
         cursor_supported = sort_by in _CURSOR_SORTS
-        has_next_cursor = cursor_supported and len(mentions) > page_size
+        has_next_cursor = len(mentions) > page_size
         mentions = mentions[:page_size]
         try:
             sources_map, visited_ids, analyses_map = _batch_load_mention_relations(
@@ -1075,7 +1156,14 @@ def list_mentions(
         if has_next_cursor and mentions and cursor_supported:
             last = mentions[-1]
             if last.collected_at:
-                next_cursor = _encode_mention_cursor(last.collected_at, last.id)
+                next_cursor = _encode_mention_cursor(
+                    last.collected_at,
+                    last.id,
+                    sort_by=sort_by,
+                    value=_mention_sort_value(
+                        last, analyses_map.get(last.id), sort_by
+                    ),
+                )
 
         response_data = {
             "items": result_items,
@@ -1086,9 +1174,7 @@ def list_mentions(
             "has_next": has_next_cursor,
             "has_prev": bool(cursor) or page > 1,
             "next_cursor": next_cursor,
-            "pagination_mode": (
-                "cursor" if cursor_supported else "single_page_unsupported_sort"
-            ),
+            "pagination_mode": "cursor",
         }
 
         if cache_key:
