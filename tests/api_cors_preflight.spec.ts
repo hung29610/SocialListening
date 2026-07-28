@@ -32,3 +32,20 @@ test('app API base accepts an authenticated-route CORS preflight', async ({
   expect(response.status()).toBe(200);
   expect(response.headers()['access-control-allow-origin']).toBe(appOrigin);
 });
+
+test('app API base accepts the frontend login preflight', async ({ request }) => {
+  expect(apiBaseUrl).toBeTruthy();
+
+  const response = await request.fetch(`${apiBaseUrl}/api/auth/login`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: appOrigin,
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers':
+        'cache-control,content-type,expires,pragma',
+    },
+  });
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()['access-control-allow-origin']).toBe(appOrigin);
+});
