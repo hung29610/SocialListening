@@ -82,6 +82,7 @@ class ReportExport(Base):
     __tablename__ = "report_exports"
     
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, index=True, nullable=True)
     report_type = Column(String(50), nullable=False)  # 'pdf' or 'excel'
     project_id = Column(Integer, index=True, nullable=True)
     requested_by = Column(Integer, nullable=False, index=True)

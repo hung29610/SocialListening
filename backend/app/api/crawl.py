@@ -11,6 +11,7 @@ import feedparser
 from pydantic import BaseModel
 
 from app.core.database import get_db, SessionLocal
+from app.core.ownership import TenantOwnershipError
 from app.core.tenant import apply_tenant_filter
 from app.core.security import get_current_active_user
 from app.core.security_operations import get_enabled_superuser
@@ -207,6 +208,8 @@ def manual_scan(
 
         mode = getattr(body, "mode", "HYBRID") or "HYBRID"
         project_id = body.project_id
+        from app.core.ownership import resolve_actor_scope
+        scope = resolve_actor_scope(db, current_user, project_id)
         query_key = (body.query or "").strip().lower() or "|".join(sorted(keyword_texts))
 
         import os
@@ -282,7 +285,9 @@ def manual_scan(
             job = CrawlJob(
                 job_type='manual',
                 status=CrawlJobStatus.PENDING,
+                organization_id=scope.organization_id,
                 user_id=current_user.id,
+                project_id=project_id,
                 total_sources=0,
                 processed_sources=0,
                 mentions_found=0,
@@ -332,7 +337,7 @@ def manual_scan(
             "keywords": keyword_texts
         }
 
-    except HTTPException:
+    except (HTTPException, TenantOwnershipError):
         raise
     except Exception as e:
         db.rollback()
@@ -1097,7 +1102,9 @@ def get_crawl_jobs(
     """Get crawl job history"""
     from math import ceil
 
-    query = select(CrawlJob)
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    query = select(CrawlJob).where(CrawlJob.organization_id == scope.organization_id)
 
     if status:
         query = query.where(CrawlJob.status == status)
@@ -1123,7 +1130,7 @@ def get_crawl_jobs(
                 "processed_sources": j.processed_sources or 0,
                 "mentions_found": j.mentions_found or 0,
                 "error_message": j.error_message,
-                "project_id": (j.meta_data or {}).get("project_id"),
+                "project_id": j.project_id,
                 "retry_count": j.retry_count or 0,
                 "created_at": j.created_at.isoformat() if j.created_at else None,
                 "started_at": j.started_at.isoformat() if j.started_at else None,
@@ -1146,7 +1153,12 @@ def get_crawl_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    job = db.execute(select(CrawlJob).where(CrawlJob.id == job_id)).scalar_one_or_none()
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    job = db.execute(select(CrawlJob).where(
+        CrawlJob.id == job_id,
+        CrawlJob.organization_id == scope.organization_id,
+    )).scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -1155,7 +1167,7 @@ def get_crawl_job(
     return {
         "job_id": job.id,
         "status": job.status.value if hasattr(job.status, 'value') else job.status,
-        "project_id": meta.get("project_id"),
+        "project_id": job.project_id,
         "keywords": meta.get("keywords", []),
         "error_code": meta.get("error_code"),
         "error_message": job.error_message or meta.get("error_message"),
@@ -1170,18 +1182,28 @@ def retry_crawl_job(
     current_user: User = Depends(get_current_active_user)
 ):
     """Retry a failed crawl job"""
+    from app.core.ownership import resolve_actor_scope, validate_explicit_scope
+    scope = resolve_actor_scope(db, current_user)
     job = db.execute(
-        select(CrawlJob).where(CrawlJob.id == job_id)
+        select(CrawlJob).where(
+            CrawlJob.id == job_id,
+            CrawlJob.organization_id == scope.organization_id,
+        )
     ).scalar_one_or_none()
 
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    validate_explicit_scope(db, job.organization_id, job.user_id, job.project_id)
 
     if job.status not in (CrawlJobStatus.FAILED, CrawlJobStatus.CANCELLED):
         raise HTTPException(status_code=400, detail="Chỉ có thể retry job đã thất bại hoặc bị hủy")
 
     # Create a new job based on the old one
     new_job = CrawlJob(
+        organization_id=job.organization_id,
+        user_id=job.user_id,
+        project_id=job.project_id,
         source_ids=job.source_ids,
         keyword_group_ids=job.keyword_group_ids,
         job_type='retry',
@@ -1244,6 +1266,7 @@ def test_rss_feed(
 @router.post("/debug/test-crawl")
 async def test_crawl(
     keyword: str,
+    project_id: int,
     platform: str = "web",
     limit: int = 5,
     db: Session = Depends(get_db),
@@ -1260,7 +1283,9 @@ async def test_crawl(
 
         logger.info(f"[DEBUG] Raw results from crawler: {len(raw)}")
 
-        success_count, error_count, errors, created = _persist_mentions(db, raw)
+        from app.core.ownership import resolve_actor_scope
+        scope = resolve_actor_scope(db, current_user, project_id)
+        success_count, error_count, errors, created = _persist_mentions(db, raw, scope)
 
         return {
             "raw_count": len(raw),
@@ -1295,7 +1320,15 @@ def create_scan_schedule(
     if not croniter.croniter.is_valid(schedule.cron_expression):
         raise HTTPException(status_code=400, detail="Cron expression không hợp lệ")
 
+    from app.core.ownership import resolve_actor_scope, validate_schedule_targets
+    schedule_scope = resolve_actor_scope(db, current_user)
+    validate_schedule_targets(
+        db, schedule_scope,
+        source_group_ids=schedule.source_group_ids,
+        keyword_group_ids=schedule.keyword_group_ids,
+    )
     db_schedule = ScanSchedule(
+        organization_id=schedule_scope.organization_id,
         user_id=current_user.id,
         name=schedule.name,
         description=schedule.description,
@@ -1328,7 +1361,9 @@ def list_scan_schedules(
 ):
     """Get list of automated scan schedules"""
     from math import ceil
-    query = select(ScanSchedule)
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    query = select(ScanSchedule).where(ScanSchedule.organization_id == scope.organization_id)
     
     total = db.execute(select(func.count()).select_from(query.subquery())).scalar() or 0
     offset = (page - 1) * page_size
@@ -1354,11 +1389,21 @@ def update_scan_schedule(
     current_user: User = Depends(get_current_active_user)
 ):
     """Update a scan schedule"""
-    db_schedule = db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id)).scalar_one_or_none()
+    from app.core.ownership import resolve_actor_scope, validate_schedule_targets
+    scope = resolve_actor_scope(db, current_user)
+    db_schedule = db.execute(select(ScanSchedule).where(
+        ScanSchedule.id == schedule_id,
+        ScanSchedule.organization_id == scope.organization_id,
+    )).scalar_one_or_none()
     if not db_schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
     update_data = schedule_update.dict(exclude_unset=True)
+    validate_schedule_targets(
+        db, scope,
+        source_group_ids=update_data.get("source_group_ids", db_schedule.source_group_ids),
+        keyword_group_ids=update_data.get("keyword_group_ids", db_schedule.keyword_group_ids),
+    )
     
     if "cron_expression" in update_data:
         import croniter
@@ -1387,7 +1432,12 @@ def delete_scan_schedule(
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a scan schedule"""
-    db_schedule = db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id)).scalar_one_or_none()
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    db_schedule = db.execute(select(ScanSchedule).where(
+        ScanSchedule.id == schedule_id,
+        ScanSchedule.organization_id == scope.organization_id,
+    )).scalar_one_or_none()
     if not db_schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
 
@@ -1410,7 +1460,12 @@ def trigger_scan_schedule(
     current_user: User = Depends(get_current_active_user)
 ):
     """Manually trigger a scheduled scan right now"""
-    db_schedule = db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id)).scalar_one_or_none()
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    db_schedule = db.execute(select(ScanSchedule).where(
+        ScanSchedule.id == schedule_id,
+        ScanSchedule.organization_id == scope.organization_id,
+    )).scalar_one_or_none()
     if not db_schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -1428,7 +1483,18 @@ def get_schedule_history(
 ):
     """Get run history for a specific schedule"""
     from math import ceil
-    query = select(CrawlJob).where(CrawlJob.scan_schedule_id == schedule_id)
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user)
+    schedule_exists = db.execute(select(ScanSchedule.id).where(
+        ScanSchedule.id == schedule_id,
+        ScanSchedule.organization_id == scope.organization_id,
+    )).scalar_one_or_none()
+    if schedule_exists is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    query = select(CrawlJob).where(
+        CrawlJob.scan_schedule_id == schedule_id,
+        CrawlJob.organization_id == scope.organization_id,
+    )
     
     total = db.execute(select(func.count()).select_from(query.subquery())).scalar() or 0
     offset = (page - 1) * page_size

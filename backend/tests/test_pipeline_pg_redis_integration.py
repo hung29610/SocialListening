@@ -26,6 +26,9 @@ from app.models.alert import Alert
 from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.models.mention import AIAnalysis, Mention
 from app.models.report import Report
+from app.models.user import User
+from app.models.organization import Organization, OrganizationMember
+from app.models.keyword import KeywordGroup
 from app.tasks import scan_pipeline
 from app.tasks.scan_pipeline import process_scan_pipeline
 from app.workers.celery_app import celery_app
@@ -105,7 +108,19 @@ def test_real_queue_delivery_survives_worker_restart_without_duplicates(
     assert process_scan_pipeline.reject_on_worker_lost is True
 
     with session_factory() as db:
+        db.add_all([
+            User(id=909, email="pipeline-pg@example.test", hashed_password="x", current_organization_id=707),
+            Organization(id=707, name="Pipeline PG", slug="pipeline-pg", status="active"),
+        ])
+        db.flush()
+        db.add_all([
+            OrganizationMember(organization_id=707, user_id=909, status="active"),
+            KeywordGroup(id=808, organization_id=707, user_id=909, name="Pipeline PG Project"),
+        ])
+        db.flush()
         job = CrawlJob(
+            organization_id=707,
+            project_id=808,
             job_type="manual",
             status=CrawlJobStatus.COMPLETED,
             user_id=909,

@@ -295,8 +295,11 @@ def meta_callback(
                 db.add(new_acc)
                 
                 # Create the corresponding Source record automatically
+                from app.core.ownership import resolve_actor_scope, stamp_scope
+                from app.models.user import User
+                actor = db.get(User, user_id)
+                source_scope = resolve_actor_scope(db, actor)
                 new_source = Source(
-                    user_id=user_id,
                     name=acc["name"],
                     source_type=source_type,
                     url=source_url,
@@ -306,6 +309,7 @@ def meta_callback(
                     crawl_frequency="daily",
                     schedule_hours=[9, 15, 21]
                 )
+                stamp_scope(new_source, source_scope, project=False)
                 db.add(new_source)
             else:
                 existing_acc = existing_map[acc["id"]]

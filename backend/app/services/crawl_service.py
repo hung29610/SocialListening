@@ -72,12 +72,21 @@ def check_keyword_match(content: str, keywords: List[Keyword]) -> List[dict]:
     return matched
 
 
-def get_all_active_keywords(db: Session) -> List[Keyword]:
-    """Get all active, non-excluded keywords from all groups"""
+def get_all_active_keywords(db: Session, organization_id: int, project_id: int = None) -> List[Keyword]:
+    """Get active keywords for one tenant, optionally one project."""
     try:
-        keywords = db.execute(
-            select(Keyword).where(Keyword.is_active == True, Keyword.is_excluded == False)
-        ).scalars().all()
+        query = (
+            select(Keyword)
+            .join(KeywordGroup, Keyword.group_id == KeywordGroup.id)
+            .where(
+                Keyword.is_active == True,
+                Keyword.is_excluded == False,
+                KeywordGroup.organization_id == organization_id,
+            )
+        )
+        if project_id is not None:
+            query = query.where(Keyword.group_id == project_id)
+        keywords = db.execute(query).scalars().all()
         return list(keywords)
     except Exception as e:
         logger.error(f"Error fetching keywords: {e}")
@@ -409,8 +418,22 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
             'error': source.last_error
         }
 
-    # Get all active keywords
-    keywords = get_all_active_keywords(db)
+    from app.core.ownership import resolve_source_scope, validate_explicit_scope, stamp_scope
+    source_scope = resolve_source_scope(db, source.id)
+    job = db.get(CrawlJob, job_id) if job_id is not None else None
+    if job_id is not None and job is None:
+        raise ValueError(f"Crawl job {job_id} not found")
+    if job is not None:
+        mention_scope = validate_explicit_scope(db, job.organization_id, job.user_id, job.project_id)
+        if mention_scope.organization_id != source_scope.organization_id:
+            raise ValueError("Source and crawl job belong to different tenants")
+    else:
+        mention_scope = None
+
+    # Get only keywords visible to this source tenant/job.
+    keywords = get_all_active_keywords(
+        db, source_scope.organization_id, mention_scope.project_id if mention_scope else None
+    )
 
     # Crawl based on source type
     if source.source_type == 'global_search':
@@ -465,6 +488,7 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
 
     for article in articles:
         try:
+            article_scope = mention_scope
             # Skip if no content
             if not article.get('content') and not article.get('title'):
                 continue
@@ -497,6 +521,15 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
             if not matched_keywords and keywords:
                 continue
 
+            if article_scope is None:
+                matched_projects = {kw.group_id for kw in keywords if any(m.get("keyword_id") == kw.id for m in matched_keywords)}
+                if len(matched_projects) != 1:
+                    raise ValueError("Source crawl must resolve exactly one project before writing a mention")
+                from app.core.ownership import resolve_project_scope
+                article_scope = resolve_project_scope(
+                    db, matched_projects.pop(), expected_organization_id=source_scope.organization_id
+                )
+
             # Build source provenance metadata
             final_article_url = article.get('url', '')
             source_provenance = build_provenance_for_direct_crawl(
@@ -515,6 +548,7 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
             # Create mention
             mention = Mention(
                 source_id=source_id,
+                job_id=job_id,
                 title=article['title'],
                 content=article['content'],
                 content_hash=content_hash,
@@ -529,6 +563,7 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
                 meta_data=meta_data,
                 is_reviewed=False
             )
+            stamp_scope(mention, article_scope)
             db.add(mention)
             db.flush()  # Get mention.id without committing
 
@@ -564,6 +599,7 @@ def crawl_source(db: Session, source_id: int, job_id: int = None) -> Dict:
                         title=f"High risk mention: {mention.title or mention.url}",
                         message=f"Risk: {analysis_result['risk_score']}, Crisis: {analysis_result['crisis_level']}"
                     )
+                    stamp_scope(alert, article_scope)
                     db.add(alert)
 
             except Exception as e:

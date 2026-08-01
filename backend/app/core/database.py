@@ -31,7 +31,8 @@ SessionLocal = sessionmaker(
     bind=engine,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
+    info={"enforce_tenant_writes": True},
 )
 
 # Compatibility runtime for the existing async Celery task module. The web
@@ -48,6 +49,7 @@ AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     expire_on_commit=False,
     autoflush=False,
+    info={"enforce_tenant_writes": True},
 )
 
 # Base class for models

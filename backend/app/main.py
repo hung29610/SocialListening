@@ -13,6 +13,8 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
+from app.core import ownership as _ownership  # register fail-closed write guards
+from app.core.ownership import TenantOwnershipError, TenantReason
 from app.core.security import get_current_superuser
 from app.core.security_operations import get_enabled_superuser
 from app.core.rate_limit import (
@@ -108,6 +110,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"create_all skipped (tables may already exist via alembic): {e}")
 
+    # Bounded check: reads one audit-state row, never scans tenant tables.
+    from app.core.tenant_readiness import enforce_tenant_integrity_readiness
+    enforce_tenant_integrity_readiness()
+
     # ── Optional admin seed: promote an existing user to super_admin once ──────
     # Set ADMIN_SEED_EMAIL in your environment to enable this.
     # The target user must already exist in the database.
@@ -193,6 +199,24 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(TenantOwnershipError)
+async def tenant_ownership_exception_handler(request: Request, exc: TenantOwnershipError):
+    if exc.reason in {TenantReason.PARENT_NOT_FOUND, TenantReason.ORPHAN_PARENT}:
+        status_code = 404
+    elif exc.reason in {
+        TenantReason.USER_ORGANIZATION_MISMATCH,
+        TenantReason.SCOPE_CONFLICT,
+        TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
+    }:
+        status_code = 403
+    else:
+        status_code = 422
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": "Tenant ownership validation failed", "reason": exc.reason.value},
+    )
 
 
 @app.middleware("http")

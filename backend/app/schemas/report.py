@@ -50,7 +50,7 @@ class ReportBase(BaseModel):
 
 
 class ReportCreate(ReportBase):
-    pass
+    project_id: int
 
 
 class ReportResponse(ReportBase):

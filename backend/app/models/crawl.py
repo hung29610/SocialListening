@@ -20,7 +20,9 @@ class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
     
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, index=True, nullable=True)
     user_id = Column(Integer, index=True, nullable=True)
+    project_id = Column(Integer, index=True, nullable=True)
     scan_schedule_id = Column(Integer, nullable=True, index=True)
     
     # Job details
@@ -53,6 +55,7 @@ class ScanSchedule(Base):
     __tablename__ = "scan_schedules"
     
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, index=True, nullable=True)
     user_id = Column(Integer, index=True, nullable=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)

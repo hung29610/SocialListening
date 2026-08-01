@@ -68,8 +68,9 @@ class TestAutoScanScheduler:
         
         # Setup mock keywords and groups
         mock_group = MagicMock()
-        mock_group.id = 1
-        mock_group.project_id = 100
+        mock_group.id = 100
+        mock_group.organization_id = 17
+        mock_group.user_id = 9
         
         mock_keyword = MagicMock()
         mock_keyword.keyword = "test"
@@ -114,8 +115,9 @@ class TestAutoScanScheduler:
         mock_session_local.return_value = mock_db
         
         mock_group = MagicMock()
-        mock_group.id = 1
-        mock_group.project_id = 100
+        mock_group.id = 100
+        mock_group.organization_id = 17
+        mock_group.user_id = 9
         
         mock_keyword = MagicMock()
         mock_keyword.keyword = "test"

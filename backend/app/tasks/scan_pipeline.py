@@ -288,6 +288,8 @@ def _finalize_pipeline(
         ).scalar_one_or_none()
         if not job:
             return {"success": False, "reason": "job_not_found", "job_id": job_id}
+        from app.core.ownership import validate_explicit_scope
+        validate_explicit_scope(db, job.organization_id, job.user_id, job.project_id)
         pipeline = _pipeline(job)
         if pipeline.get("status") == "completed":
             return {"success": True, "idempotent": True, "job_id": job_id}
@@ -302,6 +304,12 @@ def _finalize_pipeline(
         alert_ids: list[int] = []
 
         for mention in mentions:
+            from app.core.ownership import resolve_mention_scope
+            mention_scope = resolve_mention_scope(
+                db, mention.id, expected_organization_id=job.organization_id
+            )
+            if mention_scope.project_id != job.project_id:
+                raise RuntimeError("Pipeline mention belongs to a different project")
             analysis = db.execute(
                 select(AIAnalysis).where(AIAnalysis.mention_id == mention.id)
             ).scalar_one_or_none()
@@ -348,14 +356,14 @@ def _finalize_pipeline(
             stable_title = f"Scan pipeline report #{job.id}"
             report = db.execute(
                 select(Report).where(
-                    Report.project_id == (job.meta_data or {}).get("project_id"),
+                    Report.project_id == job.project_id,
                     Report.title == stable_title,
                 ).order_by(Report.id.asc()).limit(1)
             ).scalar_one_or_none()
             if report is None:
                 report = Report(
-                    organization_id=(job.meta_data or {}).get("organization_id"),
-                    project_id=(job.meta_data or {}).get("project_id"),
+                    organization_id=job.organization_id,
+                    project_id=job.project_id,
                     report_type=ReportType.CUSTOM,
                     title=stable_title,
                     description="Automatically generated scan analysis summary.",
@@ -368,7 +376,7 @@ def _finalize_pipeline(
                         "analyses": len(mentions),
                         "alerts": len(alert_ids),
                     },
-                    generated_by=(job.meta_data or {}).get("user_id") or job.user_id,
+                    generated_by=job.user_id,
                     completed_at=now,
                 )
                 db.add(report)

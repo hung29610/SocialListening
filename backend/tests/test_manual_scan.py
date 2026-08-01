@@ -49,9 +49,17 @@ def _create_tables():
     # Insert a test user
     with engine.connect() as conn:
         conn.execute(text(
-            "INSERT OR IGNORE INTO users (id, email, hashed_password, full_name, is_active) "
-            "VALUES (1, 'test@example.com', 'fakehash', 'Test User', 1)"
+            "INSERT OR IGNORE INTO users (id, email, hashed_password, full_name, is_active, current_organization_id) "
+            "VALUES (1, 'test@example.com', 'fakehash', 'Test User', 1, 1)"
         ))
+        conn.execute(text("INSERT OR IGNORE INTO organizations (id, name, slug, status) VALUES (1, 'Test Org', 'test-org', 'active')"))
+        conn.execute(text("INSERT OR IGNORE INTO organization_members (organization_id, user_id, role, status) VALUES (1, 1, 'owner', 'active')"))
+        conn.execute(text("INSERT OR IGNORE INTO keyword_groups (id, organization_id, user_id, name, is_active) VALUES (1, 1, 1, 'Test Project', 1)"))
+        conn.execute(text("INSERT OR IGNORE INTO keyword_groups (id, organization_id, user_id, name, is_active) VALUES (99, 1, 1, 'Duplicate Project', 1)"))
+        conn.execute(text("INSERT OR IGNORE INTO users (id, email, hashed_password, is_active, current_organization_id) VALUES (2, 'other@example.com', 'fakehash', 1, 2)"))
+        conn.execute(text("INSERT OR IGNORE INTO organizations (id, name, slug, status) VALUES (2, 'Other Org', 'other-org', 'active')"))
+        conn.execute(text("INSERT OR IGNORE INTO organization_members (organization_id, user_id, role, status) VALUES (2, 2, 'owner', 'active')"))
+        conn.execute(text("INSERT OR IGNORE INTO keyword_groups (id, organization_id, user_id, name, is_active) VALUES (200, 2, 2, 'Other Project', 1)"))
         conn.commit()
 
 
@@ -89,7 +97,7 @@ def setup_module():
     db = TestSession()
     user = db.execute(text("SELECT id, email, full_name, is_active FROM users WHERE id=1")).fetchone()
     db.close()
-    _fake_user = User(id=user[0], email=user[1], full_name=user[2], is_active=user[3])
+    _fake_user = User(id=user[0], email=user[1], full_name=user[2], is_active=user[3], current_organization_id=1)
 
 
 def teardown_module():
@@ -133,6 +141,16 @@ def test_manual_scan_unicode_query():
     assert "job_id" in data
     assert data["status"] == "QUEUED"
     assert "môi trường" in data["keywords"]
+
+
+def test_manual_scan_rejects_cross_tenant_project_with_safe_403():
+    response = client.post("/api/crawl/manual-scan", json={
+        "query": "cross tenant",
+        "project_id": 200,
+        "mode": "HYBRID",
+    })
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Tenant ownership validation failed"
 
 
 def test_manual_scan_no_keyword():
@@ -180,14 +198,26 @@ def test_manual_scan_schema_mismatch():
                 full_name VARCHAR,
                 is_active BOOLEAN DEFAULT 1,
                 is_superuser BOOLEAN DEFAULT 0,
+                current_organization_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME
             )
         """))
-        conn.execute(text("INSERT INTO users (id, email, full_name, is_active) VALUES (1, 'test@test.com', 'Test', 1)"))
+        conn.execute(text("INSERT INTO users (id, email, full_name, is_active, current_organization_id) VALUES (1, 'test@test.com', 'Test', 1, 1)"))
+        conn.execute(text("DROP TABLE IF EXISTS organizations"))
+        conn.execute(text("DROP TABLE IF EXISTS organization_members"))
+        conn.execute(text("DROP TABLE IF EXISTS keyword_groups"))
+        conn.execute(text("CREATE TABLE organizations (id INTEGER PRIMARY KEY, status VARCHAR NOT NULL)"))
+        conn.execute(text("CREATE TABLE organization_members (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER, status VARCHAR)"))
+        conn.execute(text("CREATE TABLE keyword_groups (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER)"))
+        conn.execute(text("INSERT INTO organizations VALUES (1, 'active')"))
+        conn.execute(text("INSERT INTO organization_members VALUES (1, 1, 1, 'active')"))
+        conn.execute(text("INSERT INTO keyword_groups VALUES (1, 1, 1)"))
         conn.execute(text("""
             CREATE TABLE crawl_jobs (
                 id INTEGER PRIMARY KEY,
+                organization_id INTEGER,
+                project_id INTEGER,
                 job_type VARCHAR(50) NOT NULL,
                 source_ids TEXT,
                 keyword_group_ids TEXT,
@@ -256,14 +286,26 @@ def test_manual_scan_schema_mismatch_missing_scan_schedule_id():
                 full_name VARCHAR,
                 is_active BOOLEAN DEFAULT 1,
                 is_superuser BOOLEAN DEFAULT 0,
+                current_organization_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME
             )
         """))
-        conn.execute(text("INSERT INTO users (id, email, full_name, is_active) VALUES (1, 'test@test.com', 'Test', 1)"))
+        conn.execute(text("INSERT INTO users (id, email, full_name, is_active, current_organization_id) VALUES (1, 'test@test.com', 'Test', 1, 1)"))
+        conn.execute(text("DROP TABLE IF EXISTS organizations"))
+        conn.execute(text("DROP TABLE IF EXISTS organization_members"))
+        conn.execute(text("DROP TABLE IF EXISTS keyword_groups"))
+        conn.execute(text("CREATE TABLE organizations (id INTEGER PRIMARY KEY, status VARCHAR NOT NULL)"))
+        conn.execute(text("CREATE TABLE organization_members (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER, status VARCHAR)"))
+        conn.execute(text("CREATE TABLE keyword_groups (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER)"))
+        conn.execute(text("INSERT INTO organizations VALUES (1, 'active')"))
+        conn.execute(text("INSERT INTO organization_members VALUES (1, 1, 1, 'active')"))
+        conn.execute(text("INSERT INTO keyword_groups VALUES (1, 1, 1)"))
         conn.execute(text("""
             CREATE TABLE crawl_jobs (
                 id INTEGER PRIMARY KEY,
+                organization_id INTEGER,
+                project_id INTEGER,
                 user_id INTEGER,
                 job_type VARCHAR(50) NOT NULL,
                 source_ids TEXT,

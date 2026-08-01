@@ -50,14 +50,23 @@ def _create_legacy_schema(engine, *, include_user_id: bool, include_scan_schedul
                 full_name VARCHAR,
                 is_active BOOLEAN DEFAULT 1,
                 is_superuser BOOLEAN DEFAULT 0,
+                current_organization_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME
             )
         """))
-        conn.execute(text("INSERT INTO users (id, email, full_name, is_active) VALUES (1, 'test@test.com', 'Test', 1)"))
+        conn.execute(text("INSERT INTO users (id, email, full_name, is_active, current_organization_id) VALUES (1, 'test@test.com', 'Test', 1, 1)"))
+        conn.execute(text("CREATE TABLE organizations (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL, slug VARCHAR NOT NULL, status VARCHAR NOT NULL)"))
+        conn.execute(text("INSERT INTO organizations (id, name, slug, status) VALUES (1, 'Test Org', 'test-org', 'active')"))
+        conn.execute(text("CREATE TABLE organization_members (id INTEGER PRIMARY KEY, organization_id INTEGER NOT NULL, user_id INTEGER NOT NULL, role VARCHAR NOT NULL, status VARCHAR NOT NULL)"))
+        conn.execute(text("INSERT INTO organization_members (id, organization_id, user_id, role, status) VALUES (1, 1, 1, 'owner', 'active')"))
+        conn.execute(text("CREATE TABLE keyword_groups (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER, name VARCHAR NOT NULL)"))
+        conn.execute(text("INSERT INTO keyword_groups (id, organization_id, user_id, name) VALUES (1, 1, 1, 'Test Project')"))
         conn.execute(text(f"""
             CREATE TABLE crawl_jobs (
                 id INTEGER PRIMARY KEY,
+                organization_id INTEGER,
+                project_id INTEGER,
 {optional_sql}                job_type VARCHAR(50) NOT NULL,
                 source_ids TEXT,
                 keyword_group_ids TEXT,
@@ -116,6 +125,7 @@ def test_manual_scan_returns_structured_503_for_missing_crawl_job_columns(
         email="test@test.com",
         full_name="Test",
         is_active=True,
+        current_organization_id=1,
     )
 
     try:

@@ -105,4 +105,5 @@ from app.models.webinar import WebinarRegistration
 
 # AI Config models
 from app.models.ai_config import AIModelConfig, AIUsageLog, AIChatMessage
+from app.models.tenant_integrity import TenantIntegrityAuditState, TenantIntegrityQuarantine
 
