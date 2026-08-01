@@ -349,6 +349,41 @@ export const sources = {
 };
 
 // ─── Crawl / Scan ─────────────────────────────────────────────────────────────
+export interface WorkerHealth {
+  web: { status: string; observed_at: string };
+  broker: { status: string; identity: string; error_type: string | null };
+  celery_worker: {
+    status: string;
+    reason: string | null;
+    last_heartbeat_at: string | null;
+    queues: string[];
+    expected_queues: string[];
+    missing_queues: string[];
+    instances: Array<{ instance_id: string; hostname: string | null; queues: string[] }>;
+    software_version: string | null;
+    last_successful_task_at: string | null;
+  };
+  celery_beat: {
+    status: string;
+    reason: string | null;
+    last_heartbeat_at: string | null;
+    schedule_evidence: string;
+    software_version: string | null;
+  };
+  embedded_scheduler: {
+    status: string;
+    label: 'embedded_web_scheduler';
+    explicitly_enabled: boolean;
+  };
+  pipeline: {
+    status: string;
+    last_success_at: string | null;
+    queued_count: number;
+    stale_count: number;
+  };
+  overall: { status: string; observed_at: string };
+}
+
 export const crawl = {
   getCapabilities: async () => {
     const response = await api.get('/api/crawl/capabilities');
@@ -375,7 +410,7 @@ export const crawl = {
     const response = await api.post(`/api/crawl/jobs/${jobId}/retry`);
     return response.data;
   },
-  getWorkerStatus: async () => {
+  getWorkerStatus: async (): Promise<WorkerHealth> => {
     const response = await api.get('/api/system/worker-status');
     return response.data;
   },

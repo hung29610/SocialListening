@@ -157,15 +157,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Service seed skipped: {e}")
 
-    # Start background scheduler (embedded or SCHEDULER_ENABLED)
-    enable_scheduler = (
+    # The web process may run APScheduler only when explicitly enabled.  It is
+    # never inferred from the legacy standalone-worker SCHEDULER_ENABLED flag.
+    enable_embedded_scheduler = (
         os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true"
-        or os.getenv("SCHEDULER_ENABLED", "true").lower() == "true"
     )
-    if enable_scheduler:
+    if enable_embedded_scheduler:
         try:
             from app.services.scheduler_service import start_scheduler
-            is_started = start_scheduler(is_embedded=os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true")
+            is_started = start_scheduler(is_embedded=True)
             if is_started:
                 logger.info("Background scheduler started")
             else:
@@ -176,7 +176,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown scheduler
-    if enable_scheduler:
+    if enable_embedded_scheduler:
         try:
             from app.services.scheduler_service import stop_scheduler
             stop_scheduler()

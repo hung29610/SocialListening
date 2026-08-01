@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Search, Globe2, Network,
 } from 'lucide-react';
 import { crawl, keywords as keywordsApi, sources as sourcesApi, discovery as discoveryApi, getErrorMessage, API_BASE_URL } from '@/lib/api';
+import type { WorkerHealth } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import ScanSchedulesPanel from '@/components/ScanSchedulesPanel';
@@ -17,24 +18,6 @@ const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
 const focusRingOffset =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-void';
-
-interface WorkerStatus {
-  scheduler_enabled: boolean;
-  worker_mode: string;
-  worker_running: boolean;
-  last_worker_heartbeat: string | null;
-  active_sources: number;
-  due_sources: number;
-  running_jobs: number;
-  last_error: string | null;
-  is_locked?: boolean;
-  scan_interval_minutes?: number;
-  last_started_at?: string | null;
-  last_finished_at?: string | null;
-  last_success_at?: string | null;
-  last_scan_count?: number;
-  skipped_due_to_lock_count?: number;
-}
 
 interface CrawlJob {
   id: number;
@@ -79,7 +62,7 @@ export default function ScanPage() {
   const [scanMode, setScanMode] = useState<string>('AUTO_DISCOVERY');
   const [scanCapabilities, setScanCapabilities] = useState<any>(null);
   const [scanning, setScanning] = useState(false);
-  const [workerStatus, setWorkerStatus] = useState<WorkerStatus | null>(null);
+  const [workerStatus, setWorkerStatus] = useState<WorkerHealth | null>(null);
   const [crawlJobs, setCrawlJobs] = useState<CrawlJob[]>([]);
   const [retryingJobId, setRetryingJobId] = useState<number | null>(null);
 
@@ -553,67 +536,38 @@ export default function ScanPage() {
          ═══════════════════════════════════════════════════════════════════ */}
       {workerStatus && (
         <div className={`rounded font-mono px-4 py-3 border flex flex-wrap items-center gap-x-4 gap-y-1.5 ${
-          workerStatus.worker_running
+          workerStatus.overall.status === 'healthy'
             ? 'bg-success/5 border-success/30 text-success'
+            : workerStatus.overall.status === 'degraded'
+            ? 'bg-warning/5 border-warning/30 text-warning'
             : 'bg-destructive/5 border-destructive/30 text-destructive'
         }`}>
-          {/* Status icon + label */}
           <div className="flex items-center gap-2">
-            {workerStatus.worker_running ? (
+            {workerStatus.overall.status === 'healthy' ? (
               <Activity className="w-4 h-4 animate-pulse motion-reduce:animate-none flex-shrink-0" />
             ) : (
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             )}
             <span className="text-[11px] font-bold tracking-wider">
-              {workerStatus.worker_running
-                ? (workerStatus.worker_mode === 'embedded' ? 'SYS.WORKER // EMBEDDED_MODE' : 'SYS.WORKER // ONLINE')
-                : 'SYS.WORKER // OFFLINE'}
+              CELERY WORKER // {workerStatus.celery_worker.status.toUpperCase()}
             </span>
           </div>
 
-          {/* Embedded warning */}
-          {workerStatus.worker_mode === 'embedded' && (
-            <span className="text-[10px] text-warning flex items-center gap-1 bg-warning/10 px-2 py-0.5 rounded border border-warning/25">
-              <AlertTriangle className="w-3 h-3" />
-              BACKGROUND_CRON_DISABLED
-            </span>
-          )}
-
-          {/* Metrics inline */}
-          <div className="flex items-center gap-3 ml-auto text-[11px] font-medium opacity-80 tabular-nums">
-            <span>TARGETS: <strong>{workerStatus.active_sources}</strong></span>
-            <span className="opacity-30">|</span>
-            <span>QUEUE: <strong>{workerStatus.due_sources}</strong></span>
-            <span className="opacity-30">|</span>
-            <span>ACTIVE_JOBS: <strong>{workerStatus.running_jobs}</strong></span>
-            {workerStatus.last_scan_count !== undefined && workerStatus.last_scan_count > 0 && (
-              <>
-                <span className="opacity-30">|</span>
-                <span>LAST_SCAN: <strong>{workerStatus.last_scan_count} items</strong></span>
-              </>
-            )}
-            {workerStatus.last_success_at && (
-              <>
-                <span className="opacity-30">|</span>
-                <span>SUCCESS: <strong>{formatDate(workerStatus.last_success_at)}</strong></span>
-              </>
-            )}
-            {workerStatus.last_worker_heartbeat && (
-              <>
-                <span className="opacity-30">|</span>
-                <span>PING: <strong>{formatDate(workerStatus.last_worker_heartbeat)}</strong></span>
-              </>
-            )}
+          <div className="flex flex-wrap items-center gap-2 ml-auto text-[10px] font-medium tabular-nums">
+            <span>BROKER: <strong>{workerStatus.broker.status.toUpperCase()}</strong></span>
+            <span>BEAT: <strong>{workerStatus.celery_beat.status.toUpperCase()}</strong></span>
+            <span>EMBEDDED WEB: <strong>{workerStatus.embedded_scheduler.status.toUpperCase()}</strong></span>
+            <span>QUEUES: <strong>{workerStatus.celery_worker.queues.join(', ') || 'NONE'}</strong></span>
+            <span>PIPELINE QUEUED: <strong>{workerStatus.pipeline.queued_count}</strong></span>
+            <span>STALE: <strong>{workerStatus.pipeline.stale_count}</strong></span>
           </div>
 
-          {/* Error line */}
-          {workerStatus.last_error && (
-            <div className="w-full mt-2 pt-2 border-t border-destructive/20">
-              <span className="text-[10px] text-destructive font-bold tracking-wider inline-block truncate max-w-full">
-                [ERR] {workerStatus.last_error}
-              </span>
-            </div>
-          )}
+          <div className="w-full mt-2 pt-2 border-t border-current/20 text-[10px] flex flex-wrap gap-x-4 gap-y-1">
+            <span>OVERALL: <strong>{workerStatus.overall.status.toUpperCase()}</strong></span>
+            <span>WORKER EVIDENCE: <strong>{workerStatus.celery_worker.reason || 'inspect_ping'}</strong></span>
+            <span>BEAT EVIDENCE: <strong>{workerStatus.celery_beat.reason || workerStatus.celery_beat.schedule_evidence}</strong></span>
+            <span>LAST PIPELINE SUCCESS: <strong>{workerStatus.pipeline.last_success_at ? formatDate(workerStatus.pipeline.last_success_at) : 'NONE'}</strong></span>
+          </div>
         </div>
       )}
 
