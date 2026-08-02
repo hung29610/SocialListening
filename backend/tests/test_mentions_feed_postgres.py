@@ -16,7 +16,7 @@ from app.main import app
 from app.models.keyword import KeywordGroup
 from app.models.mention import AIAnalysis, Mention, SentimentScore
 from app.models.organization import Organization, OrganizationMember
-from app.models.source import Source, SourceType
+from app.models.source import Source, SourceGroup, SourceType
 from app.models.user import User
 
 
@@ -37,6 +37,7 @@ def postgres_mention_feed():
     organization_id = 88001
     user_id = 88001
     project_id = 88001
+    source_group_id = 88001
     source_id = 88001
     collected_base = datetime(2026, 8, 2, 5, tzinfo=timezone.utc)
 
@@ -71,11 +72,17 @@ def postgres_mention_feed():
                     user_id=user_id,
                     name="Mention benchmark project",
                 ),
+                SourceGroup(
+                    id=source_group_id,
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    name="Mention benchmark source group",
+                ),
                 Source(
                     id=source_id,
                     organization_id=organization_id,
                     user_id=user_id,
-                    group_id=project_id,
+                    group_id=source_group_id,
                     name="Mention benchmark source",
                     source_type=SourceType.NEWS,
                     url="https://mention-benchmark.example.test",
