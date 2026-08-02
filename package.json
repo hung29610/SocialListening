@@ -9,7 +9,9 @@
   "directories": {
     "doc": "docs"
   },
-  "scripts": {},
+  "scripts": {
+    "test:e2e:auth": "node tests/e2e/run-ci.mjs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nope-chouhi/SocialListening.git"

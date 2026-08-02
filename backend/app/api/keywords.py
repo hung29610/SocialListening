@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 from sqlalchemy import select, func, delete
 from typing import List
 from app.core.tenant import apply_tenant_filter
@@ -89,14 +89,27 @@ def get_keyword_group(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get a keyword group by ID"""
-    query = apply_tenant_filter(select(KeywordGroup), KeywordGroup, current_user).where(KeywordGroup.id == group_id).options(selectinload(KeywordGroup.keywords))
+    query = apply_tenant_filter(select(KeywordGroup), KeywordGroup, current_user).where(KeywordGroup.id == group_id)
     result = db.execute(query)
     group = result.scalar_one_or_none()
     
     if not group:
         raise HTTPException(status_code=404, detail="Keyword group not found")
     
-    return KeywordGroupResponse.from_orm(group)
+    keywords = db.execute(
+        select(Keyword).where(Keyword.group_id == group.id).order_by(Keyword.id)
+    ).scalars().all()
+    return KeywordGroupResponse(
+        id=group.id,
+        name=group.name,
+        description=group.description,
+        priority=group.priority,
+        alert_threshold=group.alert_threshold,
+        is_active=group.is_active,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        keywords=keywords,
+    )
 
 
 @router.put("/groups/{group_id}", response_model=KeywordGroupResponse)

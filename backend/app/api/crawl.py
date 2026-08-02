@@ -48,6 +48,19 @@ class ManualScanRequest(BaseModel):
     reason: Optional[str] = None
     current_result_count: Optional[int] = None
 
+
+def _manual_scan_project_id(body: ManualScanRequest) -> Optional[int]:
+    """Resolve one explicit project without guessing across keyword groups."""
+    if body.project_id is not None:
+        return body.project_id
+    candidate_projects = list(dict.fromkeys(body.keyword_group_ids or []))
+    if len(candidate_projects) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="A manual scan requires exactly one tenant project",
+        )
+    return candidate_projects[0] if candidate_projects else None
+
 def _run_discovery_bg(job_id: int):
     db = SessionLocal()
     try:
@@ -196,7 +209,7 @@ def manual_scan(
             raise HTTPException(status_code=400, detail="Vui lòng cung cấp ít nhất một từ khóa (qua query hoặc keywords)")
 
         mode = getattr(body, "mode", "HYBRID") or "HYBRID"
-        project_id = body.project_id
+        project_id = _manual_scan_project_id(body)
         from app.core.ownership import resolve_actor_scope
         scope = resolve_actor_scope(db, current_user, project_id)
         query_key = (body.query or "").strip().lower() or "|".join(sorted(keyword_texts))

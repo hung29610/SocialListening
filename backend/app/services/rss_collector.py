@@ -151,7 +151,13 @@ def fetch_and_parse_feed(url: str) -> Dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords: List[str] = None, ad_hoc_project_id: int = None) -> Dict:
+def run_rss_collector(
+    db: Session,
+    source_ids: List[int] = None,
+    ad_hoc_keywords: List[str] = None,
+    ad_hoc_project_id: int = None,
+    ad_hoc_job_id: int = None,
+) -> Dict:
     """Run RSS collection for given sources or all active RSS sources."""
     from app.core.ownership import resolve_project_scope
     requested_scope = resolve_project_scope(db, ad_hoc_project_id) if ad_hoc_project_id is not None else None
@@ -295,6 +301,7 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                 if not m_exists and matched_kws:
                     mention = Mention(
                         project_id=project_id,
+                        job_id=ad_hoc_job_id,
                         keyword_text=matched_kws[0]["keyword"],
                         source_id=source.id,
                         source_type="rss",
