@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base, get_db
-from app.core.security import get_current_active_user
+from app.core.security import create_access_token, get_current_active_user
 from app.main import app
 from app.models.keyword import KeywordGroup
 from app.models.mention import AIAnalysis, Mention, SentimentScore
@@ -131,7 +131,12 @@ def postgres_mention_feed():
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_current_active_user] = override_user
     try:
-        yield TestClient(app), engine, organization_id
+        token = create_access_token({"sub": str(user_id)})
+        yield (
+            TestClient(app, headers={"Authorization": f"Bearer {token}"}),
+            engine,
+            organization_id,
+        )
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
