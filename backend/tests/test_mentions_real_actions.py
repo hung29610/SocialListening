@@ -21,12 +21,12 @@ def override_get_superuser():
 
 def override_get_db():
     mock_db = MagicMock()
-    
+
     # Mocking for charts: return some fake mentions
     fake_mention = Mention(
-        id=1, 
-        collected_at=datetime.utcnow(), 
-        sentiment="positive", 
+        id=1,
+        collected_at=datetime.utcnow(),
+        sentiment="positive",
         influence_score=50,
         reach_estimate=500
     )
@@ -45,10 +45,21 @@ def override_get_db():
     fake_mention.is_muted = False
     fake_mention.is_deleted = False
     fake_mention.project_id = 1
-    
+
     mock_db.execute.return_value.scalars.return_value.all.return_value = [fake_mention]
     mock_db.execute.return_value.scalar_one_or_none.return_value = fake_mention
-    
+    mock_db.get_bind.return_value.dialect.name = "sqlite"
+    mock_db.execute.return_value.mappings.return_value.all.return_value = [
+        {
+            "date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "total_mentions": 1,
+            "reach": 500,
+            "sentiment_positive": 1,
+            "sentiment_neutral": 0,
+            "sentiment_negative": 0,
+        }
+    ]
+
     yield mock_db
 
 import pytest
@@ -104,9 +115,9 @@ def test_list_mentions_with_is_reviewed_filter():
         mock_db.execute.return_value.scalars.return_value.all.return_value = []
         mock_db.execute.return_value.scalar.return_value = 0
         app.dependency_overrides[get_db] = lambda: mock_db
-        
+
         response = client.get("/api/mentions?is_reviewed=true")
         assert response.status_code == 200
-        
+
         # Reset override
         app.dependency_overrides[get_db] = override_get_db
