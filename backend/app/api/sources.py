@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.tenant import apply_tenant_filter
+from app.core.ownership import TenantOwnershipError, resolve_actor_scope, stamp_scope
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.source import Source, SourceGroup, SourceType, CrawlFrequency
@@ -92,6 +93,8 @@ def list_source_groups(
                 source_count=count,
             ))
         return response
+    except TenantOwnershipError:
+        raise
     except Exception as e:
         logger.error(f"Error listing source groups: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Lỗi khi tải nhóm nguồn: {str(e)}")
@@ -106,8 +109,9 @@ def create_source_group(
     """Create a new source group."""
     try:
         group_dict = group_data.dict()
-        group_dict['user_id'] = current_user.id
+        scope = resolve_actor_scope(db, current_user)
         group = SourceGroup(**group_dict)
+        stamp_scope(group, scope, project=False)
         db.add(group)
         db.commit()
         db.refresh(group)
@@ -120,6 +124,8 @@ def create_source_group(
             updated_at=group.updated_at,
             sources=[],
         )
+    except TenantOwnershipError:
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating source group: {traceback.format_exc()}")
@@ -229,7 +235,7 @@ def create_source(
                 raise HTTPException(status_code=404, detail="Source group not found")
 
         data = source_data.dict()
-        data['user_id'] = current_user.id
+        scope = resolve_actor_scope(db, current_user)
 
         # Parse crawl_time string → datetime.time for DB column
         crawl_time_obj = None
@@ -268,11 +274,12 @@ def create_source(
                 )
 
         source = Source(**data)
+        stamp_scope(source, scope, project=False)
         db.add(source)
         db.commit()
         db.refresh(source)
         return _source_to_response(source)
-    except HTTPException:
+    except (HTTPException, TenantOwnershipError):
         raise
     except Exception as e:
         db.rollback()
@@ -416,6 +423,16 @@ def scan_source(
             existing = db.execute(apply_tenant_filter(select(Mention), Mention, current_user).where(Mention.content_hash == content_hash)).scalar_one_or_none()
             if existing:
                 continue
+            matched_texts = {
+                str(item.get("keyword", "")).lower()
+                for item in mention_data.get("matched_keywords", [])
+                if isinstance(item, dict)
+            }
+            project_ids = {kw.group_id for kw in all_keywords if kw.keyword.lower() in matched_texts}
+            if len(project_ids) != 1:
+                raise HTTPException(status_code=409, detail="Source result has ambiguous project ownership")
+            from app.core.ownership import resolve_actor_scope, stamp_scope
+            mention_scope = resolve_actor_scope(db, current_user, project_ids.pop())
             mention = Mention(
                 source_id=source.id,
                 title=mention_data.get('title'),
@@ -426,6 +443,7 @@ def scan_source(
                 published_at=mention_data.get('published_at'),
                 matched_keywords=mention_data.get('matched_keywords', []),
             )
+            stamp_scope(mention, mention_scope)
             db.add(mention)
             db.commit()
             db.refresh(mention)

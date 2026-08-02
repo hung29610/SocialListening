@@ -11,6 +11,22 @@ from app.models.alert import Alert
 from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.models.mention import AIAnalysis, Mention
 from app.models.report import Report
+from app.models.user import User
+from app.models.organization import Organization, OrganizationMember
+from app.models.keyword import KeywordGroup
+
+
+def _seed_tenant(db):
+    db.add_all([
+        User(id=9, email="pipeline@example.test", hashed_password="x", current_organization_id=17),
+        Organization(id=17, name="Pipeline Org", slug="pipeline-org", status="active"),
+    ])
+    db.flush()
+    db.add_all([
+        OrganizationMember(organization_id=17, user_id=9, status="active"),
+        KeywordGroup(id=41, organization_id=17, user_id=9, name="Pipeline Project"),
+    ])
+    db.flush()
 
 
 def test_pipeline_and_existing_tasks_register_together():
@@ -34,10 +50,13 @@ def test_scan_creates_exactly_once_downstream_records(monkeypatch, tmp_path, job
     Base.metadata.create_all(engine)
 
     with session_factory() as db:
+        _seed_tenant(db)
         job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
             job_type=job_type,
             status=CrawlJobStatus.PENDING,
-            user_id=9,
             meta_data={
                 "query": "Nope360",
                 "project_id": 41,
@@ -143,7 +162,11 @@ def test_pipeline_records_transient_failure_then_recovers(monkeypatch, tmp_path)
     monkeypatch.setattr(scan_pipeline, "SessionLocal", session_factory)
 
     with session_factory() as db:
+        _seed_tenant(db)
         job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
             job_type="manual",
             status=CrawlJobStatus.COMPLETED,
             meta_data={"project_id": 41, "pipeline": {"status": "queued"}},
@@ -151,6 +174,8 @@ def test_pipeline_records_transient_failure_then_recovers(monkeypatch, tmp_path)
         db.add(job)
         db.flush()
         db.add(Mention(
+            organization_id=17,
+            user_id=9,
             job_id=job.id,
             project_id=41,
             title="Risky post",
@@ -201,7 +226,11 @@ def test_provider_error_is_retryable_and_llm_call_holds_no_db_transaction(monkey
     monkeypatch.setattr(scan_pipeline, "SessionLocal", session_factory)
 
     with session_factory() as db:
+        _seed_tenant(db)
         job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
             job_type="manual",
             status=CrawlJobStatus.COMPLETED,
             meta_data={"project_id": 41, "pipeline": {"status": "queued"}},
@@ -209,6 +238,8 @@ def test_provider_error_is_retryable_and_llm_call_holds_no_db_transaction(monkey
         db.add(job)
         db.flush()
         db.add(Mention(
+            organization_id=17,
+            user_id=9,
             job_id=job.id,
             project_id=41,
             title="Provider test",
@@ -252,7 +283,11 @@ def test_retry_exhaustion_enters_terminal_dead_letter_state(monkeypatch, tmp_pat
     monkeypatch.setattr(scan_pipeline, "SessionLocal", session_factory)
 
     with session_factory() as db:
+        _seed_tenant(db)
         job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
             job_type="manual",
             status=CrawlJobStatus.COMPLETED,
             meta_data={
@@ -266,6 +301,8 @@ def test_retry_exhaustion_enters_terminal_dead_letter_state(monkeypatch, tmp_pat
         db.add(job)
         db.flush()
         db.add(Mention(
+            organization_id=17,
+            user_id=9,
             job_id=job.id,
             project_id=41,
             title="Permanent failure",
@@ -305,6 +342,9 @@ def test_reconciliation_only_enqueues_stale_bounded_work(monkeypatch, tmp_path):
     def add_job(db, status, attempts, **pipeline_fields):
         pipeline = {"status": status, "attempts": attempts, **pipeline_fields}
         job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
             job_type="manual",
             status=CrawlJobStatus.COMPLETED,
             completed_at=now - timedelta(hours=1),
@@ -315,6 +355,7 @@ def test_reconciliation_only_enqueues_stale_bounded_work(monkeypatch, tmp_path):
         return job.id
 
     with session_factory() as db:
+        _seed_tenant(db)
         fresh_id = add_job(
             db, "queued", 0, queued_at=(now - timedelta(seconds=10)).isoformat()
         )

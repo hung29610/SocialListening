@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, delete
 from typing import List
 from app.core.tenant import apply_tenant_filter
+from app.core.ownership import resolve_actor_scope, resolve_project_scope, stamp_scope
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
@@ -62,8 +63,9 @@ def create_keyword_group(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new keyword group"""
+    scope = resolve_actor_scope(db, current_user)
     group = KeywordGroup(**group_data.dict())
-    group.user_id = current_user.id
+    stamp_scope(group, scope, project=False)
     db.add(group)
     db.commit()
     db.refresh(group)
@@ -181,6 +183,8 @@ def create_keyword(
     if not group:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhóm từ khóa")
         
+    resolve_project_scope(db, group.id, actor=current_user)
+
     # Check duplicate case-insensitively within group
     duplicate_query = select(Keyword).where(
         Keyword.group_id == keyword_data.group_id,
@@ -217,6 +221,8 @@ def create_keywords_bulk(
     
     if not group:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhóm từ khóa")
+
+    resolve_project_scope(db, group.id, actor=current_user)
 
     # Get existing keywords to check duplicates
     existing_kws = db.execute(

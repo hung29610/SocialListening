@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 class AlertCreateBody(BaseModel):
-    mention_id: Optional[int] = None
+    mention_id: int
     title: str
     severity: str
     message: Optional[str] = None
@@ -120,14 +120,19 @@ def create_alert(
                 "message": "Cảnh báo cho mention này đã tồn tại"
             }
 
+    from app.core.ownership import resolve_actor_scope, resolve_mention_scope, stamp_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    mention_scope = resolve_mention_scope(
+        db, body.mention_id, expected_organization_id=actor_scope.organization_id
+    )
     alert = Alert(
         mention_id=body.mention_id,
         title=body.title,
         severity=body.severity,
         message=body.message,
         status=AlertStatus.NEW,
-        user_id=current_user.id
     )
+    stamp_scope(alert, mention_scope)
     db.add(alert)
     db.commit()
     db.refresh(alert)
@@ -343,6 +348,10 @@ def check_alert_rules(
     """Check alert rules and create alerts if thresholds are met"""
     if not body.is_active:
         return {"message": "Rule is inactive", "alerts_created": 0}
+    if not body.project_id:
+        raise HTTPException(status_code=422, detail="Alert rules require a project")
+    from app.core.ownership import resolve_actor_scope, stamp_scope
+    rule_scope = resolve_actor_scope(db, current_user, body.project_id)
     
     # Calculate time window
     end_time = datetime.utcnow()
@@ -355,7 +364,8 @@ def check_alert_rules(
         Mention.collected_at >= start_time,
         Mention.collected_at <= end_time,
         Mention.is_muted == False,
-        Mention.is_deleted == False
+        Mention.is_deleted == False,
+        Mention.organization_id == rule_scope.organization_id,
     ]
     
     if body.project_id:
@@ -390,14 +400,20 @@ def check_alert_rules(
         
         # If spike exceeds threshold, create alert
         if spike_ratio >= body.threshold:
+            representative_id = db.execute(
+                select(Mention.id).where(and_(*mention_filter)).order_by(Mention.collected_at.desc()).limit(1)
+            ).scalar_one_or_none()
+            if representative_id is None:
+                return {"message": "Alert rule check complete", "alerts_created": 0}
             alert = Alert(
+                mention_id=representative_id,
                 project_id=body.project_id,
                 title=f"Mention Spike Detected: {body.name}",
                 message=f"Mentions increased by {spike_ratio:.1%} in the last {body.window_hours}h (current: {total_mentions}, previous: {prev_mentions})",
                 severity=AlertSeverity.HIGH if spike_ratio >= 0.5 else AlertSeverity.MEDIUM,
                 status=AlertStatus.NEW,
-                user_id=current_user.id
             )
+            stamp_scope(alert, rule_scope)
             db.add(alert)
             db.commit()
             alerts_created += 1
@@ -428,14 +444,16 @@ def check_alert_rules(
             
             # If negative ratio exceeds threshold, create alert
             if negative_ratio >= body.threshold:
+                representative_id = mention_ids[0]
                 alert = Alert(
+                    mention_id=representative_id,
                     project_id=body.project_id,
                     title=f"Negative Sentiment Spike: {body.name}",
                     message=f"Negative sentiment ratio is {negative_ratio:.1%} in the last {body.window_hours}h ({negative_count}/{total_count} mentions)",
                     severity=AlertSeverity.CRITICAL if negative_ratio >= 0.5 else AlertSeverity.HIGH,
                     status=AlertStatus.NEW,
-                    user_id=current_user.id
                 )
+                stamp_scope(alert, rule_scope)
                 db.add(alert)
                 db.commit()
                 alerts_created += 1
@@ -465,13 +483,14 @@ def check_alert_rules(
                 severity = AlertSeverity.CRITICAL if max_risk >= 90 else (AlertSeverity.HIGH if max_risk >= 80 else (AlertSeverity.MEDIUM if max_risk >= 60 else AlertSeverity.LOW))
                 
                 alert = Alert(
+                    mention_id=high_risk_mentions[0].mention_id,
                     project_id=body.project_id,
                     title=f"High Risk Mentions: {body.name}",
                     message=f"Found {len(high_risk_mentions)} mentions with max risk score {max_risk} in the last {body.window_hours}h",
                     severity=severity,
                     status=AlertStatus.NEW,
-                    user_id=current_user.id
                 )
+                stamp_scope(alert, rule_scope)
                 db.add(alert)
                 db.commit()
                 alerts_created += 1

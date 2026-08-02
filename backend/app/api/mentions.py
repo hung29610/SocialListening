@@ -1226,11 +1226,14 @@ def record_mention_visit(
     from app.models.mention import MentionVisit
 
     mention = db.execute(
-        select(Mention).where(Mention.id == mention_id)
+        apply_tenant_filter(select(Mention), Mention, current_user, include_unverifiable=True).where(Mention.id == mention_id)
     ).scalar_one_or_none()
 
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
+
+    from app.core.ownership import resolve_mention_scope
+    resolve_mention_scope(db, mention.id, expected_organization_id=current_user.current_organization_id)
 
     visit_url, _, _, visit_url_invalid_reason = _mention_link_fields(mention)
     if not visit_url:
@@ -1361,7 +1364,10 @@ def get_mention(
     from app.models.source import Source
     src = None
     if mention.source_id:
-        src = db.execute(select(Source).where(Source.id == mention.source_id)).scalar_one_or_none()
+        src = db.execute(select(Source).where(
+            Source.id == mention.source_id,
+            Source.organization_id == mention.organization_id,
+        )).scalar_one_or_none()
 
     visit_url, display_domain, metadata, visit_url_invalid_reason = _mention_link_fields(mention)
 
@@ -1415,6 +1421,9 @@ def analyze_mention(
 
     if not mention:
         raise HTTPException(status_code=404, detail="Mention not found")
+
+    from app.core.ownership import resolve_mention_scope
+    resolve_mention_scope(db, mention.id, expected_organization_id=current_user.current_organization_id)
 
     # Check if analysis already exists
     existing = db.execute(
@@ -1536,6 +1545,8 @@ def create_alert_from_mention(
         message=message,
         status=AlertStatus.NEW
     )
+    from app.core.ownership import resolve_mention_scope, stamp_scope
+    stamp_scope(alert, resolve_mention_scope(db, mention_id, expected_organization_id=current_user.current_organization_id))
     db.add(alert)
     db.commit()
     db.refresh(alert)

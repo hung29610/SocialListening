@@ -61,6 +61,10 @@ async def _crawl_source_async(source_id: int, keyword_group_ids: list[int]):
             
             if not keyword_groups:
                 return {"error": "No active keyword groups found"}
+            if not source.organization_id or not source.user_id:
+                return {"error": "Source has unresolved tenant ownership"}
+            if any(item["group"].organization_id != source.organization_id for item in keyword_groups):
+                return {"error": "Source and keyword groups belong to different tenants"}
             
             # Crawl the source
             crawl_result = await crawler_service.crawl_url(source.url)
@@ -121,6 +125,7 @@ async def _process_mention(db, source, content_data, keyword_groups):
     # Match keywords
     matched_any = False
     matched_keywords_data = []
+    matched_project_ids = set()
     alert_threshold = 70.0  # Default
     
     for kg in keyword_groups:
@@ -132,11 +137,15 @@ async def _process_mention(db, source, content_data, keyword_groups):
         
         if match_result.get("matched"):
             matched_any = True
+            matched_project_ids.add(kg["group"].id)
             matched_keywords_data.extend(match_result.get("keywords", []))
             alert_threshold = kg["group"].alert_threshold
     
     if not matched_any:
         return False
+    if len(matched_project_ids) != 1:
+        raise ValueError("Crawl result must match exactly one project")
+    project_id = matched_project_ids.pop()
     
     # Calculate content hash for deduplication
     content_hash = crawler_service.calculate_content_hash(full_text)
@@ -153,6 +162,7 @@ async def _process_mention(db, source, content_data, keyword_groups):
         source_id=source.id,
         organization_id=source.organization_id,
         user_id=source.user_id,
+        project_id=project_id,
         title=title,
         content=content,
         content_hash=content_hash,
@@ -195,6 +205,9 @@ async def _analyze_mention_async(mention_id: int, alert_threshold: float):
             
             if not mention:
                 return {"error": "Mention not found", "mention_id": mention_id}
+
+            from app.core.ownership import resolve_async_mention_scope
+            await resolve_async_mention_scope(db, mention.id)
             
             # Analyze with AI synchronously in thread pool
             analysis_result = await asyncio.to_thread(
@@ -241,6 +254,9 @@ async def _analyze_mention_async(mention_id: int, alert_threshold: float):
                 
                 # Create alert
                 alert = Alert(
+                    organization_id=mention.organization_id,
+                    user_id=mention.user_id,
+                    project_id=mention.project_id,
                     mention_id=mention.id,
                     severity=severity,
                     status=AlertStatus.NEW,
@@ -572,8 +588,13 @@ async def _check_overdue_incidents_async():
                     
                     # Create alert for overdue incident
                     from app.models.alert import Alert, AlertSeverity, AlertStatus
-                    
+                    mention = await db.get(Mention, incident.mention_id)
+                    if not mention or not mention.organization_id or not mention.user_id or not mention.project_id:
+                        continue
                     alert = Alert(
+                        organization_id=mention.organization_id,
+                        user_id=mention.user_id,
+                        project_id=mention.project_id,
                         mention_id=incident.mention_id,
                         severity=AlertSeverity.HIGH,
                         status=AlertStatus.NEW,
@@ -660,9 +681,15 @@ async def _run_scheduled_crawl_async(schedule_id: int):
             
             # Create crawl job
             from app.models.crawl import CrawlJob
+            project_ids = set(schedule.keyword_group_ids or [])
+            if len(project_ids) != 1:
+                return {"error": "Scheduled crawl must target exactly one project"}
+            project_id = project_ids.pop()
             crawl_job = CrawlJob(
                 job_type="scheduled",
+                organization_id=organization_id,
                 user_id=schedule_owner.id,
+                project_id=project_id,
                 source_ids=source_ids,
                 keyword_group_ids=schedule.keyword_group_ids or [],
                 status=CrawlJobStatus.PENDING,
@@ -768,6 +795,7 @@ async def _generate_daily_summary_async():
     """Async implementation of generate_daily_summary"""
     async with AsyncSessionLocal() as db:
         try:
+            raise RuntimeError("Global report generation is disabled without an explicit tenant project")
             from app.models.report import Report, ReportType, ReportStatus
             from datetime import timedelta
             
@@ -814,6 +842,7 @@ async def _generate_weekly_report_async():
     """Async implementation of generate_weekly_report"""
     async with AsyncSessionLocal() as db:
         try:
+            raise RuntimeError("Global report generation is disabled without an explicit tenant project")
             from app.models.report import Report, ReportType, ReportStatus
             from datetime import timedelta
             

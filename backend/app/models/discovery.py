@@ -42,6 +42,7 @@ class DiscoveryJob(Base):
     __tablename__ = "discovery_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
     project_id = Column(Integer, nullable=True, index=True)
     keyword_group_id = Column(Integer, nullable=True, index=True)
 
@@ -93,6 +94,8 @@ class DiscoveredSource(Base):
     __tablename__ = "discovered_sources"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
     project_id = Column(Integer, nullable=True, index=True)
     discovery_job_id = Column(Integer, nullable=True, index=True)
 
@@ -148,6 +151,7 @@ class BlockedDomain(Base):
     __tablename__ = "blocked_domains"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
     project_id = Column(Integer, nullable=True, index=True)
     domain = Column(String(500), nullable=False, index=True)
     reason = Column(Text)

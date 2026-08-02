@@ -153,7 +153,11 @@ def fetch_and_parse_feed(url: str) -> Dict:
 
 def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords: List[str] = None, ad_hoc_project_id: int = None) -> Dict:
     """Run RSS collection for given sources or all active RSS sources."""
+    from app.core.ownership import resolve_project_scope
+    requested_scope = resolve_project_scope(db, ad_hoc_project_id) if ad_hoc_project_id is not None else None
     query = select(Source).where(Source.is_active == True, Source.source_type == 'rss')
+    if requested_scope is not None:
+        query = query.where(Source.organization_id == requested_scope.organization_id)
     if source_ids:
         query = query.where(Source.id.in_(source_ids))
         
@@ -169,12 +173,23 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
         "errors": []
     }
     
-    active_keywords = db.execute(select(Keyword).where(Keyword.is_active == True, Keyword.is_excluded == False)).scalars().all()
-    
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     
     for source in sources:
         try:
+            from app.core.ownership import resolve_project_scope, resolve_source_scope, stamp_scope
+            source_scope = resolve_source_scope(db, source.id)
+            if requested_scope is not None and requested_scope.organization_id != source_scope.organization_id:
+                raise ValueError("RSS source and requested project belong to different tenants")
+            active_keywords = db.execute(
+                select(Keyword)
+                .join(KeywordGroup, Keyword.group_id == KeywordGroup.id)
+                .where(
+                    Keyword.is_active == True,
+                    Keyword.is_excluded == False,
+                    KeywordGroup.organization_id == source_scope.organization_id,
+                )
+            ).scalars().all()
             feed_data = fetch_and_parse_feed(source.url)
             if not feed_data["success"]:
                 source.last_error = feed_data["error"]
@@ -238,6 +253,7 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                     content_hash=content_hash,
                     status="collected"
                 )
+                stamp_scope(source_item, source_scope, project=False)
                 db.add(source_item)
                 db.flush()
                 result["source_items_created"] += 1
@@ -256,16 +272,18 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                         if not project_id and ad_hoc_project_id:
                             project_id = ad_hoc_project_id
 
+                matched_project_ids = set()
                 for kw in active_keywords:
                     kw_norm = strip_accents(kw.keyword.lower())
                     if kw_norm in text_to_match:
                         matched_kws.append({"keyword": kw.keyword, "count": text_to_match.count(kw_norm)})
+                        matched_project_ids.add(kw.group_id)
                         
                 if matched_kws and not project_id:
-                    # Assign to the project of the first matched keyword
-                    first_kw = active_keywords[0]
-                    kw_group = db.query(KeywordGroup).get(first_kw.group_id)
-                    project_id = kw_group.project_id if kw_group else None
+                    if len(matched_project_ids) == 1:
+                        project_id = next(iter(matched_project_ids))
+                    else:
+                        raise ValueError("RSS item matched multiple projects; ownership is ambiguous")
                     
                 # Always create mention so user can search for broader keywords on the web
                 m_exists = db.execute(
@@ -301,6 +319,10 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                             "media_thumbnail": item.get("media_thumbnail")
                         }
                     )
+                    mention_scope = requested_scope or resolve_project_scope(
+                        db, project_id, expected_organization_id=source_scope.organization_id
+                    )
+                    stamp_scope(mention, mention_scope)
                     db.add(mention)
                     db.flush()  # Get mention.id for AIAnalysis
                     result["mentions_created"] += 1
@@ -344,6 +366,7 @@ def run_rss_collector(db: Session, source_ids: List[int] = None, ad_hoc_keywords
                                     title=f"High risk mention: {mention.title or mention.url}",
                                     message=f"Risk: {analysis_result['risk_score']}, Sentiment: {analysis_result['sentiment']}"
                                 )
+                                stamp_scope(alert, mention_scope)
                                 db.add(alert)
                     except Exception as ai_err:
                         logger.info(f"AI analysis skipped for RSS mention {mention.id}: {ai_err}")

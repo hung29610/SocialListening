@@ -31,6 +31,7 @@ def run_automated_scans():
             ).scalars().all()
         
             project_keywords = {}
+            project_owners = {}
             for group in groups:
                 keywords = db.execute(
                     select(Keyword).where(
@@ -43,7 +44,11 @@ def run_automated_scans():
                 if not keywords:
                     continue
                     
-                pid = group.project_id
+                pid = group.id
+                if not group.organization_id or not group.user_id:
+                    logger.error("Skipping unscoped project %s", pid)
+                    continue
+                project_owners[pid] = (group.organization_id, group.user_id)
                 if pid not in project_keywords:
                     project_keywords[pid] = []
                     
@@ -74,7 +79,11 @@ def run_automated_scans():
                         logger.info(f"Skipping auto-scan for project {project_id}: Job {running_job.id} already running.")
                         continue
     
+                organization_id, owner_user_id = project_owners[project_id]
                 job = CrawlJob(
+                    organization_id=organization_id,
+                    user_id=owner_user_id,
+                    project_id=project_id,
                     job_type='auto_scan',
                     status=CrawlJobStatus.PENDING,
                     total_sources=0,

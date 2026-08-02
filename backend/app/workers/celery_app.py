@@ -4,6 +4,7 @@ Celery application for background tasks
 from celery import Celery
 from celery.schedules import crontab
 from app.core.config import settings
+from app.core import ownership as _ownership  # register fail-closed write guards
 
 # Create Celery app
 celery_app = Celery(

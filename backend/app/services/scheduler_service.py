@@ -216,7 +216,20 @@ def execute_scheduled_scan(source_id: int):
         logger.info(f"Starting scheduled scan for source: {source.name} (ID: {source_id})")
 
         # Create crawl job
+        from app.models.keyword import KeywordGroup
+        project_ids = set(db.execute(
+            select(KeywordGroup.id).where(
+                KeywordGroup.organization_id == source.organization_id,
+                KeywordGroup.is_active == True,
+            )
+        ).scalars())
+        if len(project_ids) != 1:
+            raise ValueError("Scheduled source scan requires exactly one tenant project")
+        project_id = project_ids.pop()
         job = CrawlJob(
+            organization_id=source.organization_id,
+            user_id=source.user_id,
+            project_id=project_id,
             source_ids=[source_id],
             job_type='scheduled',
             status=CrawlJobStatus.PENDING,
@@ -798,7 +811,7 @@ def execute_scan_schedule_job(schedule_id: int):
         groups = db.execute(
             select(KeywordGroup).where(KeywordGroup.id.in_(schedule.keyword_group_ids or []))
         ).scalars().all()
-        project_ids = {group.project_id for group in groups if group.project_id is not None}
+        project_ids = {group.id for group in groups}
         if len(project_ids) != 1:
             raise ValueError("Scheduled scan must target exactly one project")
         project_id = project_ids.pop()
@@ -818,7 +831,9 @@ def execute_scan_schedule_job(schedule_id: int):
         job = CrawlJob(
             scan_schedule_id=schedule.id,
             job_type='scheduled',
+            organization_id=organization_id,
             user_id=owner_user_id,
+            project_id=project_id,
             status=CrawlJobStatus.PENDING,
             source_ids=[], # Can be updated later
             keyword_group_ids=schedule.keyword_group_ids,

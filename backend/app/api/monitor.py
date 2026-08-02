@@ -96,14 +96,23 @@ def start_monitoring(
     # ── Step 1: Tạo/cập nhật keyword trong database ──────────────────
     keyword_created = False
     try:
-        keyword_created = _ensure_keyword_exists(db, keyword_text)
+        keyword_created = _ensure_keyword_exists(db, keyword_text, current_user)
     except Exception as e:
         logger.error(f"[Monitor] Error creating keyword: {e}")
         # Continue even if keyword creation fails — we can still scan
 
     # ── Step 2: Kiểm tra nguồn hoạt động ─────────────────────────────
+    from app.core.ownership import resolve_actor_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    monitor_group = db.execute(select(KeywordGroup).where(
+        KeywordGroup.name == "Monitor",
+        KeywordGroup.organization_id == actor_scope.organization_id,
+    )).scalar_one()
     active_sources = db.execute(
-        select(Source).where(Source.is_active == True)
+        select(Source).where(
+            Source.is_active == True,
+            Source.organization_id == actor_scope.organization_id,
+        )
     ).scalars().all()
 
     active_sources = [s for s in active_sources if s.is_active]
@@ -139,6 +148,9 @@ def start_monitoring(
         try:
             # Tạo crawl_job thật
             job = CrawlJob(
+                organization_id=actor_scope.organization_id,
+                user_id=current_user.id,
+                project_id=monitor_group.id,
                 source_ids=[source.id],
                 job_type='monitor',
                 status=CrawlJobStatus.RUNNING,
@@ -569,17 +581,20 @@ def get_ai_analysis(
 # HELPER FUNCTIONS
 # ============================================================================
 
-def _ensure_keyword_exists(db: Session, keyword_text: str) -> bool:
+def _ensure_keyword_exists(db: Session, keyword_text: str, current_user: User) -> bool:
     """
     Đảm bảo keyword tồn tại trong database.
     Tạo keyword group "Monitor" nếu chưa có, sau đó tạo keyword.
     Returns True if keyword was newly created.
     """
     # Kiểm tra keyword đã tồn tại chưa
+    from app.core.ownership import resolve_actor_scope, stamp_scope
+    scope = resolve_actor_scope(db, current_user)
     existing = db.execute(
-        select(Keyword).where(
+        select(Keyword).join(KeywordGroup, Keyword.group_id == KeywordGroup.id).where(
             Keyword.keyword == keyword_text,
-            Keyword.is_active == True
+            Keyword.is_active == True,
+            KeywordGroup.organization_id == scope.organization_id,
         )
     ).scalar_one_or_none()
 
@@ -588,7 +603,10 @@ def _ensure_keyword_exists(db: Session, keyword_text: str) -> bool:
 
     # Tìm hoặc tạo keyword group "Monitor"
     monitor_group = db.execute(
-        select(KeywordGroup).where(KeywordGroup.name == "Monitor")
+        select(KeywordGroup).where(
+            KeywordGroup.name == "Monitor",
+            KeywordGroup.organization_id == scope.organization_id,
+        )
     ).scalar_one_or_none()
 
     if not monitor_group:
@@ -598,6 +616,7 @@ def _ensure_keyword_exists(db: Session, keyword_text: str) -> bool:
             priority=3,
             is_active=True,
         )
+        stamp_scope(monitor_group, scope, project=False)
         db.add(monitor_group)
         db.flush()
 

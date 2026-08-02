@@ -6,6 +6,8 @@ class SourceItem(Base):
     __tablename__ = "source_items"
     
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
     source_type = Column(String(50), index=True)  # rss, web, video, facebook, etc.
     platform = Column(String(100), index=True)
     source_id = Column(Integer, nullable=True, index=True)  # ID in 'sources' table if applicable

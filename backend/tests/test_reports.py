@@ -10,20 +10,23 @@ from app.main import app
 from app.core.security import get_current_active_user
 from app.core.database import get_db
 from app.models.user import User
+from app.core.ownership import TenantScope
 
 # Mock Users
 mock_superuser = User(
     id=1,
     email="admin@example.com",
     is_active=True,
-    is_superuser=True
+    is_superuser=True,
+    current_organization_id=1,
 )
 
 mock_normal_user = User(
     id=2,
     email="user@example.com",
     is_active=True,
-    is_superuser=False
+    is_superuser=False,
+    current_organization_id=1,
 )
 
 def override_get_superuser():
@@ -47,9 +50,12 @@ def override_get_db():
     yield mock_db
 @pytest.fixture(autouse=True, scope="module")
 def setup_overrides():
+    ownership_patch = patch("app.core.ownership.resolve_actor_scope", return_value=TenantScope(1, 1, 1))
+    ownership_patch.start()
     app.dependency_overrides[get_current_active_user] = override_get_superuser
     app.dependency_overrides[get_db] = override_get_db
     yield
+    ownership_patch.stop()
     app.dependency_overrides.clear()
 
 client = TestClient(app)
@@ -172,7 +178,7 @@ def test_export_unsupported_formats():
 @patch("app.services.export_service.ExportService.process_export")
 def test_async_export_request(mock_process_export):
     app.dependency_overrides[get_db] = override_get_db
-    response = client.post("/api/reports/export/pdf")
+    response = client.post("/api/reports/export/pdf?project_id=1")
     assert response.status_code == 201
     data = response.json()
     assert data["report_type"] == "pdf"
@@ -180,7 +186,7 @@ def test_async_export_request(mock_process_export):
     assert "id" in data
     mock_process_export.assert_called_once_with(1)
 
-    response = client.post("/api/reports/export/invalid_type")
+    response = client.post("/api/reports/export/invalid_type?project_id=1")
     assert response.status_code == 400
 
 def test_upload_pdf_logo_invalid_type():
@@ -210,7 +216,7 @@ def test_request_export_saves_builder_config():
             "theme": "dark",
             "sections": [{"id": "summary", "enabled": True}]
         }
-        response = client.post("/api/reports/export/pdf", json=builder_config)
+        response = client.post("/api/reports/export/pdf?project_id=1", json=builder_config)
         assert response.status_code == 201
         assert response.json()["status"] == "pending"
 
@@ -237,7 +243,7 @@ def test_request_export_datetime_serialization():
                 "date_to": "2026-06-28T11:00:00Z",
                 "sections": [{"id": "summary", "enabled": True}]
             }
-            response = client.post("/api/reports/export/pdf", json=builder_config)
+            response = client.post("/api/reports/export/pdf?project_id=1", json=builder_config)
             assert response.status_code == 201
             assert response.json()["status"] == "pending"
             

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- HELPER: Matching Engine ---
-def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywords: List[Keyword], project_id: Optional[int] = None) -> int:
+def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywords: List[Keyword], scope) -> int:
     """Run matching engine for a source_item against keywords and create Mentions."""
     mentions_created = 0
     search_text = f"{source_item.title or ''} {source_item.snippet or ''} {source_item.content or ''}".lower()
@@ -29,7 +29,7 @@ def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywo
         if not kw_text: continue
         
         # If project_id is provided, only match for that project
-        if project_id and kw.project_id != project_id:
+        if kw.group_id != scope.project_id:
             continue
             
         if kw_text in search_text:
@@ -37,7 +37,7 @@ def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywo
             existing = db.execute(
                 select(Mention).where(
                     and_(
-                        Mention.project_id == kw.project_id,
+                        Mention.project_id == scope.project_id,
                         Mention.keyword_text == kw_text,
                         Mention.url == source_item.url
                     )
@@ -50,7 +50,9 @@ def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywo
                 
             # Create Mention
             mention = Mention(
-                project_id=kw.project_id,
+                organization_id=scope.organization_id,
+                user_id=scope.user_id,
+                project_id=scope.project_id,
                 keyword_id=kw.id,
                 keyword_text=kw_text,
                 source_id=source_item.source_id,
@@ -70,7 +72,7 @@ def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywo
                 # Since content_hash is unique in Mention, let's use hash(url + project_id)
             )
             # Fix content_hash for Mention deduplication
-            mention.content_hash = hashlib.sha256(f"{source_item.url}_{kw.project_id}".encode()).hexdigest()
+            mention.content_hash = hashlib.sha256(f"{source_item.url}_{scope.project_id}".encode()).hexdigest()
             db.add(mention)
             mentions_created += 1
             
@@ -78,16 +80,16 @@ def match_and_create_mentions(db: Session, source_item: SourceItem, active_keywo
     return mentions_created
 
 # --- RSS COLLECTOR ---
-def run_rss_collector_api(project_id: Optional[int] = None) -> Dict[str, Any]:
+def run_rss_collector_api(project_id: int) -> Dict[str, Any]:
     from app.services.rss_collector import run_rss_collector as service_run_rss
     db = SessionLocal()
     try:
-        return service_run_rss(db)
+        return service_run_rss(db, ad_hoc_project_id=project_id)
     finally:
         db.close()
 
 # --- SERPAPI COLLECTOR ---
-def run_serpapi_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
+def run_serpapi_collector(project_id: int, organization_id: int, user_id: int) -> Dict[str, Any]:
     db = SessionLocal()
     result = {"status": "READY", "source_items_created": 0, "mentions_created": 0, "duplicates_skipped": 0, "errors": []}
     if not getattr(settings, "SERPAPI_API_KEY", ""):
@@ -95,10 +97,11 @@ def run_serpapi_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
         return result
         
     try:
+        from app.core.ownership import validate_explicit_scope, stamp_scope
+        scope = validate_explicit_scope(db, organization_id, user_id, project_id)
         from app.services.serpapi_provider import search
         query = select(Keyword).where(Keyword.is_active == True)
-        if project_id:
-            query = query.where(Keyword.project_id == project_id)
+        query = query.where(Keyword.group_id == project_id)
         keywords = db.execute(query).scalars().all()
         
         result["status"] = "COMPLETED"
@@ -119,6 +122,8 @@ def run_serpapi_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
                         
                     from urllib.parse import urlparse
                     item = SourceItem(
+                        organization_id=scope.organization_id,
+                        user_id=scope.user_id,
                         source_type="web",
                         platform="web",
                         url=url,
@@ -133,7 +138,7 @@ def run_serpapi_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
                     db.flush()
                     result["source_items_created"] += 1
                     
-                    m_count = match_and_create_mentions(db, item, keywords, project_id)
+                    m_count = match_and_create_mentions(db, item, keywords, scope)
                     result["mentions_created"] += m_count
             except Exception as e:
                 result["errors"].append(f"SerpAPI kw {kw.keyword}: {e}")
@@ -147,7 +152,7 @@ def run_serpapi_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
     return result
 
 # --- YOUTUBE COLLECTOR ---
-def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
+def run_youtube_collector(project_id: int, organization_id: int, user_id: int) -> Dict[str, Any]:
     db = SessionLocal()
     result = {"status": "READY", "source_items_created": 0, "mentions_created": 0, "duplicates_skipped": 0, "errors": []}
     if not getattr(settings, "YOUTUBE_API_KEY", ""):
@@ -155,6 +160,8 @@ def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
         return result
         
     try:
+        from app.core.ownership import validate_explicit_scope
+        scope = validate_explicit_scope(db, organization_id, user_id, project_id)
         from app.services.connectors.youtube_connector import YouTubeConnector
         yt = YouTubeConnector()
         if not yt.validate_config():
@@ -162,8 +169,7 @@ def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
             return result
             
         query = select(Keyword).where(Keyword.is_active == True)
-        if project_id:
-            query = query.where(Keyword.project_id == project_id)
+        query = query.where(Keyword.group_id == project_id)
         keywords = db.execute(query).scalars().all()
         
         result["status"] = "COMPLETED"
@@ -182,6 +188,8 @@ def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
                         continue
                         
                     item = SourceItem(
+                        organization_id=scope.organization_id,
+                        user_id=scope.user_id,
                         source_type="video",
                         platform="youtube",
                         url=url,
@@ -198,7 +206,7 @@ def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
                     db.flush()
                     result["source_items_created"] += 1
                     
-                    m_count = match_and_create_mentions(db, item, keywords, project_id)
+                    m_count = match_and_create_mentions(db, item, keywords, scope)
                     result["mentions_created"] += m_count
             except Exception as e:
                 result["errors"].append(f"YT kw {kw.keyword}: {e}")
@@ -213,10 +221,12 @@ def run_youtube_collector(project_id: Optional[int] = None) -> Dict[str, Any]:
 
 # --- ENDPOINTS ---
 @router.post("/run")
-def run_all_collectors(project_id: Optional[int] = Query(None), current_user: User = Depends(get_current_active_user)):
+def run_all_collectors(project_id: int = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user, project_id)
     rss_res = run_rss_collector_api(project_id)
-    serp_res = run_serpapi_collector(project_id)
-    yt_res = run_youtube_collector(project_id)
+    serp_res = run_serpapi_collector(project_id, scope.organization_id, scope.user_id)
+    yt_res = run_youtube_collector(project_id, scope.organization_id, scope.user_id)
     
     total_items = rss_res["source_items_created"] + serp_res["source_items_created"] + yt_res["source_items_created"]
     total_mentions = rss_res["mentions_created"] + serp_res["mentions_created"] + yt_res["mentions_created"]
@@ -234,13 +244,19 @@ def run_all_collectors(project_id: Optional[int] = Query(None), current_user: Us
     }
 
 @router.post("/run/rss")
-def run_rss(project_id: Optional[int] = Query(None), current_user: User = Depends(get_current_active_user)):
+def run_rss(project_id: int = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    from app.core.ownership import resolve_actor_scope
+    resolve_actor_scope(db, current_user, project_id)
     return run_rss_collector_api(project_id)
 
 @router.post("/run/serpapi")
-def run_serpapi(project_id: Optional[int] = Query(None), current_user: User = Depends(get_current_active_user)):
-    return run_serpapi_collector(project_id)
+def run_serpapi(project_id: int = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user, project_id)
+    return run_serpapi_collector(project_id, scope.organization_id, scope.user_id)
 
 @router.post("/run/youtube")
-def run_youtube(project_id: Optional[int] = Query(None), current_user: User = Depends(get_current_active_user)):
-    return run_youtube_collector(project_id)
+def run_youtube(project_id: int = Query(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    from app.core.ownership import resolve_actor_scope
+    scope = resolve_actor_scope(db, current_user, project_id)
+    return run_youtube_collector(project_id, scope.organization_id, scope.user_id)

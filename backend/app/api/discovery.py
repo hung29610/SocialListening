@@ -208,7 +208,12 @@ def approve_source_as_rss(
     current_user: User = Depends(get_current_active_user),
 ):
     """Approve a discovered source as RSS Feed → create active Source."""
-    ds = db.query(DiscoveredSource).get(source_id)
+    from app.core.ownership import resolve_actor_scope, validate_explicit_scope, stamp_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    ds = db.execute(select(DiscoveredSource).where(
+        DiscoveredSource.id == source_id,
+        DiscoveredSource.organization_id == actor_scope.organization_id,
+    )).scalar_one_or_none()
     if not ds:
         raise HTTPException(status_code=404, detail="Không tìm thấy nguồn.")
 
@@ -230,6 +235,8 @@ def approve_source_as_rss(
         url=ds.rss_feed_url,
         is_active=True,
     )
+    validate_explicit_scope(db, ds.organization_id, ds.user_id, ds.project_id)
+    stamp_scope(new_source, actor_scope, project=False)
     db.add(new_source)
     db.flush()
 
@@ -252,7 +259,12 @@ def approve_source_as_website(
     current_user: User = Depends(get_current_active_user),
 ):
     """Approve a discovered source as Website → create active Source."""
-    ds = db.query(DiscoveredSource).get(source_id)
+    from app.core.ownership import resolve_actor_scope, validate_explicit_scope, stamp_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    ds = db.execute(select(DiscoveredSource).where(
+        DiscoveredSource.id == source_id,
+        DiscoveredSource.organization_id == actor_scope.organization_id,
+    )).scalar_one_or_none()
     if not ds:
         raise HTTPException(status_code=404, detail="Không tìm thấy nguồn.")
 
@@ -272,6 +284,8 @@ def approve_source_as_website(
         url=use_url,
         is_active=True,
     )
+    validate_explicit_scope(db, ds.organization_id, ds.user_id, ds.project_id)
+    stamp_scope(new_source, actor_scope, project=False)
     db.add(new_source)
     db.flush()
 
@@ -311,7 +325,12 @@ def block_discovered_source(
     current_user: User = Depends(get_current_active_user),
 ):
     """Block a discovered source domain."""
-    ds = db.query(DiscoveredSource).get(source_id)
+    from app.core.ownership import resolve_actor_scope, validate_explicit_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    ds = db.execute(select(DiscoveredSource).where(
+        DiscoveredSource.id == source_id,
+        DiscoveredSource.organization_id == actor_scope.organization_id,
+    )).scalar_one_or_none()
     if not ds:
         raise HTTPException(status_code=404, detail="Không tìm thấy nguồn.")
 
@@ -338,6 +357,8 @@ def block_discovered_source(
     ).scalar_one_or_none()
     if not existing_block:
         db.add(BlockedDomain(
+            organization_id=actor_scope.organization_id,
+            project_id=ds.project_id,
             domain=ds.domain,
             reason=reason or "Người dùng chặn qua Discovered Sources.",
             blocked_by_user_id=current_user.id,

@@ -28,7 +28,7 @@ def _risk_from_sentiment(sentiment: str, risk_score: float) -> float:
     return max(0.0, min(100.0, float(risk_score)))
 
 
-def _persist_mentions(db, raw_mentions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _persist_mentions(db, raw_mentions: List[Dict[str, Any]], scope) -> List[Dict[str, Any]]:
     """Save new mentions and return list of created mention dicts for broadcast."""
     created = []
     success_count = 0
@@ -90,6 +90,9 @@ def _persist_mentions(db, raw_mentions: List[Dict[str, Any]]) -> List[Dict[str, 
             reach = int(raw.get("reach_estimate") or interactions * 5 or 0)
 
             mention = Mention(
+                organization_id=scope.organization_id,
+                user_id=scope.user_id,
+                project_id=scope.project_id,
                 keyword_text=raw.get("keyword"),
                 source_type=raw.get("source_type"),
                 platform=raw.get("platform"),
@@ -201,28 +204,39 @@ def run_social_crawl_sync():
             if not acquired:
                 return
 
-            keywords = db.execute(
-                select(Keyword.keyword).where(Keyword.is_active == True)
-            ).scalars().all()
-            if not keywords:
+            from app.core.ownership import resolve_project_scope
+            from app.models.keyword import KeywordGroup
+            groups = db.execute(select(KeywordGroup).where(
+                KeywordGroup.is_active == True,
+                KeywordGroup.organization_id.isnot(None),
+                KeywordGroup.user_id.isnot(None),
+            )).scalars().all()
+            if not groups:
                 logger.info("[SocialCrawl] No active keywords")
                 return
-
-            keyword_list = list({k.strip() for k in keywords if k and k.strip()})[:20]
             platforms = DEFAULT_PLATFORMS.copy()
             from app.core.config import settings
             if settings.TWITTER_BEARER_TOKEN:
                 platforms.insert(0, "twitter")
 
-            logger.info(f"[SocialCrawl] Crawling {len(keyword_list)} keywords on {platforms}")
-
-            raw = asyncio.run(social_crawler_service.crawl_keywords(keyword_list, platforms))
-            if not raw:
-                logger.warning("No active crawl provider configured or all providers failed/returned 0 results.")
-                return
-
-            success_count, error_count, errors, created = _persist_mentions(db, raw)
-            logger.info(f"[SocialCrawl] {success_count} inserted, {error_count} failed from {len(raw)} fetched")
+            success_count = error_count = 0
+            errors = []
+            created = []
+            for group in groups:
+                scope = resolve_project_scope(db, group.id)
+                keywords = db.execute(select(Keyword.keyword).where(
+                    Keyword.group_id == group.id,
+                    Keyword.is_active == True,
+                )).scalars().all()
+                keyword_list = list({k.strip() for k in keywords if k and k.strip()})[:20]
+                if not keyword_list:
+                    continue
+                raw = asyncio.run(social_crawler_service.crawl_keywords(keyword_list, platforms))
+                group_success, group_errors, group_details, group_created = _persist_mentions(db, raw, scope)
+                success_count += group_success
+                error_count += group_errors
+                errors.extend(group_details)
+                created.extend(group_created)
 
             if created:
                 try:

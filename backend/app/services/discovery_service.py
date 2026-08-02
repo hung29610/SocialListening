@@ -358,8 +358,13 @@ def _guess_source_type(domain: str, title: str = "", body: str = "") -> str:
 
 def create_discovery_job(db: Session, user_id: int, request_data: dict) -> DiscoveryJob:
     """Create a discovery job record in DB."""
+    from app.core.ownership import resolve_actor_scope, stamp_scope
+    from app.models.user import User
+    actor = db.get(User, user_id)
+    project_id = request_data.get("project_id") or request_data.get("keyword_group_id")
+    scope = resolve_actor_scope(db, actor, project_id)
     job = DiscoveryJob(
-        project_id=request_data.get("project_id"),
+        project_id=project_id,
         keyword_group_id=request_data.get("keyword_group_id"),
         status=DiscoveryJobStatus.QUEUED,
         query_keywords=request_data.get("keywords", []),
@@ -370,6 +375,7 @@ def create_discovery_job(db: Session, user_id: int, request_data: dict) -> Disco
         limit=request_data.get("limit", 50),
         created_by_user_id=user_id,
     )
+    stamp_scope(job, scope)
     db.add(job)
     db.flush()
     return job
@@ -655,6 +661,8 @@ def run_discovery_job(db: Session, job_id: int) -> DiscoveryJob:
             )
 
             mention = Mention(
+                organization_id=job.organization_id,
+                user_id=job.created_by_user_id,
                 project_id=job.project_id,  # Set project_id from discovery job
                 job_id=job.id,
                 source_id=None,  # Nullable for auto-discovered
@@ -848,6 +856,9 @@ def run_discovery_job(db: Session, job_id: int) -> DiscoveryJob:
             else:
                 # Create new
                 ds = DiscoveredSource(
+                    organization_id=job.organization_id,
+                    user_id=job.created_by_user_id,
+                    project_id=job.project_id,
                     discovery_job_id=job.id,
                     source_name=ddata.get("title", domain)[:500] or domain,
                     domain=domain,

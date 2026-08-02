@@ -109,14 +109,15 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
             job_id, project_id, len(keyword_texts), mode
         )
 
+        from app.core.ownership import TenantOwnershipError, TenantReason, validate_explicit_scope
+        if job.project_id != project_id:
+            raise TenantOwnershipError(
+                TenantReason.SCOPE_CONFLICT, "Scan job project conflicts with requested project"
+            )
+        project_scope = validate_explicit_scope(db, job.organization_id, job.user_id, job.project_id)
         current_meta = job.meta_data or {}
-        organization_id = current_meta.get("organization_id")
-        user_id = current_meta.get("user_id") or job.user_id
-        if organization_id is None and user_id is not None:
-            from app.models.user import User
-
-            owner = db.get(User, user_id)
-            organization_id = owner.current_organization_id if owner else None
+        organization_id = job.organization_id
+        user_id = job.user_id
         original_query = current_meta.get("query")
         provider_used = current_meta.get("provider", "none")
         if current_meta.get("expand_keywords") and original_query:

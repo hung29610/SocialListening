@@ -467,11 +467,14 @@ def create_report(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new report and generate it inline"""
+    from app.core.ownership import resolve_actor_scope, stamp_scope
+    scope = resolve_actor_scope(db, current_user, report_data.project_id)
     report = Report(
         **report_data.dict(),
         generated_by=current_user.id,
         status=ReportStatus.GENERATING
     )
+    stamp_scope(report, scope)
     db.add(report)
     db.commit()
     db.refresh(report)
@@ -699,7 +702,7 @@ def export_project_summary(
 def request_async_export(
     report_type: str,
     background_tasks: BackgroundTasks,
-    project_id: Optional[int] = Query(None),
+    project_id: int = Query(...),
     builder_config: Optional[ReportBuilderConfig] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -712,6 +715,8 @@ def request_async_export(
     if builder_config:
         builder_config_payload = json.loads(builder_config.json())
         
+    from app.core.ownership import resolve_actor_scope, stamp_scope
+    scope = resolve_actor_scope(db, current_user, project_id)
     export_job = ReportExport(
         report_type=report_type,
         project_id=project_id,
@@ -720,6 +725,7 @@ def request_async_export(
         builder_config=builder_config_payload,
         created_at=datetime.utcnow()
     )
+    stamp_scope(export_job, scope)
     db.add(export_job)
     db.commit()
     db.refresh(export_job)
