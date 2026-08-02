@@ -634,95 +634,10 @@ def run_scheduled_crawl(self: Task, schedule_id: int):
 
 
 async def _run_scheduled_crawl_async(schedule_id: int):
-    """Async implementation of run_scheduled_crawl"""
-    async with AsyncSessionLocal() as db:
-        try:
-            from app.models.crawl import ScanSchedule
-            
-            # Get schedule
-            result = await db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id))
-            schedule = result.scalar_one_or_none()
-            
-            if not schedule or not schedule.is_active:
-                return {"error": "Schedule not found or inactive"}
+    """Run the shared tenant-validated schedule path outside the event loop."""
+    from app.services.scheduler_service import execute_scan_schedule_job
 
-            if schedule.user_id is None:
-                return {"error": "Scheduled crawl requires an owner"}
-            from app.models.user import User
-
-            result = await db.execute(
-                select(User).where(User.id == schedule.user_id)
-            )
-            schedule_owner = result.scalar_one_or_none()
-            if (
-                schedule_owner is None
-                or schedule_owner.current_organization_id is None
-            ):
-                return {
-                    "error": "Scheduled crawl owner requires an active organization"
-                }
-            organization_id = schedule_owner.current_organization_id
-            
-            # Get sources from source groups
-            source_ids = []
-            if schedule.source_group_ids:
-                from app.models.source import Source
-                result = await db.execute(
-                    select(Source.id).where(
-                        Source.group_id.in_(schedule.source_group_ids),
-                        Source.is_active == True,
-                        Source.organization_id == organization_id,
-                    )
-                )
-                source_ids = [row[0] for row in result.all()]
-            
-            if not source_ids:
-                return {"error": "No active sources found"}
-            
-            # Create crawl job
-            from app.models.crawl import CrawlJob
-            project_ids = set(schedule.keyword_group_ids or [])
-            if len(project_ids) != 1:
-                return {"error": "Scheduled crawl must target exactly one project"}
-            project_id = project_ids.pop()
-            crawl_job = CrawlJob(
-                job_type="scheduled",
-                organization_id=organization_id,
-                user_id=schedule_owner.id,
-                project_id=project_id,
-                source_ids=source_ids,
-                keyword_group_ids=schedule.keyword_group_ids or [],
-                status=CrawlJobStatus.PENDING,
-                total_sources=len(source_ids),
-                meta_data={
-                    "organization_id": organization_id,
-                    "user_id": schedule_owner.id,
-                    "scheduled": True,
-                },
-            )
-            
-            db.add(crawl_job)
-            await db.flush()
-            
-            # Update schedule
-            schedule.last_run_at = datetime.utcnow()
-            
-            await db.commit()
-            
-            # Trigger crawl for each source
-            for source_id in source_ids:
-                crawl_source.delay(source_id, schedule.keyword_group_ids or [])
-            
-            return {
-                "success": True,
-                "schedule_id": schedule_id,
-                "crawl_job_id": crawl_job.id,
-                "sources_queued": len(source_ids)
-            }
-            
-        except Exception as e:
-            await db.rollback()
-            return {"error": str(e), "schedule_id": schedule_id}
+    return await asyncio.to_thread(execute_scan_schedule_job, schedule_id)
 
 
 

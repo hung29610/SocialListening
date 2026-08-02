@@ -511,13 +511,15 @@ def run_scheduled_discovery_scans():
                 logger.info(f"[AutoDiscovery] Triggering scheduled discovery for project: {group.name}")
                 try:
                     # Create job mimicking manual creation
+                    if not group.organization_id or not group.user_id:
+                        raise ValueError("Scheduled discovery requires a tenant-scoped project")
                     req_dict = {
                         "keyword_group_id": group.id,
-                        "project_id": group.project_id,
+                        "project_id": group.id,
                         "limit": 20,
                         "date_range": "last_24_hours"
                     }
-                    job = create_discovery_job(db, group.created_by_user_id, req_dict)
+                    job = create_discovery_job(db, group.user_id, req_dict)
                     db.commit()
                     
                     # Run job
@@ -798,16 +800,23 @@ def get_worker_status(db: Session) -> dict:
 
 # --- PHASE 4: AUTOMATED SCAN SCHEDULES ---
 
-def _resolve_schedule_owner_context(db: Session, schedule) -> tuple[int, int]:
-    """Resolve a scheduled scan's tenant owner or fail closed."""
-    if schedule.user_id is None:
-        raise ValueError("Scheduled scan requires an owner")
-    from app.models.user import User
+def _resolve_schedule_owner_context(db: Session, schedule, project_id: int) -> tuple[int, int]:
+    """Validate durable schedule scope without consulting mutable user context."""
+    from app.core.ownership import validate_explicit_scope, validate_schedule_targets
 
-    schedule_owner = db.get(User, schedule.user_id)
-    if schedule_owner is None or schedule_owner.current_organization_id is None:
-        raise ValueError("Scheduled scan owner requires an active organization")
-    return schedule_owner.id, schedule_owner.current_organization_id
+    scope = validate_explicit_scope(
+        db,
+        schedule.organization_id,
+        schedule.user_id,
+        project_id,
+    )
+    validate_schedule_targets(
+        db,
+        scope,
+        source_group_ids=schedule.source_group_ids,
+        keyword_group_ids=schedule.keyword_group_ids,
+    )
+    return scope.user_id, scope.organization_id
 
 
 def execute_scan_schedule_job(schedule_id: int):
@@ -819,11 +828,23 @@ def execute_scan_schedule_job(schedule_id: int):
         schedule = db.execute(select(ScanSchedule).where(ScanSchedule.id == schedule_id)).scalar_one_or_none()
         if not schedule or not schedule.is_active:
             logger.info(f"ScanSchedule {schedule_id} not found or inactive, skipping.")
-            return
+            return {"success": False, "reason": "schedule_not_found_or_inactive", "schedule_id": schedule_id}
             
         logger.info(f"Starting ScanSchedule {schedule_id}: {schedule.name}")
         
-        # Create a ScanLog entry
+        # Resolve the schedule to the same concrete scan contract used by
+        # manual scans. A schedule spanning projects is ambiguous and must not
+        # silently mix tenant data into one job.
+        from app.models.keyword import Keyword, KeywordGroup
+        project_ids = set(schedule.keyword_group_ids or [])
+        if len(project_ids) != 1:
+            raise ValueError("Scheduled scan must target exactly one project")
+        project_id = project_ids.pop()
+        owner_user_id, organization_id = _resolve_schedule_owner_context(db, schedule, project_id)
+        groups = db.execute(
+            select(KeywordGroup).where(KeywordGroup.id == project_id)
+        ).scalars().all()
+
         log_entry = ScanLog(
             scan_schedule_id=schedule.id,
             level="INFO",
@@ -831,19 +852,6 @@ def execute_scan_schedule_job(schedule_id: int):
         )
         db.add(log_entry)
         db.commit()
-        
-        # Resolve the schedule to the same concrete scan contract used by
-        # manual scans. A schedule spanning projects is ambiguous and must not
-        # silently mix tenant data into one job.
-        from app.models.keyword import Keyword, KeywordGroup
-        groups = db.execute(
-            select(KeywordGroup).where(KeywordGroup.id.in_(schedule.keyword_group_ids or []))
-        ).scalars().all()
-        project_ids = {group.id for group in groups}
-        if len(project_ids) != 1:
-            raise ValueError("Scheduled scan must target exactly one project")
-        project_id = project_ids.pop()
-        owner_user_id, organization_id = _resolve_schedule_owner_context(db, schedule)
         keywords = db.execute(
             select(Keyword).where(
                 Keyword.group_id.in_([group.id for group in groups]),
@@ -907,6 +915,12 @@ def execute_scan_schedule_job(schedule_id: int):
                 message=f"Scan completed with status {job.status.value}. Mentions found: {job.mentions_found}"
             ))
             db.commit()
+            return {
+                "success": True,
+                "schedule_id": schedule.id,
+                "crawl_job_id": job.id,
+                "status": job.status.value,
+            }
             
         except Exception as e:
             job.status = CrawlJobStatus.FAILED
@@ -920,9 +934,17 @@ def execute_scan_schedule_job(schedule_id: int):
                 message=f"Scan failed: {job.error_message}"
             ))
             db.commit()
+            return {
+                "success": False,
+                "schedule_id": schedule.id,
+                "crawl_job_id": job.id,
+                "reason": "scan_failed",
+            }
             
     except Exception as e:
         logger.error(f"❌ Error in execute_scan_schedule_job {schedule_id}: {e}")
+        db.rollback()
+        return {"success": False, "schedule_id": schedule_id, "reason": type(e).__name__}
     finally:
         db.close()
 

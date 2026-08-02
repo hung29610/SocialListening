@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from app.services.scheduler_service import scheduler_lock
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+import asyncio
 
 def test_scheduler_lock_pg():
     # Mock db session and bind
@@ -95,3 +96,19 @@ def test_worker_status_returns_component_contract_when_services_are_unavailable(
     assert data["celery_worker"]["status"] != "online"
     assert data["embedded_scheduler"]["status"] != "online"
     assert data["overall"]["status"] in {"offline", "degraded"}
+
+
+def test_celery_schedule_task_delegates_to_shared_validated_path(monkeypatch):
+    from app.services import scheduler_service
+    from app.workers.tasks import _run_scheduled_crawl_async
+
+    expected = {"success": True, "schedule_id": 17, "crawl_job_id": 29}
+    called = []
+    monkeypatch.setattr(
+        scheduler_service,
+        "execute_scan_schedule_job",
+        lambda schedule_id: called.append(schedule_id) or expected,
+    )
+
+    assert asyncio.run(_run_scheduled_crawl_async(17)) == expected
+    assert called == [17]
