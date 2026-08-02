@@ -411,59 +411,67 @@ def test_celery_registration_preserves_existing_and_pipeline_tasks():
 
 def test_scheduled_scan_owner_context_fails_closed_without_tenant():
     from types import SimpleNamespace
-    from unittest.mock import Mock
+    from unittest.mock import Mock, patch
 
     from app.services.scheduler_service import _resolve_schedule_owner_context
 
-    db = Mock()
-    db.get.return_value = None
-    with pytest.raises(ValueError, match="active organization"):
-        _resolve_schedule_owner_context(db, SimpleNamespace(user_id=42))
-
-    with pytest.raises(ValueError, match="requires an owner"):
-        _resolve_schedule_owner_context(db, SimpleNamespace(user_id=None))
+    with patch(
+        "app.core.ownership.validate_explicit_scope",
+        side_effect=ValueError("Explicit organization, user, and project are required"),
+    ):
+        with pytest.raises(ValueError, match="Explicit organization"):
+            _resolve_schedule_owner_context(
+                Mock(),
+                SimpleNamespace(
+                    organization_id=None,
+                    user_id=42,
+                    source_group_ids=[],
+                    keyword_group_ids=[9],
+                ),
+                9,
+            )
 
 
 def test_scheduled_scan_owner_context_returns_explicit_tenant():
     from types import SimpleNamespace
-    from unittest.mock import Mock
+    from unittest.mock import Mock, patch
 
+    from app.core.ownership import TenantScope
     from app.services.scheduler_service import _resolve_schedule_owner_context
 
-    db = Mock()
-    db.get.return_value = SimpleNamespace(id=42, current_organization_id=17)
-    assert _resolve_schedule_owner_context(
-        db,
-        SimpleNamespace(user_id=42),
-    ) == (42, 17)
+    schedule = SimpleNamespace(
+        organization_id=17,
+        user_id=42,
+        source_group_ids=[3],
+        keyword_group_ids=[9],
+    )
+    with patch(
+        "app.core.ownership.validate_explicit_scope",
+        return_value=TenantScope(17, 42, 9),
+    ) as validate_scope, patch(
+        "app.core.ownership.validate_schedule_targets"
+    ) as validate_targets:
+        db = Mock()
+        assert _resolve_schedule_owner_context(db, schedule, 9) == (42, 17)
+        validate_scope.assert_called_once_with(db, 17, 42, 9)
+        validate_targets.assert_called_once_with(
+            db,
+            TenantScope(17, 42, 9),
+            source_group_ids=[3],
+            keyword_group_ids=[9],
+        )
 
 
 def test_legacy_scheduled_crawl_fails_closed_without_owner(monkeypatch):
     import asyncio
-    from types import SimpleNamespace
 
     from app.workers import tasks
+    from app.services import scheduler_service
 
-    class Result:
-        def scalar_one_or_none(self):
-            return SimpleNamespace(id=1, is_active=True, user_id=None)
-
-    class Session:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_):
-            return None
-
-        async def execute(self, _):
-            return Result()
-
-        async def rollback(self):
-            return None
-
-    monkeypatch.setattr(tasks, "AsyncSessionLocal", Session)
+    expected = {"success": False, "schedule_id": 1, "reason": "TenantOwnershipError"}
+    monkeypatch.setattr(scheduler_service, "execute_scan_schedule_job", lambda _schedule_id: expected)
     result = asyncio.run(tasks._run_scheduled_crawl_async(1))
-    assert result == {"error": "Scheduled crawl requires an owner"}
+    assert result == expected
 
 
 def test_legacy_async_tasks_do_not_reuse_connections_across_event_loops():

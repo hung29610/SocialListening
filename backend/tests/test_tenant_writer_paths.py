@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from contextlib import contextmanager
 
 import pytest
 from fastapi import BackgroundTasks
@@ -7,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base
 from app.models.alert import Alert
-from app.models.crawl import CrawlJob
+from app.models.crawl import CrawlJob, ScanSchedule
 from app.models.discovery import DiscoveredSource, DiscoveredSourceStatus
 from app.models.keyword import Keyword, KeywordGroup
 from app.models.mention import AIAnalysis, Mention
@@ -114,6 +115,88 @@ def test_scheduled_source_scan_creates_scoped_job(monkeypatch, tenant_db):
     scheduler_service.execute_scheduled_scan(source.id)
     job = db.execute(select(CrawlJob).where(CrawlJob.job_type == "scheduled")).scalar_one()
     assert (job.organization_id, job.user_id, job.project_id) == (21, 11, 31)
+
+
+def test_scheduled_discovery_uses_keyword_group_tenant_scope(monkeypatch, tenant_db):
+    db, _, project, _ = tenant_db
+    from app.models.discovery import DiscoveryJob
+    from app.services import discovery_service, scheduler_service
+
+    @contextmanager
+    def acquired_lock(*_args, **_kwargs):
+        yield True
+
+    monkeypatch.setattr(scheduler_service, "get_db", lambda: db)
+    monkeypatch.setattr(scheduler_service, "scheduler_lock", acquired_lock)
+    monkeypatch.setattr(discovery_service, "run_discovery_job", lambda *_args: None)
+
+    scheduler_service.run_scheduled_discovery_scans()
+
+    job = db.execute(select(DiscoveryJob).where(DiscoveryJob.project_id == project.id)).scalar_one()
+    assert (job.organization_id, job.created_by_user_id, job.project_id) == (21, 11, 31)
+
+
+def test_scan_schedule_uses_durable_scope_after_user_switches_org(monkeypatch, tenant_db):
+    db, user, project, _ = tenant_db
+    from app.models.organization import Organization, OrganizationMember
+    from app.services import scheduler_service
+
+    db.info["enforce_tenant_writes"] = False
+    db.add(Organization(id=22, name="Other Org", slug="other-org", status="active"))
+    db.flush()
+    db.add(OrganizationMember(organization_id=22, user_id=user.id, status="active"))
+    schedule = ScanSchedule(
+        organization_id=21,
+        user_id=user.id,
+        name="Durable schedule",
+        cron_expression="*/15 * * * *",
+        source_group_ids=[],
+        keyword_group_ids=[project.id],
+        is_active=True,
+    )
+    db.add(schedule)
+    user.current_organization_id = 22
+    db.commit()
+    db.info["enforce_tenant_writes"] = True
+
+    monkeypatch.setattr(scheduler_service, "get_db", lambda: db)
+    monkeypatch.setattr("app.services.scan_service.execute_scan", lambda **_kwargs: None)
+    result = scheduler_service.execute_scan_schedule_job(schedule.id)
+
+    job = db.execute(select(CrawlJob).where(CrawlJob.scan_schedule_id == schedule.id)).scalar_one()
+    assert result["success"] is True
+    assert (job.organization_id, job.user_id, job.project_id) == (21, 11, 31)
+
+
+def test_scan_schedule_rejects_cross_tenant_project_before_job_insert(monkeypatch, tenant_db):
+    db, user, _, _ = tenant_db
+    from app.models.organization import Organization, OrganizationMember
+    from app.services import scheduler_service
+
+    db.info["enforce_tenant_writes"] = False
+    db.add(Organization(id=22, name="Other Org", slug="other-org", status="active"))
+    db.flush()
+    db.add(OrganizationMember(organization_id=22, user_id=user.id, status="active"))
+    foreign_project = KeywordGroup(id=32, organization_id=22, user_id=user.id, name="Foreign")
+    schedule = ScanSchedule(
+        organization_id=21,
+        user_id=user.id,
+        name="Invalid schedule",
+        cron_expression="*/15 * * * *",
+        source_group_ids=[],
+        keyword_group_ids=[foreign_project.id],
+        is_active=True,
+    )
+    db.add_all([foreign_project, schedule])
+    db.commit()
+    schedule_id = schedule.id
+    db.info["enforce_tenant_writes"] = True
+
+    monkeypatch.setattr(scheduler_service, "get_db", lambda: db)
+    result = scheduler_service.execute_scan_schedule_job(schedule_id)
+
+    assert result["success"] is False
+    assert db.execute(select(CrawlJob).where(CrawlJob.scan_schedule_id == schedule_id)).scalar_one_or_none() is None
 
 
 def test_collector_adapter_stamps_mention_scope(tenant_db):

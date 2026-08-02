@@ -84,7 +84,7 @@ def send_email_notification(
     env_smtp_from_name = os.getenv("SMTP_FROM_NAME", "").strip()
     
     # Check for Resend API Key
-    resend_api_key = os.getenv("RESEND_API_KEY", "re_BVeXv8Pn_DnJk8g6m2uNrQ2oSCohi8EQy").strip()
+    resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
     if resend_api_key:
         try:
             headers = {

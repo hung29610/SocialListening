@@ -64,6 +64,44 @@ def test_email_notification_success(mock_smtp, mock_smtp_ssl, monkeypatch):
     assert added_log.status == 'sent'
     assert added_log.sent_at is not None
 
+
+@patch("app.services.notification_service.requests.post")
+def test_resend_is_unavailable_without_environment_configuration(mock_post, monkeypatch):
+    monkeypatch.setenv("SMTP_ENABLED", "True")
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"):
+        monkeypatch.setenv(name, "")
+    monkeypatch.setenv("SMTP_PORT", "587")
+
+    mock_db = MagicMock()
+    mock_db.execute.return_value.scalar_one_or_none.return_value = None
+
+    result = send_email_notification(
+        mock_db, "test@example.com", "Test", "HTML", event_type="unconfigured"
+    )
+
+    assert result["success"] is False
+    assert "missing credentials" in result["message"]
+    mock_post.assert_not_called()
+
+
+@patch("app.services.notification_service.requests.post")
+def test_resend_uses_only_configured_environment_key(mock_post, monkeypatch):
+    monkeypatch.setenv("SMTP_ENABLED", "True")
+    monkeypatch.setenv("RESEND_API_KEY", "unit-test-key")
+    mock_db = MagicMock()
+    mock_db.execute.return_value.scalar_one_or_none.return_value = None
+    mock_post.return_value.ok = True
+    mock_post.return_value.status_code = 200
+
+    result = send_email_notification(
+        mock_db, "test@example.com", "Test", "HTML", event_type="configured"
+    )
+
+    assert result["success"] is True
+    mock_post.assert_called_once()
+    assert mock_post.call_args.kwargs["headers"]["Authorization"] == "Bearer unit-test-key"
+
 @patch("app.services.notification_service.requests.post")
 def test_webhook_notification_success(mock_post, monkeypatch):
     monkeypatch.setenv("WEBHOOK_NOTIFICATIONS_ENABLED", "True")
