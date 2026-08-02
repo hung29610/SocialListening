@@ -11,7 +11,11 @@ celery_app = Celery(
     "social_listening",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.workers.tasks", "app.tasks.scan_pipeline"]
+    include=[
+        "app.workers.tasks",
+        "app.tasks.scan_pipeline",
+        "app.tasks.component_health",
+    ]
 )
 
 # Configure Celery
@@ -26,6 +30,7 @@ celery_app.conf.update(
     task_time_limit=30 * 60,  # 30 minutes
     task_soft_time_limit=25 * 60,  # 25 minutes
     worker_prefetch_multiplier=1,
+    task_acks_late=True,
     worker_max_tasks_per_child=1000,
     broker_connection_retry_on_startup=True,
     broker_transport_options={"visibility_timeout": 3600},
@@ -39,10 +44,15 @@ celery_app.conf.task_routes = {
     "app.workers.tasks.generate_report": {"queue": "reports"},
     "app.tasks.scan_pipeline.process_scan_pipeline": {"queue": "analysis"},
     "app.tasks.scan_pipeline.reconcile_scan_pipelines": {"queue": "analysis"},
+    "app.tasks.component_health.record_beat_heartbeat": {"queue": "celery"},
 }
 
 # Celery Beat Schedule - Scheduled tasks
 celery_app.conf.beat_schedule = {
+    "celery-beat-heartbeat": {
+        "task": "app.tasks.component_health.record_beat_heartbeat",
+        "schedule": 60.0,
+    },
     "check-overdue-incidents": {
         "task": "app.workers.tasks.check_overdue_incidents",
         "schedule": crontab(minute=0),

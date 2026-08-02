@@ -65,7 +65,7 @@ def test_run_automated_scans_locked(mock_getattr, mock_session, mock_lock):
     # Verify no db executes happened because we exited early
     db_mock.execute.assert_not_called()
 
-def test_worker_status_missing_table():
+def test_worker_status_returns_component_contract_when_services_are_unavailable():
     from fastapi.testclient import TestClient
     from app.main import app
     from app.core.database import get_db
@@ -90,6 +90,8 @@ def test_worker_status_missing_table():
     response = client.get("/api/system/worker-status")
     assert response.status_code == 200
     data = response.json()
-    assert data["active_sources"] == 0
-    assert data["due_sources"] == 0
-    assert data["worker_mode"] == "none"
+    assert data["web"]["status"] == "online"
+    assert data["broker"]["status"] in {"online", "unreachable"}
+    assert data["celery_worker"]["status"] != "online"
+    assert data["embedded_scheduler"]["status"] != "online"
+    assert data["overall"]["status"] in {"offline", "degraded"}

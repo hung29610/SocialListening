@@ -1,7 +1,12 @@
 services:
   - type: web
     name: social-listening-backend
-    env: python
+    runtime: python
+    region: singapore
+    rootDir: backend
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt
     startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -13,6 +18,22 @@ services:
         sync: false   # set manually in Render dashboard
       - key: REDIS_URL
         sync: false   # required shared store for production rate limiting
+      - key: ENABLE_EMBEDDED_SCHEDULER
+        value: "false"
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: CELERY_EXPECTED_QUEUES
+        value: analysis,crawl,notifications,reports,celery
+      - key: AI_PROVIDER_CHAIN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
       - key: FRONTEND_URL
         value: https://social-listening-azure.vercel.app
 
@@ -20,9 +41,14 @@ services:
   # human-reviewed production action.
   - type: worker
     name: social-listening-pipeline-worker
-    env: python
+    runtime: python
+    region: singapore
+    rootDir: backend
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.workers.celery_app:celery_app worker --loglevel=INFO --queues=analysis,crawl,notifications,reports,celery --concurrency=2
+    startCommand: celery -A app.workers.celery_app:celery_app worker --loglevel=INFO --queues=analysis,crawl,notifications,reports,celery --concurrency=2 --hostname=worker@%h
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -32,6 +58,8 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: CELERY_EXPECTED_QUEUES
+        value: analysis,crawl,notifications,reports,celery
       - key: AI_PROVIDER_CHAIN
         sync: false
       - key: GEMINI_API_KEY
@@ -45,9 +73,14 @@ services:
 
   - type: worker
     name: social-listening-pipeline-beat
-    env: python
+    runtime: python
+    region: singapore
+    rootDir: backend
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.workers.celery_app:celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+    startCommand: celery -A app.workers.celery_app:celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule --pidfile=/tmp/celerybeat.pid
     envVars:
       - key: ENVIRONMENT
         value: production

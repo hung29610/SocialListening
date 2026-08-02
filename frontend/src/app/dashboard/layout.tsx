@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { auth, crawl } from '@/lib/api';
+import type { WorkerHealth } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { SidebarBadge } from '@/components/dashboard/Badges';
 import { canAccessAdmin, type User } from '@/lib/permissions';
@@ -55,7 +56,7 @@ const sidebarTooltip =
 
 function WorkerStatusBadge() {
   const { t } = useLanguage();
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<WorkerHealth | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -83,25 +84,30 @@ function WorkerStatusBadge() {
     );
   }
 
-  const isRunning = status.worker_running;
-  const isEnabled = status.scheduler_enabled;
-
-  if (!isEnabled) {
-    return (
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-void-raised text-paper-faint text-[10px] font-semibold tracking-eyebrow uppercase rounded-full border border-edge" title="Worker is disabled">
-        <div className="w-2 h-2 rounded-full bg-paper-faint"></div>
-        {t('header.workerOff')}
-      </div>
-    );
-  }
+  const workerStatus = status.celery_worker.status;
+  const isRunning = workerStatus === 'online';
+  const isDegraded = workerStatus === 'degraded';
+  const brokerUnavailable = status.broker.status === 'unreachable';
+  const label = brokerUnavailable
+    ? 'BROKER UNREACHABLE'
+    : isRunning
+    ? t('header.workerOnline')
+    : isDegraded
+    ? 'CELERY DEGRADED'
+    : t('header.workerOffline');
+  const tone = isRunning
+    ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/25'
+    : isDegraded
+    ? 'bg-warning/10 text-warning border-warning/25'
+    : 'bg-sentiment-negative/10 text-sentiment-negative border-sentiment-negative/25';
 
   return (
     <div
-      className={`hidden sm:flex items-center gap-1.5 px-3 py-1 ${isRunning ? 'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/25' : 'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/25'} text-[10px] font-semibold tracking-eyebrow uppercase rounded-full cursor-help transition-colors duration-150 motion-reduce:transition-none`}
-      title={isRunning ? `Worker Online. Running Jobs: ${status.running_jobs}. Due: ${status.due_sources}` : `Worker Offline! ${status.last_error || ''}`}
+      className={`hidden sm:flex items-center gap-1.5 px-3 py-1 border ${tone} text-[10px] font-semibold tracking-eyebrow uppercase rounded-full cursor-help transition-colors duration-150 motion-reduce:transition-none`}
+      title={`Celery: ${workerStatus}. Broker: ${status.broker.status}. Beat: ${status.celery_beat.status}. Queues: ${status.celery_worker.queues.join(', ') || 'none'}`}
     >
-      <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-sentiment-positive animate-pulse motion-reduce:animate-none' : 'bg-sentiment-negative'}`}></div>
-      {isRunning ? t('header.workerOnline') : t('header.workerOffline')}
+      <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-sentiment-positive animate-pulse motion-reduce:animate-none' : isDegraded ? 'bg-warning' : 'bg-sentiment-negative'}`}></div>
+      {label}
     </div>
   );
 }

@@ -5,6 +5,7 @@ Supports standalone worker mode and heartbeat tracking.
 """
 import os
 import logging
+import redis
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -22,12 +23,14 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Global scheduler instance
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone="Asia/Ho_Chi_Minh")
 scheduler_started = False
 
-# Worker heartbeat tracking (in-memory, also persisted to DB)
+# Embedded web scheduler evidence is in-memory and is never worker evidence.
 _last_heartbeat: Optional[datetime] = None
 _last_error: Optional[str] = None
+_embedded_scheduler_lock = None
+_is_embedded_mode = False
 
 def ensure_aware_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
@@ -539,35 +542,24 @@ def run_scheduled_discovery_scans():
     finally:
         db.close()
 
-def update_heartbeat_job():
-    """Update heartbeat in DB every minute so worker appears 'running'."""
+def _renew_embedded_scheduler_lock():
+    """Renew the singleton lease and stop scheduling if exclusivity is lost."""
     global _last_heartbeat
-    _last_heartbeat = datetime.now(timezone.utc)
-    db = get_db()
     try:
-        from app.models.system_settings import WorkerStatus
-        from sqlalchemy.sql import func
-        status = db.query(WorkerStatus).first()
-        if not status:
-            status = WorkerStatus(id=1, running_jobs=0)
-            db.add(status)
-        else:
-            status.last_heartbeat = func.now()
-        db.commit()
-    except Exception as e:
-        logger.error(f"[Worker Heartbeat] Failed: {e}")
-    finally:
-        db.close()
-
-
-_is_embedded_mode = False
+        if _embedded_scheduler_lock is None:
+            raise RuntimeError("embedded scheduler lock is absent")
+        _embedded_scheduler_lock.extend(90, replace_ttl=True)
+        _last_heartbeat = datetime.now(timezone.utc)
+    except Exception as exc:
+        logger.error("Embedded scheduler singleton lock lost: %s", type(exc).__name__)
+        stop_scheduler()
 
 def start_scheduler(is_embedded: bool = False):
     """
     Start the background scheduler.
     Should be called once when the application starts.
     """
-    global scheduler_started, _is_embedded_mode
+    global scheduler_started, _is_embedded_mode, _embedded_scheduler_lock
 
     if scheduler_started:
         logger.info("Scheduler already started, skipping")
@@ -583,18 +575,34 @@ def start_scheduler(is_embedded: bool = False):
     _is_embedded_mode = is_embedded
 
     try:
+        if is_embedded:
+            lock_client = redis.Redis.from_url(
+                settings.REDIS_URL,
+                socket_connect_timeout=1,
+                socket_timeout=1,
+            )
+            _embedded_scheduler_lock = lock_client.lock(
+                "nope360:lock:embedded-web-scheduler",
+                timeout=90,
+                blocking_timeout=0,
+            )
+            if not _embedded_scheduler_lock.acquire(blocking=False):
+                logger.warning("Embedded web scheduler not started: singleton lock is held")
+                _embedded_scheduler_lock = None
+                return False
+
         # Use SCAN_INTERVAL_MINUTES from settings, default 15
         interval_minutes = settings.SCAN_INTERVAL_MINUTES
         actual_interval = interval_minutes
         
-        # Add heartbeat job every 1 minute
-        scheduler.add_job(
-            update_heartbeat_job,
-            IntervalTrigger(minutes=1),
-            id='heartbeat_job',
-            name='Update Heartbeat',
-            replace_existing=True
-        )
+        if is_embedded:
+            scheduler.add_job(
+                _renew_embedded_scheduler_lock,
+                IntervalTrigger(seconds=30),
+                id='embedded_scheduler_lease',
+                name='Renew embedded web scheduler singleton lease',
+                replace_existing=True,
+            )
 
         scheduler.add_job(
             scan_all_due_sources,
@@ -662,20 +670,40 @@ def start_scheduler(is_embedded: bool = False):
 
     except Exception as e:
         scheduler_started = False
+        if _embedded_scheduler_lock is not None:
+            try:
+                _embedded_scheduler_lock.release()
+            except Exception:
+                pass
+            _embedded_scheduler_lock = None
         logger.error(f"❌ Failed to start scheduler: {e}")
         return False
 
 
 def stop_scheduler():
     """Stop the background scheduler"""
-    global scheduler_started
+    global scheduler_started, _embedded_scheduler_lock, _is_embedded_mode
 
     if not scheduler_started:
+        if _embedded_scheduler_lock is not None:
+            try:
+                _embedded_scheduler_lock.release()
+            except Exception:
+                pass
+            _embedded_scheduler_lock = None
+        _is_embedded_mode = False
         return
 
     try:
         scheduler.shutdown(wait=False)
         scheduler_started = False
+        if _embedded_scheduler_lock is not None:
+            try:
+                _embedded_scheduler_lock.release()
+            except Exception:
+                pass
+            _embedded_scheduler_lock = None
+        _is_embedded_mode = False
         logger.info("✅ Background scheduler stopped")
     except Exception as e:
         logger.error(f"❌ Error stopping scheduler: {e}")
