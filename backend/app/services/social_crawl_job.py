@@ -216,7 +216,7 @@ def run_social_crawl_sync():
                 return
             platforms = DEFAULT_PLATFORMS.copy()
             from app.core.config import settings
-            if settings.TWITTER_BEARER_TOKEN:
+            if settings.TWITTER_CONNECTOR_ENABLED and settings.TWITTER_BEARER_TOKEN:
                 platforms.insert(0, "twitter")
 
             success_count = error_count = 0

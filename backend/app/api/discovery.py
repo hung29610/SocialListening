@@ -22,8 +22,10 @@ from app.models.source import Source, SourceType
 from app.schemas.discovery import (
     DiscoveryJobCreate, DiscoveryJobResponse, DiscoveryJobListResponse,
     DiscoveryJobStartResponse, DiscoveredSourceResponse, DiscoveredSourceListResponse,
-    ApproveSourceRequest, BlockSourceRequest, ConnectorStatusResponse,
+    ApproveSourceRequest, BlockSourceRequest,
 )
+from app.schemas.connectors import ConnectorCapabilitiesResponse
+from app.services.connector_capabilities import get_connector_capabilities
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -447,149 +449,10 @@ def _ds_to_response(ds: DiscoveredSource) -> DiscoveredSourceResponse:
 #  CONNECTOR STATUS (Phase 7)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@router.get("/connector-status")
+@router.get("/connector-status", response_model=ConnectorCapabilitiesResponse)
 def get_connector_status(
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Get status of all platform connectors."""
-    connectors = []
-
-    # Website / RSS — always active
-    connectors.append({
-        "name": "Website / RSS",
-        "key": "website_rss",
-        "status": "active",
-        "status_label": "Hoạt động",
-        "description": "Thu thập từ trang web và RSS feed.",
-    })
-
-    # Web Search / SerpAPI
-    serpapi_key = settings.SERPAPI_API_KEY
-    if serpapi_key and serpapi_key.strip():
-        connectors.append({
-            "name": "Web Search / SerpAPI",
-            "key": "serpapi",
-            "status": "active",
-            "status_label": "Hoạt động",
-            "description": "Tìm kiếm nguồn tự động qua SerpAPI.",
-        })
-    else:
-        connectors.append({
-            "name": "Web Search / SerpAPI",
-            "key": "serpapi",
-            "status": "config_required",
-            "status_label": "Chưa cấu hình",
-            "description": "Cần cấu hình SERPAPI_API_KEY để sử dụng.",
-        })
-
-    # YouTube
-    yt_key = settings.YOUTUBE_API_KEY
-    if yt_key and yt_key.strip():
-        from app.services.connectors.youtube_connector import YouTubeConnector
-        yt_conn = YouTubeConnector()
-        if yt_conn.validate_config():
-            connectors.append({
-                "name": "YouTube",
-                "key": "youtube",
-                "status": "active",
-                "status_label": "Hoạt động",
-                "description": "Kết nối qua YouTube Data API v3 chính thức.",
-                "limitations": yt_conn.get_limitations()
-            })
-        else:
-            connectors.append({
-                "name": "YouTube",
-                "key": "youtube",
-                "status": "config_required",
-                "status_label": "Cần API key",
-                "description": "Cần cấu hình YOUTUBE_API_KEY.",
-            })
-    else:
-        connectors.append({
-            "name": "YouTube",
-            "key": "youtube",
-            "status": "config_required",
-            "status_label": "Cần cấu hình",
-            "description": "Chưa có YOUTUBE_API_KEY.",
-        })
-
-    # X / Twitter
-    connectors.append({
-        "name": "X / Twitter",
-        "key": "twitter",
-        "status": "config_required",
-        "status_label": "Cần API key",
-        "description": "Cần cấu hình Twitter/X API v2.",
-    })
-
-    # Reddit
-    connectors.append({
-        "name": "Reddit",
-        "key": "reddit",
-        "status": "config_required",
-        "status_label": "Cần cấu hình API",
-        "description": "Cần cấu hình Reddit API credentials.",
-    })
-
-    # Facebook / Instagram (Meta)
-    from app.services.connectors.meta_connector import MetaConnector
-    from app.models.integration import IntegrationAccount
-    meta_conn = MetaConnector()
-    
-    if not meta_conn.validate_config():
-        fb_status = "config_required"
-        fb_label = "Cần cấu hình Meta App"
-        fb_desc = "Cần thiết lập META_APP_ID và META_APP_SECRET."
-    else:
-        # Check if user has connected accounts
-        fb_accounts = db.execute(
-            select(IntegrationAccount).where(
-                IntegrationAccount.user_id == current_user.id,
-                IntegrationAccount.platform.in_(["facebook", "instagram"])
-            )
-        ).scalars().all()
-        
-        if fb_accounts:
-            fb_status = "limited"
-            fb_label = "Đã kết nối (Giới hạn)"
-            fb_desc = "Meta chỉ cho phép đọc dữ liệu trong phạm vi tài khoản/Page/Instagram Business đã kết nối và các quyền được cấp. Hệ thống không quét toàn bộ Facebook/Instagram công khai."
-        else:
-            fb_status = "oauth_required"
-            fb_label = "Cần kết nối tài khoản Meta"
-            fb_desc = "Sử dụng luồng xác thực OAuth chính thức của Meta."
-
-    connectors.append({
-        "name": "Facebook",
-        "key": "facebook",
-        "status": fb_status,
-        "status_label": fb_label,
-        "description": fb_desc,
-    })
-    
-    connectors.append({
-        "name": "Instagram",
-        "key": "instagram",
-        "status": fb_status,
-        "status_label": fb_label,
-        "description": fb_desc,
-    })
-
-    # TikTok
-    connectors.append({
-        "name": "TikTok",
-        "key": "tiktok",
-        "status": "not_integrated",
-        "status_label": "Chưa tích hợp",
-        "description": "TikTok API chưa được tích hợp.",
-    })
-
-    # LinkedIn
-    connectors.append({
-        "name": "LinkedIn",
-        "key": "linkedin",
-        "status": "not_integrated",
-        "status_label": "Chưa tích hợp",
-        "description": "LinkedIn API chưa được tích hợp.",
-    })
-
-    return {"connectors": connectors}
+    """Compatibility route backed by the authoritative connector contract."""
+    return get_connector_capabilities(db, current_user.id)

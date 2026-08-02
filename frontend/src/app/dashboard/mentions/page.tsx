@@ -38,6 +38,8 @@ import { AntiNoiseNotice } from '@/components/mentions/AntiNoiseNotice';
 import { MentionFilterErrorState } from '@/components/mentions/MentionFilterErrorState';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SentimentBadge } from '@/components/ui/SentimentBadge';
+import { useConnectorCapabilities } from '@/hooks/useConnectorCapabilities';
+import type { ConnectorId } from '@/lib/connectorCapabilities';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -264,6 +266,7 @@ import { getMentionSourceLabel } from '@/lib/utils/mentions';
 
 function MentionsPageContent() {
   const { t } = useLanguage();
+  const { data: capabilityData } = useConnectorCapabilities();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialJobId = searchParams?.get('job_id');
@@ -276,11 +279,22 @@ function MentionsPageContent() {
     label: opt.labelKey ? t(opt.labelKey) : opt.label
   })), [t]);
 
-  const translatedSourceTypeOptions = React.useMemo(() => SOURCE_TYPE_OPTIONS.map(opt => ({
-    ...opt,
-    label: opt.labelKey ? t(opt.labelKey) : opt.label,
-    msg: opt.msgKey ? t(opt.msgKey) : opt.msg
-  })), [t]);
+  const translatedSourceTypeOptions = React.useMemo(() => {
+    const connectorBySource: Record<string, ConnectorId> = {
+      web: 'website', news: 'google_news_rss', blog: 'website', video: 'youtube', rss: 'rss',
+      facebook_page: 'facebook_page', instagram: 'instagram_business', twitter: 'twitter',
+      reddit: 'reddit', tiktok: 'tiktok',
+    };
+    return SOURCE_TYPE_OPTIONS.map(opt => {
+      const connector = capabilityData?.connectors[connectorBySource[opt.value]];
+      return {
+        ...opt,
+        label: opt.labelKey ? t(opt.labelKey) : opt.label,
+        disabled: connector ? connector.state !== 'READY' : opt.disabled,
+        msg: connector ? t(`connectorContract.states.${connector.state}`) : (opt.msgKey ? t(opt.msgKey) : opt.msg),
+      };
+    });
+  }, [capabilityData, t]);
 
   // Data
   const [mentionsList, setMentionsList] = useState<MentionItem[]>([]);

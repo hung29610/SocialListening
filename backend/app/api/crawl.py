@@ -24,8 +24,10 @@ from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.services.ai_service import analyze_mention
 from app.schemas.crawl import (
     CrawlJobCreate, CrawlJobResponse, CrawlJobListResponse,
-    ScanScheduleCreate, ScanScheduleUpdate, ScanScheduleResponse, ScanCapabilitiesResponse
+    ScanScheduleCreate, ScanScheduleUpdate, ScanScheduleResponse
 )
+from app.schemas.connectors import ConnectorCapabilitiesResponse
+from app.services.connector_capabilities import get_connector_capabilities
 
 router = APIRouter()
 
@@ -56,26 +58,13 @@ def _run_discovery_bg(job_id: int):
     finally:
         db.close()
 
-@router.get("/capabilities", response_model=ScanCapabilitiesResponse)
-def get_capabilities():
-    from app.core.config import settings
-    has_serpapi = bool(settings.SERPAPI_API_KEY)
-
-    return {
-        "web_search": {
-            "enabled": True,
-            "provider": "serpapi",
-            "configured": has_serpapi,
-            "status": "READY" if has_serpapi else "CONFIG_REQUIRED",
-            "message": None if has_serpapi else "Chưa cấu hình Web Search provider"
-        },
-        "auto_discovery": {
-            "enabled": True,
-            "configured": has_serpapi,
-            "status": "READY" if has_serpapi else "CONFIG_REQUIRED",
-            "message": None if has_serpapi else "Chưa cấu hình SerpAPI"
-        }
-    }
+@router.get("/capabilities", response_model=ConnectorCapabilitiesResponse)
+def get_capabilities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Compatibility route backed by the authoritative connector contract."""
+    return get_connector_capabilities(db, current_user.id)
 
 class DebugDiscoveryRequest(BaseModel):
     keyword: str

@@ -6,11 +6,13 @@ import {
   Radar, CheckCircle, XCircle, Ban, Rss, ExternalLink, RefreshCw,
   Loader2, Plug, Wifi, WifiOff, Sparkles, BarChart3, TrendingUp,
 } from 'lucide-react';
-import { sources as sourcesApi, discoveredSources as dsApi, discovery as discoveryApi, getErrorMessage, getUserFacingErrorMessage, dashboard } from '@/lib/api';
+import { sources as sourcesApi, discoveredSources as dsApi, getErrorMessage, getUserFacingErrorMessage, dashboard } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ScheduleSelector from '@/components/ScheduleSelector';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useConnectorCapabilities } from '@/hooks/useConnectorCapabilities';
 
 /* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
 const focusRing =
@@ -40,6 +42,8 @@ interface Source {
 }
 
 export default function SourcesPage() {
+  const { t } = useLanguage();
+  const { data: capabilityData, loading: connectorsLoading } = useConnectorCapabilities();
   const [activeTab, setActiveTab] = useState<SourceTab>('active');
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,10 +76,6 @@ export default function SourcesPage() {
   const [dsFilter, setDsFilter] = useState('candidate');
   const [dsActionLoading, setDsActionLoading] = useState<number | null>(null);
 
-  // Connector state
-  const [connectors, setConnectors] = useState<any[]>([]);
-  const [connectorsLoading, setConnectorsLoading] = useState(false);
-
   // Top domains state
   const [topDomains, setTopDomains] = useState<any[]>([]);
   const [topDomainsLoading, setTopDomainsLoading] = useState(false);
@@ -86,7 +86,6 @@ export default function SourcesPage() {
 
   useEffect(() => {
     if (activeTab === 'discovered') fetchDiscoveredSources();
-    if (activeTab === 'connectors') fetchConnectors();
     if (activeTab === 'active') fetchTopDomains();
   }, [activeTab, dsFilter]);
 
@@ -111,18 +110,6 @@ export default function SourcesPage() {
       if (error?.response?.status !== 401) console.error('Error fetching discovered sources:', error);
     } finally {
       setDsLoading(false);
-    }
-  };
-
-  const fetchConnectors = async () => {
-    try {
-      setConnectorsLoading(true);
-      const data = await discoveryApi.connectorStatus();
-      setConnectors(data.connectors || []);
-    } catch (error: any) {
-      if (error?.response?.status !== 401) console.error('Error fetching connectors:', error);
-    } finally {
-      setConnectorsLoading(false);
     }
   };
 
@@ -403,15 +390,17 @@ export default function SourcesPage() {
             <Globe className="w-5 h-5 text-signal dark:text-signal-bright" />
           </div>
           <div>
-            <h3 className="text-paper font-medium">Khám phá sức mạnh của Meta</h3>
-            <p className="text-sm text-paper-muted mt-0.5">Kết nối Facebook & Instagram để thu thập thêm đề cập từ các tài khoản được cấp quyền.</p>
+            <h3 className="text-paper font-medium">{t('connectorContract.manageMeta')}</h3>
+            <p className="text-sm text-paper-muted mt-0.5">
+              {t(`connectorContract.reasons.${capabilityData?.connectors.facebook_page.reason_code ?? 'UNAVAILABLE'}`)}
+            </p>
           </div>
         </div>
         <a
           href="/dashboard/integrations/meta"
           className={`px-5 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white font-medium rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none whitespace-nowrap ${focusRingOffset}`}
         >
-          Kết nối Meta
+          {t('connectorContract.manageMeta')}
         </a>
       </div>
 
@@ -940,50 +929,34 @@ export default function SourcesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {connectors.map((c: any) => (
-                <div key={c.key} className={`bg-void-surface rounded-2xl border p-5 transition-all duration-200 motion-reduce:transition-none hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 flex flex-col h-full ${
-                  c.status === 'active' || c.status === 'limited' ? 'border-success/25 hover:border-success/40'
-                    : c.status === 'config_required' ? 'border-warning/25 hover:border-warning/40'
-                    : 'border-edge hover:border-edge-strong'
+              {Object.entries(capabilityData?.connectors ?? {}).map(([id, capability]) => (
+                <div key={id} className={`bg-void-surface rounded-2xl border p-5 flex flex-col h-full ${
+                  capability.state === 'READY' ? 'border-success/25' : 'border-edge'
                 }`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className={`p-2.5 rounded-xl border ${
-                        c.status === 'active' || c.status === 'limited' ? 'bg-success/10 border-success/25'
-                          : c.status === 'config_required' ? 'bg-warning/10 border-warning/25'
+                        capability.state === 'READY' ? 'bg-success/10 border-success/25'
+                          : capability.state === 'CONFIG_REQUIRED' || capability.state === 'OAUTH_REQUIRED' ? 'bg-warning/10 border-warning/25'
                           : 'bg-void-raised border-edge'
                       }`}>
-                        {c.status === 'active' || c.status === 'limited' ? <Wifi className="w-5 h-5 text-success" />
-                          : c.status === 'config_required' ? <Sparkles className="w-5 h-5 text-warning" />
+                        {capability.state === 'READY' ? <Wifi className="w-5 h-5 text-success" />
+                          : capability.state === 'CONFIG_REQUIRED' || capability.state === 'OAUTH_REQUIRED' ? <Sparkles className="w-5 h-5 text-warning" />
                           : <WifiOff className="w-5 h-5 text-paper-faint" />}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-paper text-sm">{c.name}</h3>
+                        <h3 className="font-semibold text-paper text-sm">{t(`connectorContract.connectors.${id}.label`)}</h3>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-right max-w-[120px] ${
-                      c.status === 'active' || c.status === 'limited' ? 'bg-success/10 text-success border border-success/25'
-                        : c.status === 'config_required' ? 'bg-warning/10 text-warning border border-warning/25'
-                        : 'bg-void-raised text-paper-faint border border-edge'
-                    }`}>{c.status_label}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-void-raised text-paper-muted border border-edge">
+                      {t(`connectorContract.states.${capability.state}`)}
+                    </span>
                   </div>
-                  <p className="text-xs text-paper-muted leading-relaxed flex-1 mb-4">{c.description}</p>
-
-                  {c.limitations && (
-                    <div className="mb-4 text-[11px] p-2 bg-signal/10 border border-signal/20 rounded-lg text-signal dark:text-signal-bright">
-                      💡 {c.limitations}
-                    </div>
-                  )}
-
+                  <p className="text-xs text-paper-muted leading-relaxed flex-1 mb-4">{t(`connectorContract.reasons.${capability.reason_code}`)}</p>
                   <div className="mt-auto">
-                    {c.status === 'oauth_required' && (
-                      <a href="/dashboard/integrations/meta" className={`w-full bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white font-medium py-2 rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none flex items-center justify-center ${focusRingOffset}`}>
-                          <Plug className="w-4 h-4 mr-2" /> Cấu hình Meta
-                      </a>
-                    )}
-                    {c.status === 'limited' && (
-                      <a href="/dashboard/integrations/meta" className={`w-full bg-signal/10 border border-signal/25 hover:bg-signal/20 text-signal dark:text-signal-bright font-medium py-2 rounded-lg text-sm transition-colors duration-150 motion-reduce:transition-none block text-center ${focusRing}`}>
-                          Quản lý tài khoản
+                    {capability.action === 'META_OAUTH' && (
+                      <a href="/dashboard/integrations/meta" className={`w-full bg-signal text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center ${focusRingOffset}`}>
+                          <Plug className="w-4 h-4 mr-2" /> {t('connectorContract.actions.META_OAUTH')}
                       </a>
                     )}
                   </div>
@@ -1057,22 +1030,19 @@ export default function SourcesPage() {
                   onChange={(e) => setNewSource({ ...newSource, source_type: e.target.value })}
                   className="w-full px-4 py-2.5 bg-void-surface border border-edge-strong rounded-xl text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
                 >
-                  <option value="website">Website</option>
-                  <option value="facebook_page">Facebook Page</option>
-                  <option value="facebook_group">Facebook Group</option>
-                  <option value="facebook_profile">Facebook Profile</option>
-                  <option value="youtube_channel">YouTube Channel</option>
-                  <option value="youtube_video">YouTube Video</option>
-                  <option value="news">News</option>
-                  <option value="rss">RSS Feed</option>
-                  <option value="forum">Forum</option>
-                  <option value="manual_url">Manual URL</option>
+                  <option value="website" disabled={capabilityData?.connectors.website.state !== 'READY'}>Website</option>
+                  <option value="news" disabled={capabilityData?.connectors.google_news_rss.state !== 'READY'}>{t('connectorContract.connectors.google_news_rss.label')}</option>
+                  <option value="rss" disabled={capabilityData?.connectors.rss.state !== 'READY'}>RSS Feed</option>
+                  <option value="youtube_channel" disabled={capabilityData?.connectors.youtube.state !== 'READY'}>YouTube Channel</option>
+                  <option value="youtube_video" disabled={capabilityData?.connectors.youtube.state !== 'READY'}>YouTube Video</option>
+                  <option value="facebook_page" disabled>{t('connectorContract.metaFacebookOption')}</option>
+                  <option value="instagram_business" disabled>{t('connectorContract.metaInstagramOption')}</option>
                 </select>
               </div>
 
               {/* Dynamic form based on source type */}
-              {/* Website, News, Forum, Manual URL - just need URL */}
-              {['website', 'news', 'forum', 'manual_url'].includes(newSource.source_type) && (
+              {/* Website and Google News sources only need a URL. */}
+              {['website', 'news'].includes(newSource.source_type) && (
                 <div className="bg-signal/10 border border-signal/20 rounded-xl p-4">
                   <p className="text-sm text-paper-muted">
                     <strong className="text-signal dark:text-signal-bright">Website/News/Forum:</strong> Chỉ cần nhập URL ở trên. Hệ thống sẽ tự động crawl nội dung.
@@ -1080,67 +1050,10 @@ export default function SourcesPage() {
                 </div>
               )}
 
-              {/* Facebook - need login credentials */}
-              {newSource.source_type.startsWith('facebook_') && (
-                <div className="bg-warning/10 border border-warning/25 rounded-xl p-4 space-y-4">
-                  <p className="text-sm text-warning font-medium">
-                    <strong className="text-warning">Facebook:</strong> Cần thông tin đăng nhập để truy cập nội dung
-                  </p>
-                  <div>
-                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
-                      Email/Username Facebook
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="email@example.com"
-                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
-                    />
-                  </div>
-                  <p className="text-xs text-paper-muted">
-                    ⚠️ Thông tin đăng nhập được mã hóa và chỉ dùng để crawl dữ liệu
-                  </p>
-                </div>
-              )}
-
-              {/* YouTube - need API key or login */}
+              {/* Provider credentials are server-managed and never entered here. */}
               {newSource.source_type.startsWith('youtube_') && (
-                <div className="bg-void-raised border border-edge rounded-xl p-4 space-y-4">
-                  <p className="text-sm text-paper-muted font-medium">
-                    <strong className="text-paper">YouTube:</strong> Chọn phương thức truy cập
-                  </p>
-                  <div>
-                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
-                      Phương thức
-                    </label>
-                    <select className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal">
-                      <option value="public">Public (không cần đăng nhập)</option>
-                      <option value="api_key">YouTube API Key</option>
-                      <option value="login">Đăng nhập Google</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-paper-muted mb-1.5">
-                      YouTube API Key (tùy chọn)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="AIzaSy..."
-                      className="w-full px-3 py-2 bg-void-surface border border-edge-strong rounded-lg text-paper placeholder:text-paper-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/60 focus-visible:border-signal"
-                    />
-                  </div>
-                  <p className="text-xs text-paper-muted">
-                    💡 API Key giúp tăng giới hạn request. Lấy tại: console.cloud.google.com
-                  </p>
+                <div className="bg-void-raised border border-edge rounded-xl p-4">
+                  <p className="text-sm text-paper-muted">{t('connectorContract.serverManagedCredentials')}</p>
                 </div>
               )}
 
