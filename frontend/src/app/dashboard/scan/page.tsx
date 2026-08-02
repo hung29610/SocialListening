@@ -382,7 +382,7 @@ export default function ScanPage() {
 
   const hasValidSources = validSelectedSources.length > 0;
   const isUrlValid = customUrl.trim().length > 0;
-  const isAutoDiscoveryConfigured = scanCapabilities?.auto_discovery?.configured;
+  const isAutoDiscoveryConfigured = scanCapabilities?.connectors?.website?.state === 'READY';
 
   const hasKeyword = quickKeyword.trim().length > 0 || selectedGroups.length > 0;
 
@@ -1141,7 +1141,7 @@ export default function ScanPage() {
           <div className="border-t border-edge px-4 py-3 font-mono text-[11px] space-y-1.5">
             <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">NEXT_PUBLIC_API_URL:</span><span className="text-info break-all">{process.env.NEXT_PUBLIC_API_URL || '(not set — fallback to localhost)'}</span></div>
             <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">API_BASE_URL (resolved):</span><span className="text-info break-all">{API_BASE_URL}</span></div>
-            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">capabilities URL:</span><span className="text-paper-muted break-all">{API_BASE_URL}/api/crawl/capabilities</span></div>
+            <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">capabilities URL:</span><span className="text-paper-muted break-all">{API_BASE_URL}/api/integrations/capabilities</span></div>
             <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">manual-scan URL:</span><span className="text-paper-muted break-all">{API_BASE_URL}/api/crawl/manual-scan</span></div>
             <div className="flex gap-2"><span className="text-paper-faint min-w-[160px]">Auth token exists:</span><span className={debugInfo.hasAuthToken ? 'text-success' : 'text-destructive'}>{debugInfo.hasAuthToken ? 'true' : 'false'}</span></div>
 

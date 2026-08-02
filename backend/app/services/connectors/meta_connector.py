@@ -15,8 +15,13 @@ class MetaConnector:
         self.graph_url = "https://graph.facebook.com/v19.0"
         
     def validate_config(self) -> bool:
-        """Check if Meta App is configured."""
-        return bool(self.app_id and self.app_secret)
+        """Require the complete OAuth and token-storage configuration."""
+        return bool(
+            self.app_id
+            and self.app_secret
+            and self.redirect_uri
+            and settings.TOKEN_ENCRYPTION_KEY
+        )
         
     def get_auth_url(self, state: str) -> str:
         """Generate OAuth URL for user to grant permissions."""

@@ -69,7 +69,10 @@ class SocialCrawlerService:
         return None
 
     async def crawl_twitter(self, keyword: str, limit: int = 50) -> List[Dict[str, Any]]:
-        token = settings.TWITTER_BEARER_TOKEN or os.getenv("TWITTER_BEARER_TOKEN", "")
+        if not settings.TWITTER_CONNECTOR_ENABLED:
+            logger.debug("Twitter crawl skipped: connector is not explicitly enabled")
+            return []
+        token = settings.TWITTER_BEARER_TOKEN
         if not token:
             logger.debug("Twitter crawl skipped: TWITTER_BEARER_TOKEN not set")
             return []
@@ -268,7 +271,7 @@ class SocialCrawlerService:
         platforms: Optional[List[str]] = None,
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
-        platforms = platforms or ["twitter", "reddit", "news", "google_news"]
+        platforms = platforms or ["news", "google_news"]
         mentions: List[Dict[str, Any]] = []
 
         import asyncio

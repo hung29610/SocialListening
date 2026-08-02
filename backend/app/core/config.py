@@ -103,7 +103,9 @@ class Settings(BaseSettings):
 
     # Social platform APIs
     TWITTER_BEARER_TOKEN: str = ""
+    TWITTER_CONNECTOR_ENABLED: bool = False
     NEWS_API_KEY: str = ""
+    BASIC_CRAWL_ENABLED: bool = True
     SOCIAL_CRAWL_ENABLED: bool = True
     SOCIAL_CRAWL_INTERVAL_MINUTES: int = 5
     SCAN_INTERVAL_MINUTES: int = 15

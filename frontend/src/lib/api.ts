@@ -386,7 +386,7 @@ export interface WorkerHealth {
 
 export const crawl = {
   getCapabilities: async () => {
-    const response = await api.get('/api/crawl/capabilities');
+    const response = await api.get('/api/integrations/capabilities');
     return response.data;
   },
   manualScan: async (data: { keyword_group_ids?: number[]; keywords?: string[]; source_ids?: number[]; url?: string; mode?: string; project_id?: number; max_results?: number; query?: string; source_types?: string[]; expand_keywords?: boolean; auto_triggered?: boolean; reason?: string; current_result_count?: number }) => {

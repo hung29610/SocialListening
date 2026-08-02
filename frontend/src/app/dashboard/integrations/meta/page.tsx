@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Shield, Facebook, Instagram, CheckCircle2, XCircle, Loader2, ArrowLeft, Plug, LogOut, CheckSquare, Square } from 'lucide-react';
 import Link from 'next/link';
 import { useDialog } from '@/components/ui/Dialog';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useConnectorCapabilities } from '@/hooks/useConnectorCapabilities';
 
 interface MetaAccount {
   id: number;
@@ -30,6 +32,8 @@ const focusRingOffset =
 
 export default function MetaIntegrationPage() {
   const { confirm } = useDialog();
+  const { t } = useLanguage();
+  const { data: capabilityData } = useConnectorCapabilities();
   const [metaStatus, setMetaStatus] = useState<MetaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -232,11 +236,11 @@ export default function MetaIntegrationPage() {
                     ) : (
                       <button
                         onClick={handleConnect}
-                        disabled={actionLoading || metaStatus.status === 'config_required'}
+                        disabled={actionLoading || metaStatus.status === 'config_required' || capabilityData?.connectors.facebook_page.state === 'CONFIG_REQUIRED'}
                         className={`w-full sm:w-auto px-6 py-2.5 bg-signal hover:bg-signal-deep dark:hover:bg-signal-bright text-white rounded-xl text-sm font-medium transition-colors duration-150 motion-reduce:transition-none flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${focusRingOffset}`}
                       >
                         {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
-                        Connect Facebook / Instagram
+                        {t('connectorContract.actions.META_OAUTH')}
                       </button>
                     )}
                   </div>
