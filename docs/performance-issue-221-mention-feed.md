@@ -8,11 +8,14 @@ runs used the same Python 3.11 environment, in-memory SQLAlchemy database,
 
 | Commit | SELECTs | p95 | median | response bytes |
 |---|---:|---:|---:|---:|
-| `bb13a9d` before | 104 | 238.77 ms | 154.28 ms | 367,950 |
-| issue #221 after (composite-cursor rerun) | 5 | 54.98 ms | 41.20 ms | 100,896 |
+| merged `origin/main` `3f8396c` before | 104 | 88.74 ms | 76.54 ms | 367,950 |
+| Wave 2A working tree after | 5 | 73.38 ms | 56.14 ms | 100,896 |
 
-The result is 99 queries removed, approximately 77.0% lower p95, and 72.6%
-fewer response bytes. The endpoint-level SQLAlchemy event regression test
+The final isolated paired run removed 99 queries, reduced p95 by approximately
+17.3%, reduced median latency by approximately 26.7%, and returned 72.6% fewer
+response bytes. An earlier same-day reproduction measured `150.09 -> 56.64 ms`
+p95; that more favorable but variable latency result is retained only as
+supporting evidence, not the final claim. The endpoint-level SQLAlchemy event regression test
 creates 100 mentions and fails above five SELECT statements.
 
 Summary aggregation is independently bounded to three SELECT statements:
@@ -26,8 +29,10 @@ The endpoint accepts an opaque `cursor` based on the stable
 `(collected_at, id)` tuple for `newest` and `oldest` sorting and returns
 `next_cursor`. Requests with `page > 1` are rejected; the frontend now uses
 previous/next cursor navigation and explicitly requests its existing rich card
-payload. Other consumers receive the slim representation by default: full `content`, `metadata`,
-`original_url`, and `verification_error` require `expand=true`.
+payload. Existing clients retain the expanded representation by default. The
+slim representation is opt-in with `expand=false`; it omits full `content`,
+`metadata`, `original_url`, and `verification_error` values while preserving
+the response keys.
 
 Cursor semantics by sort:
 
@@ -50,9 +55,9 @@ Search cache keys are SHA-256 hashes over tenant,
 user, pagination, expansion, and every list filter. Regression coverage mutates
 each filter independently and proves the key changes.
 
-Legacy null `collected_at` rows are backfilled during migration, the column is
-made `NOT NULL`, and the model has the same invariant. List/count queries also
-exclude null timestamps defensively during rolling deployment.
+Legacy null `collected_at` rows are not guessed or rewritten by this migration.
+List/count queries exclude null timestamps defensively, while the migration is
+limited to indexes for the three measured query shapes.
 
 ## Index evidence
 
@@ -68,26 +73,13 @@ No speculative text index is added. Existing `%keyword_text%` filtering cannot
 use a B-tree index; callers that know the keyword use the new exact
 `keyword_id` filter.
 
-## PostgreSQL 17.9 migration and EXPLAIN evidence
+## PostgreSQL 17.6 migration and EXPLAIN evidence
 
-A disposable local PostgreSQL database was populated with 50,000 mentions,
-including 25 legacy null timestamps. Upgrade results:
-
-- all 25 null timestamps backfilled;
-- `collected_at` became `NOT NULL`;
-- all three concurrent indexes reported `indisvalid=true`;
-- downgrade removed all three indexes and restored nullable status;
-- re-upgrade completed at Alembic head `d72f8a913b21`.
-
-Representative `EXPLAIN (ANALYZE, BUFFERS)` results:
-
-| Query shape | Plan | Execution |
-|---|---|---:|
-| organization + cursor date | backward index-only scan on `idx_mentions_org_collected_id` | 0.389 ms |
-| project + cursor date | backward index-only scan on `idx_mentions_project_collected_id` | 0.138 ms |
-| exact keyword + cursor date | backward index-only scan on `idx_mentions_keyword_collected_id` | 0.087 ms |
-
-The disposable database was dropped after verification.
+Blocking CI provisions isolated PostgreSQL, rehearses
+`c1a2b3d4e5f6 -> d72f8a913b21 -> downgrade -> re-upgrade`, verifies the
+organization cursor index is valid and selected by `EXPLAIN (ANALYZE, BUFFERS)`,
+and runs a real 100-row endpoint benchmark. The gate requires exactly two
+PostgreSQL benchmark tests with zero skips.
 
 ### Interrupted concurrent index recovery
 
@@ -96,8 +88,8 @@ index is created concurrently, a valid index is retained, and an invalid
 leftover is dropped concurrently before recreation. This was tested on
 PostgreSQL by intentionally leaving an invalid
 `idx_mentions_org_collected_id` after a failed concurrent unique build. Upgrade
-recovered it as a valid non-unique three-column index, backfilled the null
-timestamp, and downgrade completed successfully.
+recovers it as a valid non-unique three-column index without modifying legacy
+timestamps; downgrade removes only the indexes.
 
 Operational check before/after migration:
 
@@ -116,5 +108,5 @@ WHERE c.relname IN (
 
 `backend/alembic/versions/d72f8a913b21_add_mention_feed_cursor_indexes.py` is a
 high-risk Alembic change. Index creation/drop uses Alembic autocommit blocks and
-PostgreSQL `CONCURRENTLY`; human review of the timestamp backfill and brief
-`ALTER COLUMN ... SET NOT NULL` lock remains mandatory before deployment.
+PostgreSQL `CONCURRENTLY`; human review and the isolated round-trip gate remain
+mandatory before deployment.

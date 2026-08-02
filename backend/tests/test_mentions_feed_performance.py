@@ -1,6 +1,8 @@
 """Endpoint-level regression evidence for issue #221."""
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+import statistics
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -147,6 +149,24 @@ def test_actual_100_row_request_uses_at_most_five_selects(mention_feed):
     assert sum("ai_analysis" in statement.lower() for statement in statements) == 1
 
 
+def test_100_row_page_latency_stays_bounded(mention_feed):
+    client, _engine, _ = mention_feed
+    warmup = client.get("/api/mentions?page_size=100&expand=false")
+    assert warmup.status_code == 200
+
+    durations_ms = []
+    for _ in range(10):
+        started = time.perf_counter()
+        response = client.get("/api/mentions?page_size=100&expand=false")
+        durations_ms.append((time.perf_counter() - started) * 1000)
+        assert response.status_code == 200
+
+    ordered = sorted(durations_ms)
+    p95_ms = ordered[max(0, int(len(ordered) * 0.95) - 1)]
+    assert statistics.median(ordered) < 250, ordered
+    assert p95_ms < 750, ordered
+
+
 def test_cache_is_scoped_by_organization_and_user(mention_feed):
     client, _engine, user_holder = mention_feed
 
@@ -216,6 +236,114 @@ def test_offset_pages_are_rejected_and_cursor_advances(mention_feed):
 
     assert second.status_code == 200
     assert first.json()["items"][-1]["id"] != second.json()["items"][0]["id"]
+
+
+def test_first_and_later_pages_are_contiguous_without_duplicates(mention_feed):
+    client, _engine, _ = mention_feed
+    seen_ids = []
+    cursor = None
+
+    for _page_number in range(1, 5):
+        params = {"page_size": 10, "sort_by": "newest"}
+        if cursor:
+            params["cursor"] = cursor
+        response = client.get("/api/mentions", params=params)
+        assert response.status_code == 200
+        payload = response.json()
+        page_ids = [item["id"] for item in payload["items"]]
+        assert len(page_ids) == 10
+        assert not set(page_ids).intersection(seen_ids)
+        seen_ids.extend(page_ids)
+        cursor = payload["next_cursor"]
+
+    assert seen_ids == list(range(1, 41))
+
+
+def test_empty_result_preserves_pagination_contract(mention_feed):
+    client, _engine, _ = mention_feed
+
+    response = client.get("/api/mentions", params={"q": "definitely-absent"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["items"] == []
+    assert payload["total"] == 0
+    assert payload["page"] == 1
+    assert payload["total_pages"] == 1
+    assert payload["has_next"] is False
+    assert payload["has_prev"] is False
+    assert payload["next_cursor"] is None
+    assert payload["pagination_mode"] == "cursor"
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_status"),
+    [
+        ({"page_size": 0}, 422),
+        ({"page_size": 101}, 422),
+        ({"page": 0}, 422),
+        ({"sort_by": "not-a-sort"}, 422),
+        ({"cursor": "not-a-cursor"}, 400),
+    ],
+)
+def test_invalid_pagination_values_fail_closed(mention_feed, params, expected_status):
+    client, _engine, _ = mention_feed
+
+    response = client.get("/api/mentions", params=params)
+
+    assert response.status_code == expected_status
+
+
+def test_cursor_cannot_be_reused_with_a_different_sort(mention_feed):
+    client, _engine, _ = mention_feed
+    first = client.get("/api/mentions", params={"page_size": 10, "sort_by": "newest"})
+    assert first.status_code == 200
+
+    response = client.get(
+        "/api/mentions",
+        params={
+            "page_size": 10,
+            "sort_by": "oldest",
+            "cursor": first.json()["next_cursor"],
+        },
+    )
+
+    assert response.status_code == 400
+
+
+def test_project_filter_cannot_cross_tenant_boundary(mention_feed):
+    client, _engine, _ = mention_feed
+
+    own = client.get("/api/mentions", params={"project_id": 1, "page_size": 100})
+    foreign = client.get("/api/mentions", params={"project_id": 2, "page_size": 100})
+
+    assert own.status_code == 200
+    assert len(own.json()["items"]) == 100
+    assert foreign.status_code == 200
+    assert foreign.json()["items"] == []
+    assert foreign.json()["total"] == 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"is_reviewed": True},
+        {"is_reviewed": False},
+        {"min_risk_score": 50},
+        {"min_influence_score": 7},
+    ],
+)
+def test_filtered_total_matches_the_returned_page(mention_feed, params):
+    client, _engine, _ = mention_feed
+
+    response = client.get(
+        "/api/mentions",
+        params={**params, "page_size": 100, "expand": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == len(payload["items"])
 
 
 def test_engagement_and_search_cursor_pages_are_stable(mention_feed):
@@ -318,11 +446,14 @@ def test_slim_payload_is_opt_in_without_breaking_expanded_clients(mention_feed):
     client, _engine, _ = mention_feed
     slim = client.get("/api/mentions?page_size=1&expand=false").json()["items"][0]
     expanded = client.get("/api/mentions?page_size=1&expand=true").json()["items"][0]
+    default_payload = client.get("/api/mentions?page_size=1").json()["items"][0]
 
     assert slim["content"] is None
     assert slim["metadata"] is None
     assert expanded["content"]
     assert expanded["metadata"]
+    assert default_payload["content"] == expanded["content"]
+    assert default_payload["metadata"] == expanded["metadata"]
 
 
 def test_summary_aggregations_are_bounded_to_three_selects(mention_feed):

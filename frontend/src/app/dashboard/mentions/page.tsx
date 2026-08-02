@@ -743,6 +743,14 @@ function MentionsPageContent() {
     setPage((current) => Math.max(1, current - 1));
   }, []);
 
+  // A cursor is valid only for the exact filter/sort/tenant query that created
+  // it. Discard the page chain whenever that query identity changes.
+  useEffect(() => {
+    setCursorByPage({ 1: undefined });
+    setNextCursor(null);
+    setPage(1);
+  }, [activeProject?.id, dateRange, filters, searchTerm]);
+
   const fetchMentionsRef = useRef(fetchMentions);
   useEffect(() => {
     fetchMentionsRef.current = fetchMentions;

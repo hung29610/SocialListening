@@ -1,7 +1,7 @@
 """add mention feed cursor indexes
 
 Revision ID: d72f8a913b21
-Revises: 7c2e4d6b8a91
+Revises: c1a2b3d4e5f6
 Create Date: 2026-07-28
 
 HIGH RISK: human diff review is required before deployment.
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision = "d72f8a913b21"
-down_revision = "7c2e4d6b8a91"
+down_revision = "c1a2b3d4e5f6"
 branch_labels = None
 depends_on = None
 
@@ -36,16 +36,6 @@ def _ensure_concurrent_index(name: str, columns: str) -> None:
 
 
 def upgrade() -> None:
-    op.execute(
-        "UPDATE mentions SET collected_at = CURRENT_TIMESTAMP "
-        "WHERE collected_at IS NULL"
-    )
-    op.alter_column(
-        "mentions",
-        "collected_at",
-        existing_type=sa.DateTime(timezone=True),
-        nullable=False,
-    )
     with op.get_context().autocommit_block():
         _ensure_concurrent_index(
             "idx_mentions_org_collected_id",
@@ -66,9 +56,3 @@ def downgrade() -> None:
         op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_keyword_collected_id")
         op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_project_collected_id")
         op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_mentions_org_collected_id")
-    op.alter_column(
-        "mentions",
-        "collected_at",
-        existing_type=sa.DateTime(timezone=True),
-        nullable=True,
-    )

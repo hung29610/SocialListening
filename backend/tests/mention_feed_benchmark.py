@@ -5,13 +5,17 @@ The script creates an isolated in-memory database and prints one JSON object.
 """
 from datetime import datetime, timedelta, timezone
 import json
+import os
 import statistics
 import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
+benchmark_backend = Path(
+    os.getenv("MENTION_BENCHMARK_BACKEND", str(Path(__file__).parents[1]))
+).resolve()
+sys.path.insert(0, str(benchmark_backend))
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
