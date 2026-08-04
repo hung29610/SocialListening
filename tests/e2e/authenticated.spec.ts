@@ -139,7 +139,7 @@ test.describe.serial('authenticated MVP contract', () => {
     });
     await page.goto('/dashboard/mentions');
     await expect(page.getByText('Cursor fixture mention 01')).toBeVisible();
-    await page.getByRole('button', { name: 'Next mentions page' }).first().click();
+    await page.getByRole('button', { name: /Next mentions page|Trang mentions tiếp theo/ }).first().click();
     await expect.poll(() => pages.some(item => Boolean(item.cursor))).toBe(true);
     const firstPage = pages.find(item => item.cursor === null);
     const laterPage = pages.find(item => Boolean(item.cursor));
