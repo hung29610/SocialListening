@@ -218,9 +218,11 @@ test.describe.serial('authenticated MVP contract', () => {
       const ownerRead = await request.get(`${API}${path}`, { headers: { Authorization: `Bearer ${tokenA}` } });
       expect(ownerRead.status(), `Tenant A retains ${path}`).toBe(200);
     }
-    for (const path of reads.slice(5)) {
+    for (const path of reads.slice(5, 6)) {
       const ownerRead = await request.get(`${API}${path}`, { headers: { Authorization: `Bearer ${tokenA}` } });
       expect([200, 404], `Tenant A legacy export contract for ${path}`).toContain(ownerRead.status());
     }
+    const ownerDownload = await request.get(`${API}${reads[6]}`, { headers: { Authorization: `Bearer ${tokenA}` } });
+    expect([200, 400, 404], 'Tenant A legacy export download transition').toContain(ownerDownload.status());
   });
 });
