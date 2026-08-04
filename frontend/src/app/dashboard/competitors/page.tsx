@@ -23,8 +23,10 @@ import {
   chartTooltipItemStyle,
   chartLegendStyle,
 } from '@/components/dashboard/chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CompetitorsPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +90,7 @@ export default function CompetitorsPage() {
           </h3>
           <div className="h-80" role="img" aria-labelledby="competitor-share-chart-summary">
             <p id="competitor-share-chart-summary" className="sr-only">
-              Share of voice chart showing live comparison values for configured competitors.
+              {t('a11y.competitorShare')}
             </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -126,7 +128,7 @@ export default function CompetitorsPage() {
           </h3>
           <div className="h-80" role="img" aria-labelledby="competitor-sentiment-chart-summary">
             <p id="competitor-sentiment-chart-summary" className="sr-only">
-              Sentiment comparison chart showing positive, neutral, and negative analyzed mentions for configured competitors.
+              {t('a11y.competitorSentiment')}
             </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart

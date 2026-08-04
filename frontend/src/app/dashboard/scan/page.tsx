@@ -12,6 +12,7 @@ import type { WorkerHealth } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import ScanSchedulesPanel from '@/components/ScanSchedulesPanel';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
 const focusRing =
@@ -54,6 +55,7 @@ function isTestSource(source: any): boolean {
 }
 
 export default function ScanPage() {
+  const { t } = useLanguage();
   const [keywordGroups, setKeywordGroups] = useState<any[]>([]);
   const [sources, setSources] = useState<any[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
@@ -549,24 +551,24 @@ export default function ScanPage() {
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             )}
             <span className="text-[11px] font-bold tracking-wider">
-              CELERY WORKER // {workerStatus.celery_worker.status.toUpperCase()}
+              {t('workerHealth.worker')}{' // '}{workerStatus.celery_worker.status.toUpperCase()}
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 ml-auto text-[10px] font-medium tabular-nums">
-            <span>BROKER: <strong>{workerStatus.broker.status.toUpperCase()}</strong></span>
-            <span>BEAT: <strong>{workerStatus.celery_beat.status.toUpperCase()}</strong></span>
-            <span>EMBEDDED WEB: <strong>{workerStatus.embedded_scheduler.status.toUpperCase()}</strong></span>
-            <span>QUEUES: <strong>{workerStatus.celery_worker.queues.join(', ') || 'NONE'}</strong></span>
-            <span>PIPELINE QUEUED: <strong>{workerStatus.pipeline.queued_count}</strong></span>
-            <span>STALE: <strong>{workerStatus.pipeline.stale_count}</strong></span>
+            <span>{t('workerHealth.broker')}: <strong>{workerStatus.broker.status.toUpperCase()}</strong></span>
+            <span>{t('workerHealth.beat')}: <strong>{workerStatus.celery_beat.status.toUpperCase()}</strong></span>
+            <span>{t('workerHealth.embeddedWeb')}: <strong>{workerStatus.embedded_scheduler.status.toUpperCase()}</strong></span>
+            <span>{t('workerHealth.queues')}: <strong>{workerStatus.celery_worker.queues.join(', ') || 'NONE'}</strong></span>
+            <span>{t('workerHealth.pipelineQueued')}: <strong>{workerStatus.pipeline.queued_count}</strong></span>
+            <span>{t('workerHealth.stale')}: <strong>{workerStatus.pipeline.stale_count}</strong></span>
           </div>
 
           <div className="w-full mt-2 pt-2 border-t border-current/20 text-[10px] flex flex-wrap gap-x-4 gap-y-1">
-            <span>OVERALL: <strong>{workerStatus.overall.status.toUpperCase()}</strong></span>
-            <span>WORKER EVIDENCE: <strong>{workerStatus.celery_worker.reason || 'inspect_ping'}</strong></span>
-            <span>BEAT EVIDENCE: <strong>{workerStatus.celery_beat.reason || workerStatus.celery_beat.schedule_evidence}</strong></span>
-            <span>LAST PIPELINE SUCCESS: <strong>{workerStatus.pipeline.last_success_at ? formatDate(workerStatus.pipeline.last_success_at) : 'NONE'}</strong></span>
+            <span>{t('workerHealth.overall')}: <strong>{workerStatus.overall.status.toUpperCase()}</strong></span>
+            <span>{t('workerHealth.workerEvidence')}: <strong>{workerStatus.celery_worker.reason || 'inspect_ping'}</strong></span>
+            <span>{t('workerHealth.beatEvidence')}: <strong>{workerStatus.celery_beat.reason || workerStatus.celery_beat.schedule_evidence}</strong></span>
+            <span>{t('workerHealth.lastPipelineSuccess')}: <strong>{workerStatus.pipeline.last_success_at ? formatDate(workerStatus.pipeline.last_success_at) : 'NONE'}</strong></span>
           </div>
         </div>
       )}

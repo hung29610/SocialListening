@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'recharts';
 import { chartColors, ChartA11ySummary } from './chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SentimentBreakdown {
   positive_count: number;
@@ -40,6 +41,7 @@ export default function MonitorSentimentChart({
   isLoading,
 }: MonitorSentimentChartProps) {
   const reducedMotion = useReducedMotion();
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -116,7 +118,7 @@ export default function MonitorSentimentChart({
   return (
     <div className="h-72 w-full" role="img" aria-labelledby="monitor-sentiment-chart-summary">
       <ChartA11ySummary id="monitor-sentiment-chart-summary">
-        Sentiment chart showing {data.positive_count} positive, {data.neutral_count} neutral, and {data.negative_count} negative mentions.
+        {t('a11y.monitorSentiment', { positive: data.positive_count, neutral: data.neutral_count, negative: data.negative_count })}
       </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>

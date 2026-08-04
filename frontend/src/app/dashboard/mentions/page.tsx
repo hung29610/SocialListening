@@ -1337,7 +1337,7 @@ function MentionsPageContent() {
 
           <div className="px-5 pt-2 pb-5" role="img" aria-labelledby="mentions-summary-chart">
             <p id="mentions-summary-chart" className="sr-only">
-              Mentions chart showing mention volume or sentiment across the selected time range.
+              {t('a11y.mentionsSummary')}
             </p>
             {chartLoading ? (
               <div className="w-full h-56 flex items-center justify-center">
@@ -1408,11 +1408,11 @@ function MentionsPageContent() {
 
            {(page > 1 || nextCursor) && (
              <div className="flex items-center gap-1 text-sm text-paper-muted">
-               <button onClick={goToPreviousPage} disabled={page === 1} aria-label="Previous mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+               <button onClick={goToPreviousPage} disabled={page === 1} aria-label={t('a11y.previousMentionsPage')} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                  <ChevronLeft className="w-5 h-5" />
                </button>
                <span className="px-2 tabular-nums">{page}</span>
-               <button onClick={goToNextPage} disabled={!nextCursor} aria-label="Next mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+               <button onClick={goToNextPage} disabled={!nextCursor} aria-label={t('a11y.nextMentionsPage')} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                   <ChevronRight className="w-5 h-5" />
                </button>
              </div>
@@ -1618,7 +1618,7 @@ return (
                        <select
                          value={mention.sentiment === 'positive' ? 'positive' : mention.sentiment === 'negative' ? 'negative' : 'neutral'}
                          onChange={(e) => handleAction(mention.id, 'sentiment', () => mentionsApi.updateSentiment(mention.id, e.target.value), 'Đã cập nhật sentiment')}
-                         aria-label="Edit mention sentiment"
+                         aria-label={t('a11y.editMentionSentiment')}
                          className={`absolute inset-0 h-full w-full cursor-pointer opacity-0 ${focusRing}`}
                        >
                          <option value="positive" className="text-sentiment-positive font-bold">Positive</option>
@@ -1855,11 +1855,11 @@ return (
         {(page > 1 || nextCursor) && (
            <div className="flex items-center justify-end bg-void-surface px-4 py-3 rounded-xl border border-edge mt-2 mb-8">
              <div className="flex items-center gap-1 text-sm text-paper-muted">
-               <button onClick={goToPreviousPage} disabled={page === 1} aria-label="Previous mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+               <button onClick={goToPreviousPage} disabled={page === 1} aria-label={t('a11y.previousMentionsPage')} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                  <ChevronLeft className="w-5 h-5" />
                </button>
                <span className="px-2 tabular-nums">{page}</span>
-               <button onClick={goToNextPage} disabled={!nextCursor} aria-label="Next mentions page" className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
+               <button onClick={goToNextPage} disabled={!nextCursor} aria-label={t('a11y.nextMentionsPage')} className={`p-1.5 hover:bg-void-raised rounded-md disabled:opacity-50 text-signal dark:text-signal-bright transition-colors duration-150 motion-reduce:transition-none ${focusRing}`}>
                  <ChevronRight className="w-5 h-5" />
                </button>
              </div>

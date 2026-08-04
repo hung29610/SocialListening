@@ -11,12 +11,14 @@ import {
   chartTooltipLabelStyle,
   ChartA11ySummary,
 } from '@/components/dashboard/chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /* SIGNAL shared micro-interaction primitive (150–250ms, reduced-motion honored) */
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70';
 
 export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const { sections, theme, accentColor, fontColor, fontFamily, aspectRatio } = config;
@@ -91,7 +93,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
             <h2 className="text-xl font-bold" style={{ color: accentColor }}>Analysis & Trends</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" role="img" aria-labelledby="pdf-sentiment-summary" style={{ backgroundColor: doc.card }}>
-                <ChartA11ySummary id="pdf-sentiment-summary">PDF sentiment breakdown chart showing analyzed sentiment counts.</ChartA11ySummary>
+                <ChartA11ySummary id="pdf-sentiment-summary">{t('a11y.pdfSentiment')}</ChartA11ySummary>
                 <h3 className="font-bold mb-2">Sentiment Breakdown</h3>
                 {pieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +111,7 @@ export function PdfPreviewModal({ isOpen, onClose, data, loading, config }: any)
                 )}
               </div>
               <div className="p-6 rounded-xl flex flex-col items-center justify-center h-64" role="img" aria-labelledby="pdf-volume-summary" style={{ backgroundColor: doc.card }}>
-                <ChartA11ySummary id="pdf-volume-summary">PDF daily volume chart showing analyzed mention counts over time.</ChartA11ySummary>
+                <ChartA11ySummary id="pdf-volume-summary">{t('a11y.pdfVolume')}</ChartA11ySummary>
                 <h3 className="font-bold mb-2">Daily Volume</h3>
                 {trendData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">

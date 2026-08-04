@@ -11,6 +11,7 @@ import {
   chartTooltipItemStyle,
   ChartA11ySummary,
 } from './chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type VolumePoint = {
   time: string;
@@ -24,6 +25,7 @@ export default function RealtimeVolumeChart({
   data: VolumePoint[];
   isLoading?: boolean;
 }) {
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
@@ -48,7 +50,7 @@ export default function RealtimeVolumeChart({
   return (
     <div role="img" aria-labelledby="realtime-volume-chart-summary">
       <ChartA11ySummary id="realtime-volume-chart-summary">
-        Line chart showing mention volume across {chartData.length} time points.
+        {t('a11y.realtimeVolume', { count: chartData.length })}
       </ChartA11ySummary>
       <ResponsiveContainer width="100%" height={220}>
       <LineChart data={chartData}>

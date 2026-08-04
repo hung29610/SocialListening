@@ -23,6 +23,8 @@ const allowlistPath = path.join(import.meta.dirname, 'hardcoded-ui-allowlist.jso
 const baselinePath = path.join(import.meta.dirname, 'hardcoded-ui-baseline.json');
 const baselineRepoPath = 'frontend/scripts/hardcoded-ui-baseline.json';
 const updateBaseline = process.argv.includes('--update-baseline');
+const printFindings = process.argv.includes('--print-findings');
+const printGrowthFindings = process.argv.includes('--print-growth-findings');
 
 const USER_ATTRIBUTES = new Set([
   'alt',
@@ -308,6 +310,14 @@ function snapshotFromFindings() {
 }
 
 const current = snapshotFromFindings();
+if (printFindings) {
+  for (const [file, entries] of [...byFile.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const [kind, text, count] of entries) {
+      console.log(`${file}\t${kind}\t${count}\t${JSON.stringify(text)}`);
+    }
+  }
+  process.exit(0);
+}
 if (updateBaseline) {
   fs.writeFileSync(baselinePath, `${JSON.stringify(current, null, 2)}\n`);
   console.log(
@@ -320,6 +330,20 @@ const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
 if (baseline.version !== 1 || !baseline.files) {
   console.error('Hard-coded UI check failed: unsupported baseline format.');
   process.exit(1);
+}
+
+if (printGrowthFindings) {
+  for (const [file, entries] of [...byFile.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const anchor = baseline.files[file]?.fingerprints ?? {};
+    for (const [kind, text, count] of entries) {
+      const fingerprint = crypto.createHash('sha256').update(`${kind}\u0000${text}`).digest('hex');
+      const baselineCount = anchor[fingerprint] ?? 0;
+      if (count > baselineCount) {
+        console.log(`${file}\t${kind}\t${baselineCount}->${count}\t${JSON.stringify(text)}`);
+      }
+    }
+  }
+  process.exit(0);
 }
 
 function growthComparedWith(candidate, anchor, label) {

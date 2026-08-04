@@ -12,6 +12,7 @@ import {
   chartLegendStyle,
   ChartA11ySummary,
 } from './chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type Point = {
   time: string;
@@ -26,6 +27,7 @@ export default function ReachInteractionsChart({
   data: Point[];
   isLoading?: boolean;
 }) {
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <div className="h-[220px] flex items-center justify-center text-paper-faint text-sm">
@@ -50,7 +52,7 @@ export default function ReachInteractionsChart({
   return (
     <div role="img" aria-labelledby="reach-interactions-chart-summary">
       <ChartA11ySummary id="reach-interactions-chart-summary">
-        Bar chart comparing reach and interactions across {chartData.length} time points.
+        {t('a11y.reachInteractions', { count: chartData.length })}
       </ChartA11ySummary>
       <ResponsiveContainer width="100%" height={220}>
       <BarChart data={chartData}>
