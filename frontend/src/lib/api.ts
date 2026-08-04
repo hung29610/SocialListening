@@ -706,11 +706,14 @@ export const reports = {
     const response = await api.delete(`/api/reports/${id}`);
     return response.data;
   },
-  // Async Exports
+  // Reduced MVP: generate in memory and stream directly; no retained history.
   requestExport: async (type: string, projectId?: number, builderConfig?: any) => {
     const params = projectId ? { project_id: projectId } : {};
-    const response = await api.post(`/api/reports/export/${type}`, builderConfig || null, { params });
-    return response.data;
+    const response = await api.post(`/api/reports/export-on-demand/${type}`, builderConfig || null, {
+      params,
+      responseType: 'blob',
+    });
+    return response.data as Blob;
   },
   uploadLogo: async (file: File) => {
     const formData = new FormData();

@@ -1,11 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileText, Download, RefreshCcw, Eye, Settings2, Palette, Layout, Type, Lock } from 'lucide-react';
 import { reports as reportsApi } from '@/lib/api';
 import { useProject } from '@/contexts/ProjectContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
-import { ExportHistoryTable } from '@/components/reports/ExportHistoryTable';
 import { PdfPreviewModal } from './PdfPreviewModal';
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -46,10 +46,9 @@ const AVAILABLE_SECTIONS = [
 
 export default function PdfReportPage() {
   const { activeProject } = useProject();
+  const { t } = useLanguage();
   const [dateRange, setDateRange] = useState('30d');
   const [loading, setLoading] = useState(false);
-  const [exportHistory, setExportHistory] = useState<any[]>([]);
-  const [exportHistoryLoading, setExportHistoryLoading] = useState(true);
 
   // Customization State
   // NOTE: accent/font colors are EXPORT CONFIG sent to the backend PDF
@@ -66,28 +65,6 @@ export default function PdfReportPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-
-  useEffect(() => {
-    fetchExports();
-    const interval = setInterval(() => {
-      setExportHistory(prev => {
-        if (prev.some(e => e.status === 'pending' || e.status === 'running')) {
-          fetchExports();
-        }
-        return prev;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchExports = async () => {
-    setExportHistoryLoading(true);
-    try {
-      const res = await reportsApi.listExports(1, 10, 'pdf');
-      setExportHistory(res.items || []);
-    } catch (e) {}
-    finally { setExportHistoryLoading(false); }
-  };
 
   const getParams = () => {
     const params: Record<string, any> = {};
@@ -120,9 +97,15 @@ export default function PdfReportPage() {
         language
       };
 
-      await reportsApi.requestExport('pdf', activeProject?.id, config);
-      toast.success('PDF report requested! Check the history below.');
-      fetchExports();
+      if (!activeProject?.id) throw new Error('Select a project before exporting');
+      const blob = await reportsApi.requestExport('pdf', activeProject.id, config);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nope360-project-${activeProject.id}-report.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('reports.pdfDownloaded'));
     } catch (error: any) {
       toast.error(error?.response?.data?.detail || 'Error requesting export');
     } finally {
@@ -145,20 +128,6 @@ export default function PdfReportPage() {
     }
   };
 
-  const downloadFile = async (exportId: number, filename: string) => {
-    try {
-      const blob = await reportsApi.downloadExport(exportId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error('Failed to download file');
-    }
-  };
-
   const toggleSection = (id: string) => {
     setSections(prev => prev.map(s => s.id === id && !s.disabled ? { ...s, enabled: !s.enabled } : s));
   };
@@ -170,6 +139,7 @@ export default function PdfReportPage() {
         dateRange={dateRange}
         dateRangeLabel={DATE_RANGE_OPTIONS.find(r => r.value === dateRange)?.label}
       />
+      <p className="text-sm text-paper-muted">{t('reports.noRetentionNotice')}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
@@ -306,11 +276,6 @@ export default function PdfReportPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="bg-void-surface p-6 rounded-2xl shadow-tile border border-edge">
-        <h3 className="text-lg font-bold text-paper mb-4">Recent Exports</h3>
-        <ExportHistoryTable exports={exportHistory} loading={exportHistoryLoading} onDownload={downloadFile} />
       </div>
 
       <PdfPreviewModal

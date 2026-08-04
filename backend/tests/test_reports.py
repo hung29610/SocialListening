@@ -175,19 +175,10 @@ def test_export_unsupported_formats():
     assert client.get("/api/reports/alerts/export?format=xlsx").status_code == 400
     assert client.get("/api/reports/project-summary/export?format=csv").status_code == 400
 
-@patch("app.services.export_service.ExportService.process_export")
-def test_async_export_request(mock_process_export):
+def test_async_export_request_is_retired():
     app.dependency_overrides[get_db] = override_get_db
     response = client.post("/api/reports/export/pdf?project_id=1")
-    assert response.status_code == 201
-    data = response.json()
-    assert data["report_type"] == "pdf"
-    assert data["status"] == "pending"
-    assert "id" in data
-    mock_process_export.assert_called_once_with(1)
-
-    response = client.post("/api/reports/export/invalid_type?project_id=1")
-    assert response.status_code == 400
+    assert response.status_code == 410
 
 def test_upload_pdf_logo_invalid_type():
     file_content = b"fake image content"
@@ -195,8 +186,8 @@ def test_upload_pdf_logo_invalid_type():
         "/api/reports/pdf/logo",
         files={"file": ("test.txt", file_content, "text/plain")}
     )
-    assert response.status_code == 400
-    assert "Invalid file type" in response.text
+    assert response.status_code == 503
+    assert "unavailable" in response.text
 
 def test_upload_pdf_logo_valid_type():
     app.dependency_overrides[get_current_active_user] = override_get_superuser
@@ -205,11 +196,9 @@ def test_upload_pdf_logo_valid_type():
         "/api/reports/pdf/logo",
         files={"file": ("test.png", file_content, "image/png")}
     )
-    assert response.status_code == 200
-    assert "logo_path" in response.json()
-    assert "test.png" not in response.json()["logo_path"]
+    assert response.status_code == 503
 
-def test_request_export_saves_builder_config():
+def test_request_export_does_not_persist_builder_config():
     app.dependency_overrides[get_current_active_user] = override_get_superuser
     with patch("app.api.reports.BackgroundTasks.add_task") as mock_bg:
         builder_config = {
@@ -217,50 +206,38 @@ def test_request_export_saves_builder_config():
             "sections": [{"id": "summary", "enabled": True}]
         }
         response = client.post("/api/reports/export/pdf?project_id=1", json=builder_config)
-        assert response.status_code == 201
-        assert response.json()["status"] == "pending"
+        assert response.status_code == 410
+        mock_bg.assert_not_called()
 
-def test_request_export_datetime_serialization():
-    from unittest.mock import MagicMock
-    mock_db = MagicMock()
-    
-    def mock_refresh(obj):
-        obj.id = 1
-    mock_db.refresh.side_effect = mock_refresh
-    
-    # Save old overrides to restore later
-    old_user = app.dependency_overrides.get(get_current_active_user)
-    old_db = app.dependency_overrides.get(get_db)
-    
-    app.dependency_overrides[get_current_active_user] = override_get_superuser
-    app.dependency_overrides[get_db] = lambda: mock_db
-    try:
-        with patch("app.api.reports.BackgroundTasks.add_task") as mock_bg:
-            # Pass native isoformat strings which pydantic parses to datetimes
-            builder_config = {
-                "theme": "dark",
-                "date_from": "2026-06-28T10:00:00Z",
-                "date_to": "2026-06-28T11:00:00Z",
-                "sections": [{"id": "summary", "enabled": True}]
-            }
-            response = client.post("/api/reports/export/pdf?project_id=1", json=builder_config)
-            assert response.status_code == 201
-            assert response.json()["status"] == "pending"
-            
-            added_job = mock_db.add.call_args[0][0]
-            assert added_job.builder_config is not None
-            assert isinstance(added_job.builder_config["date_from"], str)
-            assert isinstance(added_job.builder_config["date_to"], str)
-    finally:
-        if old_user:
-            app.dependency_overrides[get_current_active_user] = old_user
-        else:
-            app.dependency_overrides.pop(get_current_active_user, None)
-            
-        if old_db:
-            app.dependency_overrides[get_db] = old_db
-        else:
-            app.dependency_overrides.pop(get_db, None)
+def test_on_demand_export_accepts_datetime_builder_config():
+    export_data = {"raw_mentions": [{"id": 1}], "metrics": {}, "comparison": {}}
+    builder_config = {
+        "theme": "dark",
+        "date_from": "2026-06-28T10:00:00Z",
+        "date_to": "2026-06-28T11:00:00Z",
+        "sections": [{"id": "summary", "enabled": True}],
+    }
+    with patch("app.api.reports.ExportService.get_export_data", return_value=export_data) as get_data, patch("app.api.reports.PDFGenerator.generate_project_summary", return_value=b"%PDF-test"):
+        response = client.post("/api/reports/export-on-demand/pdf?project_id=1", json=builder_config)
+    assert response.status_code == 200
+    passed_config = get_data.call_args.args[3]
+    assert isinstance(passed_config["date_from"], str)
+    assert isinstance(passed_config["date_to"], str)
+
+
+def test_on_demand_export_discards_client_local_asset_paths():
+    export_data = {"raw_mentions": [{"id": 1}], "metrics": {}, "comparison": {}}
+    with patch("app.api.reports.ExportService.get_export_data", return_value=export_data) as get_data, patch("app.api.reports.PDFGenerator.generate_project_summary", return_value=b"%PDF-test"):
+        response = client.post(
+            "/api/reports/export-on-demand/pdf?project_id=1",
+            json={"logo_path": "C:/sensitive/local/path"},
+        )
+    assert response.status_code == 200
+    assert "logo_path" not in get_data.call_args.args[3]
+
+
+def test_excel_export_neutralizes_formula_cells():
+    assert ExportService._safe_spreadsheet_cell("=HYPERLINK(\"bad\")") == "'=HYPERLINK(\"bad\")"
 
 def test_pdf_generator_respects_builder_config():
     from app.services.pdf_generator import PDFGenerator
@@ -285,28 +262,55 @@ def test_async_export_history():
     assert data["total"] == 0   # mock db returns 0
 
 def test_get_export_status():
-    from app.models.report import ReportExport, ExportStatus
-    # Override the mock temporarily
-    mock_db = next(override_get_db())
-    mock_job = ReportExport(
-        id=1,
-        report_type="excel",
-        requested_by=1,
-        status=ExportStatus.SUCCESS,
-        created_at=datetime.utcnow()
-    )
-    mock_db.execute.return_value.scalar_one_or_none.return_value = mock_job
-    app.dependency_overrides[get_db] = lambda: mock_db
-    
     res = client.get("/api/reports/exports/1")
-    assert res.status_code == 200
-    data = res.json()
-    assert data["id"] == 1
-    assert data["report_type"] == "excel"
-    assert data["status"] == "success"
-    
-    # Restore mock
-    app.dependency_overrides[get_db] = override_get_db
+    assert res.status_code == 404
+    assert "history is disabled" in res.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    ("report_type", "content", "content_type", "extension"),
+    [
+        ("pdf", b"%PDF-test", "application/pdf", ".pdf"),
+        (
+            "excel",
+            b"PK-test",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".xlsx",
+        ),
+    ],
+)
+def test_on_demand_export_streams_without_retention(report_type, content, content_type, extension):
+    export_data = {"raw_mentions": [{"id": 1}], "metrics": {}, "comparison": {}}
+    generator = "app.api.reports.PDFGenerator.generate_project_summary" if report_type == "pdf" else "app.api.reports.ExportService.export_project_summary_xlsx"
+    with patch("app.api.reports.ExportService.get_export_data", return_value=export_data), patch(generator, return_value=content):
+        response = client.post(f"/api/reports/export-on-demand/{report_type}?project_id=1", json={})
+    assert response.status_code == 200
+    assert response.content == content
+    assert response.headers["content-type"] == content_type
+    assert response.headers["content-disposition"].endswith(f'{extension}"')
+    assert response.headers["x-report-retention"] == "none"
+    assert response.headers["cache-control"] == "private, no-store"
+
+
+def test_on_demand_export_rejects_empty_scope():
+    with patch("app.api.reports.ExportService.get_export_data", return_value={"raw_mentions": []}):
+        response = client.post("/api/reports/export-on-demand/pdf?project_id=1", json={})
+    assert response.status_code == 422
+
+
+def test_on_demand_export_denies_cross_tenant_project_before_generation():
+    from fastapi import HTTPException
+
+    with patch("app.core.ownership.resolve_actor_scope", side_effect=HTTPException(status_code=404, detail="Project not found")), patch("app.api.reports.ExportService.get_export_data") as generate:
+        response = client.post("/api/reports/export-on-demand/pdf?project_id=999", json={})
+    assert response.status_code == 404
+    generate.assert_not_called()
+
+
+def test_retained_export_and_logo_contracts_are_disabled():
+    assert client.post("/api/reports/export/pdf?project_id=1", json={}).status_code == 410
+    assert client.get("/api/reports/exports/99/download").status_code == 404
+    assert client.post("/api/reports/pdf/logo", files={"file": ("logo.png", b"png", "image/png")}).status_code == 503
 
 
 def test_excel_export_formatting_regression():

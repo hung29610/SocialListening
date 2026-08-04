@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 
 import pytest
-from fastapi import BackgroundTasks
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -270,7 +269,7 @@ def test_discovery_and_approval_preserve_scope(tenant_db):
     assert (approved.organization_id, approved.user_id) == (21, 11)
 
 
-def test_alert_report_and_export_writers_stamp_scope(monkeypatch, tenant_db):
+def test_alert_report_writers_stamp_scope_and_on_demand_export_does_not_persist(monkeypatch, tenant_db):
     db, user, project, _ = tenant_db
     from app.api import alerts, reports
     from app.api.alerts import AlertCreateBody
@@ -287,11 +286,18 @@ def test_alert_report_and_export_writers_stamp_scope(monkeypatch, tenant_db):
         start_date=datetime.now(timezone.utc), end_date=datetime.now(timezone.utc),
     )
     reports.create_report(report_data, db, user)
-    reports.request_async_export("pdf", BackgroundTasks(), project.id, None, db, user)
+    monkeypatch.setattr(
+        reports.ExportService,
+        "get_export_data",
+        lambda *_: {"raw_mentions": [{"id": mention.id}], "metrics": {}, "comparison": {}},
+    )
+    monkeypatch.setattr(reports.PDFGenerator, "generate_project_summary", lambda *_: b"%PDF-test")
+    response = reports.export_on_demand("pdf", project.id, None, db, user)
 
     alert = db.execute(select(Alert)).scalar_one()
     report = db.execute(select(Report)).scalar_one()
-    export = db.execute(select(ReportExport)).scalar_one()
+    exports = db.execute(select(ReportExport)).scalars().all()
     assert (alert.organization_id, alert.user_id, alert.project_id) == (21, 11, 31)
     assert (report.organization_id, report.generated_by, report.project_id) == (21, 11, 31)
-    assert (export.organization_id, export.requested_by, export.project_id) == (21, 11, 31)
+    assert response.headers["x-report-retention"] == "none"
+    assert exports == []
