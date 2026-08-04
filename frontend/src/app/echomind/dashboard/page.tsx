@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { MessageSquare, ThumbsUp, ThumbsDown, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { chartColors, chartGrid, chartAxisTick, chartTooltipStyle, chartTooltipItemStyle, ChartA11ySummary } from '@/components/dashboard/chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TimelineItem {
   time: string;
@@ -30,6 +31,7 @@ interface Analytics {
 const COLORS = { Positive: chartColors.positive, Negative: chartColors.negative, Neutral: chartColors.neutral };
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +88,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-void-surface border border-edge rounded-xl p-6">
           <h3 className="text-lg font-semibold text-paper mb-6">Mention Volume Over Time</h3>
           <div className="h-72" role="img" aria-labelledby="echomind-volume-summary">
-            <ChartA11ySummary id="echomind-volume-summary">Mention volume over time across {analytics.timeline.length} data points.</ChartA11ySummary>
+            <ChartA11ySummary id="echomind-volume-summary">{t('a11y.echomindVolume', { count: analytics.timeline.length })}</ChartA11ySummary>
             {analytics.timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analytics.timeline}>
@@ -110,7 +112,7 @@ export default function DashboardPage() {
         <div className="bg-void-surface border border-edge rounded-xl p-6">
           <h3 className="text-lg font-semibold text-paper mb-6">Sentiment Distribution</h3>
           <div className="h-72" role="img" aria-labelledby="echomind-sentiment-summary">
-            <ChartA11ySummary id="echomind-sentiment-summary">Sentiment distribution showing live positive, neutral, and negative mention counts.</ChartA11ySummary>
+            <ChartA11ySummary id="echomind-sentiment-summary">{t('a11y.echomindSentiment')}</ChartA11ySummary>
             {analytics.total_mentions > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

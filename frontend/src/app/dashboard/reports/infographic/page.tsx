@@ -159,7 +159,7 @@ export default function InfographicPage() {
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6">{t('reports.volumeOfMentions')}</h3>
                 <div className="h-72" role="img" aria-labelledby="infographic-volume-summary">
-                  <ChartA11ySummary id="infographic-volume-summary">Infographic volume chart showing mentions across {data.trend.length} dates.</ChartA11ySummary>
+                  <ChartA11ySummary id="infographic-volume-summary">{t('a11y.infographicVolume', { count: data.trend.length })}</ChartA11ySummary>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.trend}>
                       <defs>
@@ -202,7 +202,7 @@ export default function InfographicPage() {
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.sentimentBreakdown')}</h3>
                 <div className="flex-1 min-h-[300px]" role="img" aria-labelledby="infographic-sentiment-summary">
-                  <ChartA11ySummary id="infographic-sentiment-summary">Infographic sentiment breakdown chart showing analyzed sentiment categories.</ChartA11ySummary>
+                  <ChartA11ySummary id="infographic-sentiment-summary">{t('a11y.infographicSentiment')}</ChartA11ySummary>
                   {sentimentData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -238,7 +238,7 @@ export default function InfographicPage() {
               <div className="bg-void-raised border border-edge rounded-3xl p-4 sm:p-8 flex flex-col">
                 <h3 className="text-lg font-bold uppercase tracking-widest text-paper mb-6 text-center">{t('reports.topSources')}</h3>
                 <div className="flex-1 min-h-[300px]" role="img" aria-labelledby="infographic-sources-summary">
-                  <ChartA11ySummary id="infographic-sources-summary">Infographic source chart showing mention counts by source.</ChartA11ySummary>
+                  <ChartA11ySummary id="infographic-sources-summary">{t('a11y.infographicSources')}</ChartA11ySummary>
                   {data?.top_sources && data.top_sources.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={Array.isArray(data?.top_sources) ? data.top_sources.slice(0, 5) : []} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>

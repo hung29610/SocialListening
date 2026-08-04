@@ -21,6 +21,7 @@
 import { Section } from '@/components/ui/Section';
 import { GlassTile } from '@/components/ui/GlassTile';
 import { SentimentBadge } from '@/components/ui/SentimentBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   ParallaxLayer,
   Reveal,
@@ -62,6 +63,7 @@ function Chip({
 /* ── Scene visuals ────────────────────────────────────────────────── */
 
 function MonitorVisual() {
+  const { t } = useLanguage();
   return (
     <GlassTile padding="lg" aria-hidden="true">
       <p className="font-display text-eyebrow font-semibold uppercase text-paper-faint">
@@ -87,7 +89,7 @@ function MonitorVisual() {
         )}
       </div>
       <div className="mt-6 space-y-2 border-t border-edge pt-5">
-        <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - scan state preview</p>
+        <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">{t('landingFeatures.scanPlaceholder')}</p>
         <div className="flex items-center justify-between">
           <span className="text-xs text-paper-muted">Đang quét nguồn…</span>
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal motion-reduce:animate-none" />
@@ -137,6 +139,7 @@ function MentionsVisual() {
 }
 
 function AnalysisVisual() {
+  const { t } = useLanguage();
   return (
     <GlassTile padding="lg" glow aria-hidden="true">
       <p className="font-display text-eyebrow font-semibold uppercase text-paper-faint">
@@ -144,10 +147,10 @@ function AnalysisVisual() {
       </p>
       <div className="mt-4 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-4">
         <p className="font-display text-sm font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">
-          COPY_TBD - live sentiment distribution
+          {t('landingFeatures.sentimentPlaceholder')}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-paper-muted">
-          Real analyzed mention distributions appear in the dashboard after a source is connected.
+          {t('landingFeatures.sentimentPlaceholderDescription')}
         </p>
         <div className="mt-4 space-y-2" aria-hidden="true">
           <div className="h-2 w-full rounded-full bg-sentiment-positive/20" />
@@ -162,7 +165,7 @@ function AnalysisVisual() {
           <span className="tabular-nums">0 — 100</span>
         </div>
         <div className="mt-2 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-3">
-          <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - risk value</p>
+          <p className="text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">{t('landingFeatures.riskPlaceholder')}</p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-void-raised">
             <div className="h-full w-full rounded-full bg-gradient-to-r from-sentiment-positive/30 via-sentiment-neutral/30 to-sentiment-negative/30" />
           </div>
@@ -202,6 +205,7 @@ function AnalysisVisual() {
 }
 
 function AlertsVisual() {
+  const { t } = useLanguage();
   return (
     <GlassTile padding="lg" aria-hidden="true">
       <div className="flex items-center justify-between">
@@ -214,8 +218,8 @@ function AlertsVisual() {
         </span>
       </div>
       <p className="mt-5 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-4 text-sm leading-relaxed text-paper-muted">
-        <span className="font-display font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - live alert preview</span>
-        <br />Real alert rows and mention context appear after a connected source produces analyzed data.
+        <span className="font-display font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">{t('landingFeatures.alertPlaceholder')}</span>
+        <br />{t('landingFeatures.alertPlaceholderDescription')}
       </p>
       <ul className="mt-3 space-y-3" aria-hidden="true">
         {[1, 2, 3].map((index) => (
@@ -237,6 +241,7 @@ function AlertsVisual() {
 }
 
 function ReportsVisual() {
+  const { t } = useLanguage();
   return (
     <GlassTile padding="lg" aria-hidden="true">
       <div className="flex items-center justify-between">
@@ -253,7 +258,7 @@ function ReportsVisual() {
           <SkeletonLine width="64%" />
         </div>
       </div>
-      <p className="mt-3 text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">COPY_TBD - report preview</p>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">{t('landingFeatures.reportPlaceholder')}</p>
       <div className="mt-3 rounded-xl border border-edge bg-void-raised/60 p-4">
         <p className="text-xs font-semibold text-paper-muted">Bản phân tích đầy đủ</p>
         <div className="mt-3 grid grid-cols-3 items-end gap-2">

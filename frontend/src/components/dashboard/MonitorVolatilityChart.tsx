@@ -19,6 +19,7 @@ import {
   chartLegendStyle,
   ChartA11ySummary,
 } from './chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VolatilityDataPoint {
   date: string;
@@ -43,6 +44,7 @@ export default function MonitorVolatilityChart({
   isLoading,
 }: MonitorVolatilityChartProps) {
   const reducedMotion = useReducedMotion();
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <div className="h-72 flex items-center justify-center">
@@ -95,7 +97,7 @@ export default function MonitorVolatilityChart({
   return (
     <div className="h-72 w-full" role="img" aria-labelledby="monitor-volatility-chart-summary">
       <ChartA11ySummary id="monitor-volatility-chart-summary">
-        Volatility chart showing total, negative, and positive mentions across {data.length} dates.
+        {t('a11y.monitorVolatility', { count: data.length })}
       </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

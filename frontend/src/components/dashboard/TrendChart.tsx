@@ -18,6 +18,7 @@ import {
   chartLegendStyle,
   ChartA11ySummary,
 } from './chartTheme';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TrendChartProps {
   data: any[];
@@ -25,6 +26,7 @@ interface TrendChartProps {
 }
 
 export default function TrendChart({ data, isLoading }: TrendChartProps) {
+  const { t } = useLanguage();
   if (isLoading) {
     return <div className="h-72 flex items-center justify-center text-paper-faint font-medium">Đang tải biểu đồ...</div>;
   }
@@ -36,7 +38,7 @@ export default function TrendChart({ data, isLoading }: TrendChartProps) {
   return (
     <div className="h-72 w-full" role="img" aria-labelledby="trend-chart-summary">
       <ChartA11ySummary id="trend-chart-summary">
-        Trend chart showing total mentions, negative mentions, alerts, and incidents across {data.length} data points.
+        {t('a11y.trend', { count: data.length })}
       </ChartA11ySummary>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

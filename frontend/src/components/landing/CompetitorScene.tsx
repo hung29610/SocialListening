@@ -3,6 +3,7 @@
 import { Section } from '@/components/ui/Section';
 import { GlassTile } from '@/components/ui/GlassTile';
 import { ParallaxLayer, Reveal } from './scene-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Competitor and hashtag tracking is supported by the product. The landing
@@ -10,11 +11,12 @@ import { ParallaxLayer, Reveal } from './scene-motion';
  * belong in the authenticated dashboard once a comparison is configured.
  */
 export default function CompetitorScene() {
+  const { t } = useLanguage();
   return (
     <Section
       aria-labelledby="competitors-heading"
       eyebrow="Competitors and hashtags"
-      heading={<span id="competitors-heading">Know where you stand in the conversation.</span>}
+      heading={<span id="competitors-heading">{t('landingCompetitors.heading')}</span>}
       intro="Track competitors and campaign hashtags, then compare share of voice and sentiment in the dashboard using analyzed mentions."
       width="wide"
     >
@@ -22,21 +24,21 @@ export default function CompetitorScene() {
         <Reveal>
           <ul className="space-y-6">
             <li className="border-l-2 border-signal pl-5">
-              <h3 className="font-display text-lg font-bold text-paper">Share of voice</h3>
+              <h3 className="font-display text-lg font-bold text-paper">{t('landingCompetitors.shareTitle')}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-paper-muted">
-                Compare mention volume between your brand and configured competitors over the same period.
+                {t('landingCompetitors.shareDescription')}
               </p>
             </li>
             <li className="border-l-2 border-signal pl-5">
-              <h3 className="font-display text-lg font-bold text-paper">Sentiment comparison</h3>
+              <h3 className="font-display text-lg font-bold text-paper">{t('landingCompetitors.sentimentTitle')}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-paper-muted">
-                See positive, neutral, and negative distributions from real analyzed mentions side by side.
+                {t('landingCompetitors.sentimentDescription')}
               </p>
             </li>
             <li className="border-l-2 border-signal pl-5">
-              <h3 className="font-display text-lg font-bold text-paper">Hashtags are keywords</h3>
+              <h3 className="font-display text-lg font-bold text-paper">{t('landingCompetitors.hashtagTitle')}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-paper-muted">
-                Track campaign hashtags like any other keyword: scan, analyze sentiment, and trigger alerts.
+                {t('landingCompetitors.hashtagDescription')}
               </p>
             </li>
           </ul>
@@ -44,13 +46,13 @@ export default function CompetitorScene() {
 
         <ParallaxLayer distance={28} aria-hidden="true">
           <GlassTile padding="lg">
-            <p className="font-display text-eyebrow font-semibold uppercase text-paper-faint">Share of voice</p>
+            <p className="font-display text-eyebrow font-semibold uppercase text-paper-faint">{t('landingCompetitors.shareTitle')}</p>
             <div className="mt-4 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-5">
               <p className="font-display text-sm font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">
-                COPY_TBD - live comparison preview
+                {t('landingCompetitors.sharePlaceholder')}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-paper-muted">
-                Verified share-of-voice values appear here after a real comparison is configured.
+                {t('landingCompetitors.sharePlaceholderDescription')}
               </p>
               <div className="mt-5 space-y-2" aria-hidden="true">
                 <div className="h-2.5 w-full rounded-full bg-paper-faint/20" />
@@ -60,14 +62,14 @@ export default function CompetitorScene() {
             </div>
 
             <p className="mt-7 border-t border-edge pt-5 font-display text-eyebrow font-semibold uppercase text-paper-faint">
-              Sentiment comparison
+              {t('landingCompetitors.sentimentTitle')}
             </p>
             <div className="mt-4 rounded-xl border border-dashed border-signal/40 bg-signal/5 p-5">
               <p className="font-display text-sm font-semibold uppercase tracking-eyebrow text-signal dark:text-signal-bright">
-                COPY_TBD - sentiment comparison
+                {t('landingCompetitors.sentimentPlaceholder')}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-paper-muted">
-                Sentiment distributions are populated from analyzed mentions in the dashboard.
+                {t('landingCompetitors.sentimentPlaceholderDescription')}
               </p>
               <div className="mt-5 flex h-2.5 gap-1" aria-hidden="true">
                 <span className="h-full flex-1 rounded-full bg-sentiment-positive/30" />
