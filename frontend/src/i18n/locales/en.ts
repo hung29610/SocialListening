@@ -131,6 +131,7 @@ export const en = {
   header: {
     workerOnline: 'WORKER ONLINE',
     workerOffline: 'WORKER OFFLINE',
+    freeMvpEmbedded: 'FREE MVP / EMBEDDED',
     workerOff: 'WORKER OFF',
     workerUnknown: 'WORKER UNKNOWN',
     workerStatusUnknown: 'Unable to confirm worker status right now',

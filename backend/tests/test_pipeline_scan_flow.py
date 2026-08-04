@@ -482,21 +482,14 @@ def test_legacy_async_tasks_do_not_reuse_connections_across_event_loops():
     assert isinstance(async_engine.pool, NullPool)
 
 
-def test_render_worker_consumes_every_registered_queue():
+def test_free_render_blueprint_declares_no_paid_worker_or_beat():
     from pathlib import Path
 
     blueprint = (
         Path(__file__).parents[1] / "render.yaml"
     ).read_text(encoding="utf-8")
-    worker_section = blueprint.split(
-        "name: social-listening-pipeline-worker",
-        1,
-    )[1].split("name: social-listening-pipeline-beat", 1)[0]
-    queues = worker_section.split("--queues=", 1)[1].split()[0].split(",")
-    assert set(queues) >= {
-        "analysis",
-        "crawl",
-        "notifications",
-        "reports",
-        "celery",
-    }
+    assert "type: worker" not in blueprint
+    assert "social-listening-pipeline-worker" not in blueprint
+    assert "social-listening-pipeline-beat" not in blueprint
+    assert "plan: free" in blueprint
+    assert "key: FREE_MVP_RUNTIME_MODE\n        value: embedded" in blueprint

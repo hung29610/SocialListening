@@ -88,14 +88,19 @@ function WorkerStatusBadge() {
   const isRunning = workerStatus === 'online';
   const isDegraded = workerStatus === 'degraded';
   const brokerUnavailable = status.broker.status === 'unreachable';
-  const label = brokerUnavailable
+  const freeMvpEmbedded = status.runtime?.mode === 'free_mvp_embedded';
+  const label = freeMvpEmbedded
+    ? t('header.freeMvpEmbedded')
+    : brokerUnavailable
     ? 'BROKER UNREACHABLE'
     : isRunning
     ? t('header.workerOnline')
     : isDegraded
     ? 'CELERY DEGRADED'
     : t('header.workerOffline');
-  const tone = isRunning
+  const tone = freeMvpEmbedded
+    ? 'bg-warning/10 text-warning border-warning/25'
+    : isRunning
     ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/25'
     : isDegraded
     ? 'bg-warning/10 text-warning border-warning/25'
@@ -104,9 +109,9 @@ function WorkerStatusBadge() {
   return (
     <div
       className={`hidden sm:flex items-center gap-1.5 px-3 py-1 border ${tone} text-[10px] font-semibold tracking-eyebrow uppercase rounded-full cursor-help transition-colors duration-150 motion-reduce:transition-none`}
-      title={`Celery: ${workerStatus}. Broker: ${status.broker.status}. Beat: ${status.celery_beat.status}. Queues: ${status.celery_worker.queues.join(', ') || 'none'}`}
+      title={`${status.runtime?.label || 'Standard runtime'}. Celery: ${workerStatus}. Broker: ${status.broker.status}. Beat: ${status.celery_beat.status}. Queues: ${status.celery_worker.queues.join(', ') || 'none'}`}
     >
-      <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-sentiment-positive animate-pulse motion-reduce:animate-none' : isDegraded ? 'bg-warning' : 'bg-sentiment-negative'}`}></div>
+      <div className={`w-2 h-2 rounded-full ${freeMvpEmbedded ? 'bg-warning' : isRunning ? 'bg-sentiment-positive animate-pulse motion-reduce:animate-none' : isDegraded ? 'bg-warning' : 'bg-sentiment-negative'}`}></div>
       {label}
     </div>
   );

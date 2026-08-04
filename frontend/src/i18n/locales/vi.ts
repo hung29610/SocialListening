@@ -131,6 +131,7 @@ export const vi = {
   header: {
     workerOnline: 'WORKER ONLINE',
     workerOffline: 'WORKER OFFLINE',
+    freeMvpEmbedded: 'MVP MIỄN PHÍ / NHÚNG',
     workerOff: 'WORKER OFF',
     workerUnknown: 'KHÔNG RÕ WORKER',
     workerStatusUnknown: 'Hiện chưa xác nhận được trạng thái worker',

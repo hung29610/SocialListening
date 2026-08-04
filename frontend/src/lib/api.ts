@@ -372,8 +372,14 @@ export interface WorkerHealth {
   };
   embedded_scheduler: {
     status: string;
-    label: 'embedded_web_scheduler';
+    label: 'embedded_web_scheduler' | 'free_mvp_embedded';
     explicitly_enabled: boolean;
+  };
+  runtime: {
+    mode: 'standard' | 'free_mvp_embedded';
+    label: string;
+    reliability: 'standard' | 'reduced_web_process_lifecycle';
+    celery_durability_claimed: boolean;
   };
   pipeline: {
     status: string;
