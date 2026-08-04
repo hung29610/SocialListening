@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileSpreadsheet, Download, RefreshCcw, Table, Check } from 'lucide-react';
 import { mentions as mentionsApi, reports as reportsApi } from '@/lib/api';
 import { useProject } from '@/contexts/ProjectContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
-import { ExportHistoryTable } from '@/components/reports/ExportHistoryTable';
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
@@ -25,32 +24,6 @@ export default function ExcelReportPage() {
   const [dateRange, setDateRange] = useState('30d');
   const [loading, setLoading] = useState(false);
   const [exportScope, setExportScope] = useState<'all' | 'mentions'>('all');
-  const [exportHistory, setExportHistory] = useState<any[]>([]);
-  const [exportHistoryLoading, setExportHistoryLoading] = useState(true);
-
-  useEffect(() => {
-    fetchExports();
-
-    // Poll history every 5s if there are pending/running tasks
-    const interval = setInterval(() => {
-      setExportHistory(prev => {
-        if (prev.some(e => e.status === 'pending' || e.status === 'running')) {
-          fetchExports();
-        }
-        return prev;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchExports = async () => {
-    setExportHistoryLoading(true);
-    try {
-      const res = await reportsApi.listExports(1, 10, 'excel');
-      setExportHistory(res.items || []);
-    } catch (e) {}
-    finally { setExportHistoryLoading(false); }
-  };
 
   const handleExport = async () => {
     try {
@@ -71,9 +44,18 @@ export default function ExcelReportPage() {
       let filename;
 
       if (exportScope === 'all') {
-        await reportsApi.requestExport('excel', activeProject?.id);
-        toast.success(t('reports.excelRequested'));
-        fetchExports();
+        if (!activeProject?.id) throw new Error(t('reports.exportRequestError'));
+        const blob = await reportsApi.requestExport('excel', activeProject.id, {
+          date_from: params.date_from,
+          date_to: params.date_to,
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `nope360-project-${activeProject.id}-report.xlsx`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(t('reports.excelDownloaded'));
       } else {
         // Raw mentions CSV still synchronous
         const blob = await mentionsApi.exportCsv(params);
@@ -97,20 +79,6 @@ export default function ExcelReportPage() {
     }
   };
 
-  const downloadFile = async (exportId: number, filename: string) => {
-    try {
-      const blob = await reportsApi.downloadExport(exportId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error(t('reports.downloadFailed'));
-    }
-  };
-
   return (
     <div className="max-w-3xl mx-auto py-10 space-y-6">
 
@@ -120,6 +88,7 @@ export default function ExcelReportPage() {
         dateRange={dateRange}
         dateRangeLabel={DATE_RANGE_OPTIONS.find(r => r.value === dateRange)?.label}
       />
+      <p className="text-sm text-paper-muted">{t('reports.noRetentionNotice')}</p>
 
       <div className="bg-void-surface rounded-2xl shadow-tile border border-edge overflow-hidden">
 
@@ -206,15 +175,6 @@ export default function ExcelReportPage() {
 
       </div>
 
-      {/* Export History Section */}
-      <div className="mt-8 bg-void-surface p-6 rounded-2xl shadow-tile border border-edge">
-        <h3 className="text-lg font-bold text-paper mb-4">{t('reports.recentExports')}</h3>
-        <ExportHistoryTable
-          exports={exportHistory}
-          loading={exportHistoryLoading}
-          onDownload={downloadFile}
-        />
-      </div>
     </div>
   );
 }

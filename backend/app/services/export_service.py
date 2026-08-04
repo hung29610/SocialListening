@@ -34,6 +34,13 @@ class ExportService:
         return str(value).replace('\r', ' ').replace('\n', ' ')
 
     @staticmethod
+    def _safe_spreadsheet_cell(value: Any) -> Any:
+        """Prevent user-controlled strings from becoming spreadsheet formulas."""
+        if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+            return "'" + value
+        return value
+
+    @staticmethod
     def export_mentions_csv(db: Session, current_user: User, filters: dict) -> Generator[str, None, None]:
         output = io.StringIO()
         writer = csv.writer(output)
@@ -232,7 +239,7 @@ class ExportService:
                 sent_label, 
                 "" # Placeholder for Tags
             ]
-            ws_mentions.append(row)
+            ws_mentions.append([ExportService._safe_spreadsheet_cell(value) for value in row])
             
             # Style specific cells
             curr_row = ws_mentions.max_row

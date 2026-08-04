@@ -13,7 +13,6 @@ import Link from 'next/link';
 import { ReportDataScopeNotice } from '@/components/reports/ReportDataScopeNotice';
 import { ReportEmptyState } from '@/components/reports/ReportEmptyState';
 import { ReportErrorState } from '@/components/reports/ReportErrorState';
-import { ExportHistoryTable } from '@/components/reports/ExportHistoryTable';
 
 // Helper for class names
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -32,11 +31,9 @@ export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [exportHistoryLoading, setExportHistoryLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [exportHistory, setExportHistory] = useState<any[]>([]);
 
   const [dateRange, setDateRange] = useState('30d');
   
@@ -45,8 +42,6 @@ export default function ReportsPage() {
   const [fontStyle, setFontStyle] = useState('font-sans');
   const [fontColor, setFontColor] = useState('#1e293b');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [sections, setSections] = useState<Section[]>([
     { id: 'summary', name: t('reports.summary'), enabled: true, count: 1, total: 1 },
@@ -60,28 +55,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchData();
-    fetchExports();
-    
-    // Poll history every 5s if there are pending/running tasks
-    const interval = setInterval(() => {
-      setExportHistory(prev => {
-        if (prev.some(e => e.status === 'pending' || e.status === 'running')) {
-          fetchExports();
-        }
-        return prev;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
   }, [activeProject, dateRange]);
-
-  const fetchExports = async () => {
-    setExportHistoryLoading(true);
-    try {
-      const res = await reports.listExports(1, 10, 'pdf');
-      setExportHistory(res.items || []);
-    } catch (e) {}
-    finally { setExportHistoryLoading(false); }
-  };
 
   const fetchData = async () => {
     try {
@@ -123,27 +97,6 @@ export default function ReportsPage() {
     setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('reports.uploadImageOnly'));
-      return;
-    }
-    
-    setUploadingLogo(true);
-    const toastId = toast.loading(t('common.uploading'));
-    try {
-      const res = await reports.uploadLogo(file);
-      setLogoPath(res.logo_path);
-      toast.success(t('reports.logoUploaded'), { id: toastId });
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || t('reports.logoUploadError'), { id: toastId });
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
   const handleExport = async () => {
     setExporting(true);
     toast.loading(t('reports.saveAsPdf'), { id: 'export-pdf' });
@@ -157,7 +110,7 @@ export default function ReportsPage() {
         font_style: fontStyle,
         font_color: fontColor,
         theme: theme,
-        logo_path: logoPath
+        logo_path: undefined
       };
       
       const days = parseInt(dateRange.replace('d', ''));
@@ -169,27 +122,19 @@ export default function ReportsPage() {
         builderConfig.date_to = now.toISOString() as any;
       }
       
-      await reports.requestExport('pdf', activeProject?.id, builderConfig);
-      toast.success(t('reports.pdfRequested'), { id: 'export-pdf' });
-      fetchExports();
+      if (!activeProject?.id) throw new Error(t('reports.pdfRequestError'));
+      const blob = await reports.requestExport('pdf', activeProject.id, builderConfig);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nope360-project-${activeProject.id}-report.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('reports.pdfDownloaded'), { id: 'export-pdf' });
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || t('reports.pdfRequestError'), { id: 'export-pdf' });
     } finally {
       setExporting(false);
-    }
-  };
-
-  const downloadFile = async (exportId: number, filename: string) => {
-    try {
-      const blob = await reports.downloadExport(exportId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error(t('reports.downloadFailed'));
     }
   };
 
@@ -257,6 +202,7 @@ export default function ReportsPage() {
         projectName={activeProject?.name}
         dateRange={dateRange}
       />
+      <p className="text-sm text-slate-500 dark:text-gray-400">{t('reports.noRetentionNotice')}</p>
 
       {!activeProject && (
         <ReportEmptyState noProject />
@@ -329,32 +275,12 @@ export default function ReportsPage() {
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">{t('reports.customizeReport')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Logo Upload */}
+              {/* Persistent logo storage is unavailable in the reduced MVP. */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-gray-300">{t('reports.addLogo')}</label>
-                <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-[#0f172a] text-center hover:bg-gray-100 dark:hover:bg-[#1e293b] transition-colors relative">
-                  <input 
-                    type="file" 
-                    accept="image/jpeg, image/png" 
-                    onChange={handleLogoUpload}
-                    disabled={uploadingLogo}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
-                  />
-                  {logoPath ? (
-                    <div className="flex flex-col items-center">
-                      <CheckCircle className="w-8 h-8 text-emerald-500 mb-2" />
-                      <p className="text-sm text-emerald-600 font-medium">{t('reports.logoUploaded')}</p>
-                      <p className="text-xs text-gray-500 mt-1">{t('reports.clickToReplace')}</p>
-                    </div>
-                  ) : (
-                    <>
-                      <ImageIcon className={cn("w-8 h-8 mb-2", uploadingLogo ? "text-emerald-500 animate-pulse" : "text-gray-400")} />
-                      <span className="text-sm text-gray-500 font-medium">
-                        {uploadingLogo ? t('common.uploading') : t('common.uploadLogo')}
-                      </span>
-                      <p className="text-xs text-gray-400 mt-1">{t('reports.logoFormats')}</p>
-                    </>
-                  )}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-[#0f172a] text-center">
+                  <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+                  <span className="text-sm text-gray-500 font-medium">{t('reports.logoStorageUnavailable')}</span>
                 </div>
               </div>
 
@@ -631,15 +557,6 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Export History Section */}
-      <div className="bg-white dark:bg-[#1E293B] p-6 rounded-xl border border-gray-200 dark:border-gray-800">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">{t('reports.recentExports')}</h3>
-        <ExportHistoryTable
-          exports={exportHistory}
-          loading={exportHistoryLoading}
-          onDownload={downloadFile}
-        />
-      </div>
     </div>
   );
 }

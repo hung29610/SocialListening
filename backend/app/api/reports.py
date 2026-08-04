@@ -26,8 +26,66 @@ from app.schemas.report import (
     ReportBuilderConfig
 )
 from app.core.tenant import apply_tenant_filter
+from app.services.pdf_generator import PDFGenerator
 
 router = APIRouter()
+
+_ON_DEMAND_EXPORT_LIMIT = 25 * 1024 * 1024
+_EXPORT_MEDIA_TYPES = {
+    "pdf": "application/pdf",
+    "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def _safe_export_filename(project_id: int, report_type: str) -> str:
+    extension = "pdf" if report_type == "pdf" else "xlsx"
+    return f"nope360-project-{int(project_id)}-report.{extension}"
+
+
+@router.post("/export-on-demand/{report_type}")
+def export_on_demand(
+    report_type: str,
+    project_id: int = Query(..., ge=1),
+    builder_config: Optional[ReportBuilderConfig] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Generate an authorized export in memory and return it without retention."""
+    normalized_type = report_type.lower()
+    if normalized_type not in _EXPORT_MEDIA_TYPES:
+        raise HTTPException(status_code=400, detail="Only PDF and Excel exports are supported")
+
+    from app.core.ownership import resolve_actor_scope
+    resolve_actor_scope(db, current_user, project_id)
+    config = json.loads(builder_config.json()) if builder_config else {}
+    # Local asset paths are never accepted from request data in no-retention mode.
+    config.pop("logo_path", None)
+    export_data = ExportService.get_export_data(
+        db, current_user, {"project_id": project_id}, config
+    )
+    if not export_data.get("raw_mentions"):
+        raise HTTPException(status_code=422, detail="No data is available for this report scope")
+
+    if normalized_type == "pdf":
+        content = PDFGenerator.generate_project_summary(export_data, config)
+    else:
+        content = ExportService.export_project_summary_xlsx(export_data)
+    if not content:
+        raise HTTPException(status_code=500, detail="Report generation produced an empty file")
+    if len(content) > _ON_DEMAND_EXPORT_LIMIT:
+        raise HTTPException(status_code=413, detail="Generated report exceeds the 25 MB limit")
+
+    filename = _safe_export_filename(project_id, normalized_type)
+    return Response(
+        content=content,
+        media_type=_EXPORT_MEDIA_TYPES[normalized_type],
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "private, no-store",
+            "X-Report-Retention": "none",
+        },
+    )
 
 @router.get("/summary")
 def get_reports_summary(
@@ -40,18 +98,27 @@ def get_reports_summary(
     now = datetime.utcnow()
 
     total_mentions = db.execute(apply_tenant_filter(select(func.count(Mention.id)), Mention, current_user)).scalar() or 0
+    analysis_base = select(func.count(AIAnalysis.id)).join(
+        Mention, Mention.id == AIAnalysis.mention_id
+    )
     total_analyzed = db.execute(
-        select(func.count(AIAnalysis.id))
+        apply_tenant_filter(analysis_base, Mention, current_user)
     ).scalar() or 0
 
     positive = db.execute(
-        select(func.count(AIAnalysis.id))
-        .where(AIAnalysis.sentiment == 'positive')
+        apply_tenant_filter(
+            analysis_base.where(AIAnalysis.sentiment == 'positive'),
+            Mention,
+            current_user,
+        )
     ).scalar() or 0
 
     negative = db.execute(
-        select(func.count(AIAnalysis.id))
-        .where(AIAnalysis.sentiment.in_(['negative']))
+        apply_tenant_filter(
+            analysis_base.where(AIAnalysis.sentiment.in_(['negative'])),
+            Mention,
+            current_user,
+        )
     ).scalar() or 0
 
     # ── Real top_sources from DB: GROUP BY source_type, tenant-filtered ──────
@@ -707,32 +774,11 @@ def request_async_export(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Request an asynchronous export generation (pdf or excel)"""
-    if report_type not in ["pdf", "excel", "xlsx"]:
-        raise HTTPException(status_code=400, detail="Invalid report type")
-        
-    builder_config_payload = None
-    if builder_config:
-        builder_config_payload = json.loads(builder_config.json())
-        
-    from app.core.ownership import resolve_actor_scope, stamp_scope
-    scope = resolve_actor_scope(db, current_user, project_id)
-    export_job = ReportExport(
-        report_type=report_type,
-        project_id=project_id,
-        requested_by=current_user.id,
-        status=ExportStatus.PENDING,
-        builder_config=builder_config_payload,
-        created_at=datetime.utcnow()
+    """Retained export jobs are unavailable in the reduced MVP contract."""
+    raise HTTPException(
+        status_code=410,
+        detail="Retained exports are disabled; use the on-demand export endpoint",
     )
-    stamp_scope(export_job, scope)
-    db.add(export_job)
-    db.commit()
-    db.refresh(export_job)
-    
-    background_tasks.add_task(ExportService.process_export, export_job.id)
-    
-    return export_job
 
 @router.get("/exports/history", response_model=ReportExportListResponse)
 def list_exports(
@@ -742,29 +788,8 @@ def list_exports(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """List asynchronous export history for the user"""
-    query = select(ReportExport)
-    if type:
-        query = query.where(ReportExport.report_type == type)
-    if not current_user.is_superuser:
-        query = query.where(ReportExport.requested_by == current_user.id)
-        
-    count_query = select(func.count()).select_from(query.subquery())
-    total = db.execute(count_query).scalar() or 0
-    
-    offset = (page - 1) * page_size
-    query = query.order_by(ReportExport.created_at.desc()).offset(offset).limit(page_size)
-    
-    exports = db.execute(query).scalars().all()
-    total_pages = ceil(total / page_size) if total > 0 else 1
-    
-    return ReportExportListResponse(
-        items=exports,
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages
-    )
+    """Persistent export history is intentionally disabled for reduced MVP."""
+    return ReportExportListResponse(items=[], total=0, page=page, page_size=page_size, total_pages=1)
 
 @router.get("/exports/{export_id}", response_model=ReportExportResponse)
 def get_export_status(
@@ -772,16 +797,7 @@ def get_export_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get the status of an asynchronous export"""
-    query = select(ReportExport).where(ReportExport.id == export_id)
-    if not current_user.is_superuser:
-        query = query.where(ReportExport.requested_by == current_user.id)
-        
-    export_job = db.execute(query).scalar_one_or_none()
-    if not export_job:
-        raise HTTPException(status_code=404, detail="Export not found")
-        
-    return export_job
+    raise HTTPException(status_code=404, detail="Retained export history is disabled")
 
 @router.get("/exports/{export_id}/download")
 def download_export(
@@ -789,69 +805,12 @@ def download_export(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Download a successfully generated asynchronous export"""
-    query = select(ReportExport).where(ReportExport.id == export_id)
-    if not current_user.is_superuser:
-        query = query.where(ReportExport.requested_by == current_user.id)
-        
-    export_job = db.execute(query).scalar_one_or_none()
-    if not export_job:
-        raise HTTPException(status_code=404, detail="Export not found")
-        
-    if export_job.status != ExportStatus.SUCCESS or not export_job.file_path:
-        raise HTTPException(status_code=400, detail="Export is not ready for download")
-        
-    if not os.path.exists(export_job.file_path):
-        raise HTTPException(status_code=404, detail="Export file has been removed or does not exist")
-        
-    EXPORT_FILE_EXTENSIONS = {
-        "excel": "xlsx",
-        "xlsx": "xlsx",
-        "csv": "csv",
-        "pdf": "pdf",
-    }
-    
-    ext = EXPORT_FILE_EXTENSIONS.get(export_job.report_type.lower(), export_job.report_type.lower())
-    dl_filename = f"Nope360_Export_{export_job.id}.{ext}"
-    
-    media_type = "application/octet-stream"
-    if ext == "xlsx":
-        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    elif ext == "csv":
-        media_type = "text/csv"
-    elif ext == "pdf":
-        media_type = "application/pdf"
-        
-    return FileResponse(
-        path=export_job.file_path,
-        filename=dl_filename,
-        media_type=media_type
-    )
+    raise HTTPException(status_code=404, detail="Retained export history is disabled")
 
 @router.post("/pdf/logo")
 def upload_pdf_logo(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Upload a logo for the PDF report builder"""
-    if file.content_type not in ["image/jpeg", "image/png"]:
-        raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG and PNG are allowed.")
-    
-    # Optional size check (read chunk to see if it exceeds 5MB)
-    file.file.seek(0, 2)
-    size = file.file.tell()
-    file.file.seek(0)
-    if size > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
-
-    ext = ".png" if file.content_type == "image/png" else ".jpg"
-    filename = f"{uuid.uuid4()}{ext}"
-    
-    upload_dir = os.path.join(os.getcwd(), 'data', 'uploads', 'logos')
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    file_path = os.path.join(upload_dir, filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(file.file.read())
-        
-    return {"logo_path": file_path}
+    """Persistent logo upload is unavailable without approved object storage."""
+    raise HTTPException(status_code=503, detail="Persistent logo upload is unavailable")
