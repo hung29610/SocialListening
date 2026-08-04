@@ -378,7 +378,8 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
                         res = run_rss_collector(
                             local_db,
                             ad_hoc_keywords=keyword_texts,
-                            ad_hoc_project_id=project_id
+                            ad_hoc_project_id=project_id,
+                            ad_hoc_job_id=job_id,
                         )
                         with summary_lock:
                             summary["rss"]["raw_results_count"] = res.get("items_seen", 0)
@@ -596,7 +597,7 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
 
         # Update strict metadata fields
         meta_data_final = job.meta_data or {}
-        meta_data_final["normalized_query"] = meta_data_final.get("query", "").strip().lower()
+        meta_data_final["normalized_query"] = (meta_data_final.get("query") or "").strip().lower()
         meta_data_final["expanded_keywords"] = keyword_texts
         meta_data_final["requested_max_results_per_source"] = max_results
         meta_data_final["actual_raw_results_count"] = sum(s.get("raw_results_count", 0) for k, s in summary.items() if isinstance(s, dict) and "raw_results_count" in s)

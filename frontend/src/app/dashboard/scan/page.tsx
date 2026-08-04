@@ -264,15 +264,15 @@ export default function ScanPage() {
       if (quickKeyword.trim()) {
         finalKeywords.push(quickKeyword.trim());
         if (quickGroupId) {
+          if (!finalKeywordGroups.includes(quickGroupId as number)) {
+            finalKeywordGroups.push(quickGroupId as number);
+          }
           try {
             await keywordsApi.createKeyword({
               keyword: quickKeyword.trim(),
               group_id: quickGroupId as number,
               keyword_type: 'general',
             });
-            if (!finalKeywordGroups.includes(quickGroupId as number)) {
-              finalKeywordGroups.push(quickGroupId as number);
-            }
           } catch (error: any) {
             if (error.response?.status !== 409) {
               console.error('Error creating quick keyword:', error);
