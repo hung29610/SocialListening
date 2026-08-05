@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest.mock import ANY, Mock, call
+import re
 
 import pytest
 
@@ -101,6 +102,107 @@ def test_unknown_or_partial_sibling_state_fails_closed(monkeypatch, heads):
     upgrade = Mock()
     monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
     monkeypatch.setattr(migration_startup, "_database_heads", lambda: heads)
+
+    with pytest.raises(migration_startup.StartupMigrationError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    upgrade.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("heads", "reason", "reachable"),
+    [
+        (
+            tuple(sorted((migration_startup.STRANDED_REVISION, migration_startup.MISSING_SIBLING_REVISION))),
+            migration_startup.DIAGNOSTIC_REASON_SIBLING_SET,
+            True,
+        ),
+        (
+            (migration_startup.MERGE_REVISION,),
+            migration_startup.DIAGNOSTIC_REASON_MERGEPOINT,
+            True,
+        ),
+        (("ffffffffffff",), migration_startup.DIAGNOSTIC_REASON_UNKNOWN, False),
+    ],
+)
+def test_unsupported_states_emit_bounded_revision_diagnostic(
+    monkeypatch, caplog, heads, reason, reachable
+):
+    script = _install_script(monkeypatch)
+    script.iterate_revisions.side_effect = lambda upper, _lower: (
+        [_revision(migration_startup.MERGE_REVISION, "parent")]
+        if upper in {migration_startup.EXPECTED_REVISION, migration_startup.MERGE_REVISION}
+        else []
+    )
+    upgrade = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(migration_startup, "_database_heads", lambda: heads)
+
+    with caplog.at_level("WARNING"), pytest.raises(migration_startup.StartupMigrationError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    line = next(record.getMessage() for record in caplog.records if "ALEMBIC_BOOTSTRAP_STATE" in record.getMessage())
+    assert f"reason={reason}" in line
+    assert f"mergepoint_reachable={str(reachable).lower()}" in line
+    assert "credential" not in line.lower()
+    assert "database_url" not in line.lower()
+    assert "tenant" not in line.lower()
+    allowed = re.compile(
+        r"^ALEMBIC_BOOTSTRAP_STATE database_revisions=[0-9a-f,]+ "
+        r"repository_heads=[0-9a-f,]+ stranded_present=(?:true|false) "
+        r"sibling_present=(?:true|false) mergepoint_reachable=(?:true|false) "
+        r"reason=[A-Z_]+$"
+    )
+    assert allowed.fullmatch(line)
+    upgrade.assert_not_called()
+
+
+def test_multiple_version_rows_never_trigger_migration(monkeypatch):
+    _install_script(monkeypatch)
+    upgrade = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(
+        migration_startup,
+        "_database_heads",
+        lambda: tuple(sorted((migration_startup.STRANDED_REVISION, migration_startup.MISSING_SIBLING_REVISION))),
+    )
+
+    with pytest.raises(migration_startup.StartupMigrationError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    upgrade.assert_not_called()
+
+
+def test_malformed_revision_value_is_redacted_and_never_migrated(monkeypatch, caplog):
+    _install_script(monkeypatch)
+    upgrade = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(
+        migration_startup,
+        "_database_heads",
+        lambda: ("credential-shaped-sensitive-detail",),
+    )
+
+    with caplog.at_level("WARNING"), pytest.raises(migration_startup.StartupMigrationError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    line = next(record.getMessage() for record in caplog.records if "ALEMBIC_BOOTSTRAP_STATE" in record.getMessage())
+    assert "credential-shaped-sensitive-detail" not in line
+    assert "database_revisions=none" in line
+    assert f"reason={migration_startup.DIAGNOSTIC_REASON_UNKNOWN}" in line
+    upgrade.assert_not_called()
+
+
+def test_mergepoint_already_present_never_triggers_migration(monkeypatch):
+    script = _install_script(monkeypatch)
+    script.iterate_revisions.side_effect = lambda upper, _lower: (
+        [_revision(migration_startup.MERGE_REVISION, "parent")]
+        if upper in {migration_startup.EXPECTED_REVISION, migration_startup.MERGE_REVISION}
+        else []
+    )
+    upgrade = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(migration_startup, "_database_heads", lambda: (migration_startup.MERGE_REVISION,))
 
     with pytest.raises(migration_startup.StartupMigrationError):
         migration_startup.run_verified_startup_migrations(Path("backend"))

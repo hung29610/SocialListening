@@ -8,6 +8,7 @@ Alembic; it never stamps, guesses, or edits historical revision files.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 from alembic import command
@@ -26,6 +27,12 @@ STRANDED_REVISION = "7a8e2eb4683b"
 MISSING_SIBLING_REVISION = "a1b2c3d4e5f6"
 BRANCHPOINT_REVISION = "c4a1e2f3b5d7"
 MERGE_REVISION = "914d78ba6c8e"
+DIAGNOSTIC_REASON_CURRENT = "CURRENT_HEAD"
+DIAGNOSTIC_REASON_STRANDED = "SUPPORTED_STRANDED_HEAD"
+DIAGNOSTIC_REASON_SIBLING_SET = "UNSUPPORTED_SIBLING_HEAD_SET"
+DIAGNOSTIC_REASON_MERGEPOINT = "UNSUPPORTED_MERGEPOINT_OR_DESCENDANT"
+DIAGNOSTIC_REASON_UNKNOWN = "UNKNOWN_REVISION_SET"
+REVISION_ID_PATTERN = re.compile(r"^[0-9a-f]{12}$")
 
 
 class StartupMigrationError(RuntimeError):
@@ -73,6 +80,69 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
     return repository_heads
 
 
+def _revision_ancestry(script: ScriptDirectory, revision: str) -> set[str]:
+    """Return repository revision IDs reachable downward from one revision."""
+    try:
+        return {
+            item.revision
+            for item in script.iterate_revisions(revision, "base")
+        }
+    except Exception:  # Alembic raises for IDs absent from the repository graph.
+        return set()
+
+
+def _diagnose_database_heads(
+    script: ScriptDirectory,
+    database_heads: tuple[str, ...],
+    repository_heads: tuple[str, ...],
+) -> tuple[str, bool]:
+    """Classify a revision set without inferring or broadening repair support."""
+    if any(not REVISION_ID_PATTERN.fullmatch(revision) for revision in database_heads):
+        return DIAGNOSTIC_REASON_UNKNOWN, False
+    current = set(database_heads)
+    if database_heads == repository_heads:
+        return DIAGNOSTIC_REASON_CURRENT, True
+    if database_heads == (STRANDED_REVISION,):
+        return DIAGNOSTIC_REASON_STRANDED, True
+    if current == {STRANDED_REVISION, MISSING_SIBLING_REVISION}:
+        return DIAGNOSTIC_REASON_SIBLING_SET, True
+
+    known_ancestry = set().union(
+        *(_revision_ancestry(script, revision) for revision in database_heads)
+    ) if database_heads else set()
+    if MERGE_REVISION in current or MERGE_REVISION in known_ancestry:
+        return DIAGNOSTIC_REASON_MERGEPOINT, True
+    return DIAGNOSTIC_REASON_UNKNOWN, False
+
+
+def _log_head_diagnostic(
+    script: ScriptDirectory,
+    database_heads: tuple[str, ...],
+    repository_heads: tuple[str, ...],
+) -> None:
+    reason, mergepoint_reachable = _diagnose_database_heads(
+        script, database_heads, repository_heads
+    )
+    safe_database_heads = tuple(
+        revision for revision in sorted(database_heads)
+        if REVISION_ID_PATTERN.fullmatch(revision)
+    )
+    safe_repository_heads = tuple(
+        revision for revision in sorted(repository_heads)
+        if REVISION_ID_PATTERN.fullmatch(revision)
+    )
+    logger.warning(
+        "ALEMBIC_BOOTSTRAP_STATE database_revisions=%s repository_heads=%s "
+        "stranded_present=%s sibling_present=%s mergepoint_reachable=%s reason=%s",
+        ",".join(safe_database_heads) or "none",
+        ",".join(safe_repository_heads) or "none",
+        str(STRANDED_REVISION in database_heads).lower(),
+        str(MISSING_SIBLING_REVISION in database_heads).lower(),
+        str(mergepoint_reachable).lower(),
+        reason,
+    )
+
+
 def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str, ...]:
     """Repair only the exact supported one-sided branch state."""
     repository_heads = _verify_repository_contract(script)
@@ -82,6 +152,7 @@ def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str
         logger.info("ALEMBIC_BOOTSTRAP_NOOP revision=%s", EXPECTED_REVISION)
         return repository_heads
     if database_heads != (STRANDED_REVISION,):
+        _log_head_diagnostic(script, database_heads, repository_heads)
         raise StartupMigrationError("database migration state is not supported by bootstrap")
 
     logger.warning(
