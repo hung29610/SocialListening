@@ -75,40 +75,25 @@ async def lifespan(app: FastAPI):
     """Startup: create tables + seed data + start scheduler."""
     logger.info("Starting Social Listening Platform...")
 
-    # Run database migrations automatically if configured
-    try:
-        import os
-        run_migrations = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").lower() == "true"
+    # Run database migrations automatically if configured. Migration failures
+    # are startup-fatal: maintenance must never run against an unverified head.
+    import os
+    run_migrations = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").lower() == "true"
         
-        # If running on Render, default to false to avoid port binding timeout
-        if "RENDER" in os.environ and "RUN_MIGRATIONS_ON_STARTUP" not in os.environ:
-            run_migrations = False
+    # If running on Render, default to false to avoid port binding timeout.
+    if "RENDER" in os.environ and "RUN_MIGRATIONS_ON_STARTUP" not in os.environ:
+        run_migrations = False
             
-        if run_migrations:
-            import alembic.config
-            import alembic.command
-            logger.info("Running automatic database migrations...")
-            
-            # __file__ is backend/app/main.py
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            alembic_ini_path = os.path.join(base_dir, "alembic.ini")
-            
-            # We must change dir so alembic script_location resolves correctly
-            original_cwd = os.getcwd()
-            os.chdir(base_dir)
-            
-            alembic_cfg = alembic.config.Config("alembic.ini")
-            if settings.DATABASE_URL:
-                alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
-            alembic.command.upgrade(alembic_cfg, "head")
-            logger.info("Database migrations applied successfully.")
+    if run_migrations:
+        from pathlib import Path
+        from app.core.migration_startup import run_verified_startup_migrations
 
-            # Restore cwd just in case
-            os.chdir(original_cwd)
-        else:
-            logger.info("Skipping automatic database migrations (RUN_MIGRATIONS_ON_STARTUP is false)")
-    except Exception as e:
-        logger.warning(f"create_all skipped (tables may already exist via alembic): {e}")
+        logger.info("Running automatic database migrations...")
+        backend_dir = Path(__file__).resolve().parent.parent
+        run_verified_startup_migrations(backend_dir)
+        logger.info("Database migrations applied and verified successfully.")
+    else:
+        logger.info("Skipping automatic database migrations (RUN_MIGRATIONS_ON_STARTUP is false)")
 
     from app.core.free_mvp_maintenance import run_free_mvp_maintenance_if_enabled
     run_free_mvp_maintenance_if_enabled()

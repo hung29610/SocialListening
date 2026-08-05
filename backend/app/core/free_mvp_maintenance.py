@@ -17,11 +17,11 @@ from alembic.migration import MigrationContext
 from sqlalchemy import text
 
 from app.core.database import SessionLocal, engine
+from app.core.migration_startup import EXPECTED_REVISION
 from app.services.tenant_reconciliation import reconcile_tenant_integrity
 
 
 logger = logging.getLogger(__name__)
-EXPECTED_REVISION = "d72f8a913b21"
 ENABLED_ENV = "FREE_MVP_MAINTENANCE_ENABLED"
 OPERATION_ID_ENV = "FREE_MVP_MAINTENANCE_OPERATION_ID"
 _OPERATION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
