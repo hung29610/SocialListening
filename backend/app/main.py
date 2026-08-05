@@ -110,6 +110,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"create_all skipped (tables may already exist via alembic): {e}")
 
+    from app.core.free_mvp_maintenance import run_free_mvp_maintenance_if_enabled
+    run_free_mvp_maintenance_if_enabled()
+
     # Bounded check: reads one audit-state row, never scans tenant tables.
     from app.core.tenant_readiness import enforce_tenant_integrity_readiness
     enforce_tenant_integrity_readiness()
@@ -165,7 +168,8 @@ async def lifespan(app: FastAPI):
 
     # The web process may run APScheduler only when explicitly enabled.  It is
     # never inferred from the legacy standalone-worker SCHEDULER_ENABLED flag.
-    enable_embedded_scheduler = (
+    free_mvp_embedded = os.getenv("FREE_MVP_RUNTIME_MODE", "").lower() == "embedded"
+    enable_embedded_scheduler = free_mvp_embedded or (
         os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true"
     )
     if enable_embedded_scheduler:

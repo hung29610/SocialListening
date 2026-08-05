@@ -79,6 +79,27 @@ def test_embedded_web_scheduler_never_makes_celery_online(monkeypatch):
     assert health["overall"]["status"] == "offline"
 
 
+def test_free_mvp_embedded_mode_is_truthful_about_worker_and_reliability(monkeypatch):
+    from app.services import scheduler_service
+
+    monkeypatch.setenv("FREE_MVP_RUNTIME_MODE", "embedded")
+    monkeypatch.setattr(scheduler_service, "scheduler_started", True)
+    monkeypatch.setattr(scheduler_service, "_is_embedded_mode", True)
+
+    health = _collect(monkeypatch, queues=None)
+
+    assert health["runtime"] == {
+        "mode": "free_mvp_embedded",
+        "label": "Free MVP / embedded mode",
+        "reliability": "reduced_web_process_lifecycle",
+        "celery_durability_claimed": False,
+    }
+    assert health["embedded_scheduler"]["status"] == "online"
+    assert health["embedded_scheduler"]["label"] == "free_mvp_embedded"
+    assert health["celery_worker"]["status"] == "offline"
+    assert health["celery_beat"]["status"] == "offline"
+
+
 def test_fresh_celery_ping_is_online_and_exposes_queues(monkeypatch):
     beat = json.dumps({"timestamp": NOW.isoformat(), "software_version": "abc123"})
     health = _collect(
@@ -193,18 +214,20 @@ def test_embedded_scheduler_fails_closed_when_singleton_lock_is_held(monkeypatch
     assert scheduler_service._embedded_scheduler_lock is None
 
 
-def test_production_render_disables_embedded_scheduling_and_frontend_is_truthful():
+def test_production_render_declares_only_free_embedded_web_runtime_and_frontend_is_truthful():
     root = Path(__file__).resolve().parents[2]
     render_yaml = (root / "backend" / "render.yaml").read_text(encoding="utf-8")
     main_source = (root / "backend" / "app" / "main.py").read_text(encoding="utf-8")
     scan_source = (root / "frontend" / "src" / "app" / "dashboard" / "scan" / "page.tsx").read_text(encoding="utf-8")
     layout_source = (root / "frontend" / "src" / "app" / "dashboard" / "layout.tsx").read_text(encoding="utf-8")
 
-    assert 'key: ENABLE_EMBEDDED_SCHEDULER\n        value: "false"' in render_yaml
-    assert render_yaml.count("runtime: python") == 3
-    assert render_yaml.count("region: singapore") == 3
-    assert render_yaml.count("rootDir: backend") == 3
-    assert render_yaml.count("numInstances: 1") == 3
+    assert "plan: free" in render_yaml
+    assert "key: FREE_MVP_RUNTIME_MODE\n        value: embedded" in render_yaml
+    assert render_yaml.count("runtime: python") == 1
+    assert render_yaml.count("type: worker") == 0
+    assert render_yaml.count("region: singapore") == 1
+    assert render_yaml.count("rootDir: backend") == 1
+    assert render_yaml.count("numInstances: 1") == 1
     assert 'os.getenv("SCHEDULER_ENABLED", "true")' not in main_source
     assert "SYS.WORKER // ONLINE" not in scan_source
     assert "status.celery_worker.status" in layout_source
@@ -222,6 +245,7 @@ def test_system_api_returns_explicit_component_contract(monkeypatch):
         "celery_worker",
         "celery_beat",
         "embedded_scheduler",
+        "runtime",
         "pipeline",
         "overall",
     }

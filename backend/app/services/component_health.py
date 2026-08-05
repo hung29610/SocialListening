@@ -250,7 +250,8 @@ def collect_component_health(db: Session, now: datetime | None = None) -> dict[s
         embedded_running = bool(scheduler_service.scheduler_started and scheduler_service._is_embedded_mode)
     except ImportError:
         embedded_running = False
-    embedded_configured = os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true"
+    free_mvp_embedded = os.getenv("FREE_MVP_RUNTIME_MODE", "").lower() == "embedded"
+    embedded_configured = free_mvp_embedded or os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true"
     embedded_status = "online" if embedded_running else "offline" if embedded_configured else "disabled"
 
     try:
@@ -297,8 +298,14 @@ def collect_component_health(db: Session, now: datetime | None = None) -> dict[s
         },
         "embedded_scheduler": {
             "status": embedded_status,
-            "label": "embedded_web_scheduler",
+            "label": "free_mvp_embedded" if free_mvp_embedded else "embedded_web_scheduler",
             "explicitly_enabled": embedded_configured,
+        },
+        "runtime": {
+            "mode": "free_mvp_embedded" if free_mvp_embedded else "standard",
+            "label": "Free MVP / embedded mode" if free_mvp_embedded else "Standard runtime",
+            "reliability": "reduced_web_process_lifecycle" if free_mvp_embedded else "standard",
+            "celery_durability_claimed": False if free_mvp_embedded else worker_status == "online",
         },
         "pipeline": pipeline,
         "overall": {"status": overall_status, "observed_at": observed_at},

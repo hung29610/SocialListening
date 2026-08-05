@@ -4,7 +4,7 @@ services:
     runtime: python
     region: singapore
     rootDir: backend
-    plan: starter
+    plan: free
     numInstances: 1
     autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt
@@ -13,11 +13,13 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: SECRET_KEY
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: REDIS_URL
-        sync: false   # required shared store for production rate limiting
+        sync: false
+      - key: FREE_MVP_RUNTIME_MODE
+        value: embedded
       - key: ENABLE_EMBEDDED_SCHEDULER
         value: "false"
       - key: SCHEDULER_ENABLED
@@ -37,56 +39,6 @@ services:
       - key: FRONTEND_URL
         value: https://social-listening-azure.vercel.app
 
-  # Prepared Blueprint only: creating/updating these services remains a
-  # human-reviewed production action.
-  - type: worker
-    name: social-listening-pipeline-worker
-    runtime: python
-    region: singapore
-    rootDir: backend
-    plan: starter
-    numInstances: 1
-    autoDeployTrigger: checksPass
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.workers.celery_app:celery_app worker --loglevel=INFO --queues=analysis,crawl,notifications,reports,celery --concurrency=2 --hostname=worker@%h
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: CELERY_EXPECTED_QUEUES
-        value: analysis,crawl,notifications,reports,celery
-      - key: AI_PROVIDER_CHAIN
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: DEEPSEEK_API_KEY
-        sync: false
-
-  - type: worker
-    name: social-listening-pipeline-beat
-    runtime: python
-    region: singapore
-    rootDir: backend
-    plan: starter
-    numInstances: 1
-    autoDeployTrigger: checksPass
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.workers.celery_app:celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule --pidfile=/tmp/celerybeat.pid
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-      - key: REDIS_URL
-        sync: false
+  # Free MVP contract: no Celery worker or Beat services are declared. The
+  # single web process runs only the explicitly selected Redis-leased embedded
+  # scheduler. Web sleep/restarts reduce reliability and must remain visible.
