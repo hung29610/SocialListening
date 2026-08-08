@@ -34,7 +34,16 @@ def _write_revision(path: Path, revision: str, down_revision, body: str = "pass"
     )
 
 
-def test_real_postgres_exact_stranded_state_reaches_verified_head(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "starting_revision",
+    [
+        migration_startup.STRANDED_REVISION,
+        migration_startup.LEGACY_ANCESTOR_REVISION,
+    ],
+)
+def test_real_postgres_supported_historical_state_reaches_verified_head(
+    tmp_path, monkeypatch, starting_revision
+):
     source = make_url(_test_database_url())
     database_name = f"sl_bootstrap_{uuid4().hex[:12]}"
     admin = psycopg2.connect(
@@ -64,9 +73,31 @@ def test_real_postgres_exact_stranded_state_reaches_verified_head(tmp_path, monk
         encoding="utf-8",
     )
     _write_revision(
+        versions / "parent.py",
+        migration_startup.LEGACY_PARENT_REVISION,
+        None,
+        "op.create_table('mentions', sa.Column('id', sa.Integer(), primary_key=True))",
+    )
+    _write_revision(
+        versions / "legacy.py",
+        migration_startup.LEGACY_ANCESTOR_REVISION,
+        migration_startup.LEGACY_PARENT_REVISION,
+        "op.add_column('mentions', sa.Column('verification_status', sa.String(length=50), nullable=True))\n"
+        "    op.add_column('mentions', sa.Column('verification_error', sa.Text(), nullable=True))\n"
+        "    op.add_column('mentions', sa.Column('verified_at', sa.DateTime(timezone=True), nullable=True))\n"
+        "    op.add_column('mentions', sa.Column('original_url', sa.Text(), nullable=True))\n"
+        "    op.add_column('mentions', sa.Column('canonical_url', sa.Text(), nullable=True))\n"
+        "    op.create_index('ix_mentions_verification_status', 'mentions', ['verification_status'], unique=False)",
+    )
+    _write_revision(
+        versions / "legacy_child.py",
+        migration_startup.LEGACY_CHILD_REVISION,
+        migration_startup.LEGACY_ANCESTOR_REVISION,
+    )
+    _write_revision(
         versions / "c4.py",
         migration_startup.BRANCHPOINT_REVISION,
-        None,
+        migration_startup.LEGACY_CHILD_REVISION,
         "op.create_table('bootstrap_probe', sa.Column('id', sa.Integer(), primary_key=True))",
     )
     _write_revision(
@@ -96,10 +127,10 @@ def test_real_postgres_exact_stranded_state_reaches_verified_head(tmp_path, monk
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     engine = create_engine(database_url)
     try:
-        command.upgrade(config, migration_startup.STRANDED_REVISION)
+        command.upgrade(config, starting_revision)
         with engine.connect() as connection:
             assert MigrationContext.configure(connection).get_current_heads() == (
-                migration_startup.STRANDED_REVISION,
+                starting_revision,
             )
 
         monkeypatch.setattr(migration_startup, "_config", lambda _backend_dir: config)
@@ -113,12 +144,29 @@ def test_real_postgres_exact_stranded_state_reaches_verified_head(tmp_path, monk
             "_database_heads",
             database_heads,
         )
+        monkeypatch.setattr(migration_startup, "engine", engine)
         assert migration_startup.run_verified_startup_migrations(tmp_path) == migration_startup.EXPECTED_REVISION
         with engine.connect() as connection:
             assert MigrationContext.configure(connection).get_current_heads() == (
                 migration_startup.EXPECTED_REVISION,
             )
-        assert "sibling_applied" in {column["name"] for column in inspect(engine).get_columns("bootstrap_probe")}
+        assert "sibling_applied" in {
+            column["name"]
+            for column in inspect(engine).get_columns("bootstrap_probe")
+        }
+        assert {
+            "verification_status",
+            "verification_error",
+            "verified_at",
+            "original_url",
+            "canonical_url",
+        }.issubset(
+            {column["name"] for column in inspect(engine).get_columns("mentions")}
+        )
+        assert any(
+            index["name"] == "ix_mentions_verification_status"
+            for index in inspect(engine).get_indexes("mentions")
+        )
     finally:
         engine.dispose()
         admin = psycopg2.connect(
@@ -165,7 +213,24 @@ def test_real_postgres_unsupported_head_matrix_is_diagnostic_only(
     versions = script_dir / "versions"
     versions.mkdir(parents=True)
     (script_dir / "env.py").write_text("", encoding="utf-8")
-    _write_revision(versions / "c4.py", migration_startup.BRANCHPOINT_REVISION, None)
+    _write_revision(
+        versions / "parent.py", migration_startup.LEGACY_PARENT_REVISION, None
+    )
+    _write_revision(
+        versions / "legacy.py",
+        migration_startup.LEGACY_ANCESTOR_REVISION,
+        migration_startup.LEGACY_PARENT_REVISION,
+    )
+    _write_revision(
+        versions / "legacy_child.py",
+        migration_startup.LEGACY_CHILD_REVISION,
+        migration_startup.LEGACY_ANCESTOR_REVISION,
+    )
+    _write_revision(
+        versions / "c4.py",
+        migration_startup.BRANCHPOINT_REVISION,
+        migration_startup.LEGACY_CHILD_REVISION,
+    )
     _write_revision(
         versions / "stranded.py",
         migration_startup.STRANDED_REVISION,
