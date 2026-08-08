@@ -1,8 +1,9 @@
 from pathlib import Path
-from unittest.mock import ANY, Mock, call
+from unittest.mock import ANY, MagicMock, Mock, call
 import re
 
 import pytest
+from sqlalchemy import DateTime, String, Text
 
 from app.core import free_mvp_maintenance, migration_startup
 from app.scripts import bootstrap_production_migrations
@@ -34,11 +35,21 @@ def _script_with_valid_lineage() -> Mock:
                 migration_startup.STRANDED_REVISION,
             ),
         ),
+        migration_startup.LEGACY_ANCESTOR_REVISION: _revision(
+            migration_startup.LEGACY_ANCESTOR_REVISION,
+            migration_startup.LEGACY_PARENT_REVISION,
+        ),
+        migration_startup.LEGACY_CHILD_REVISION: _revision(
+            migration_startup.LEGACY_CHILD_REVISION,
+            migration_startup.LEGACY_ANCESTOR_REVISION,
+        ),
     }
     script.get_revision.side_effect = revisions.get
     script.iterate_revisions.return_value = [
         _revision(migration_startup.EXPECTED_REVISION, "parent"),
         revisions[migration_startup.MERGE_REVISION],
+        revisions[migration_startup.LEGACY_CHILD_REVISION],
+        revisions[migration_startup.LEGACY_ANCESTOR_REVISION],
     ]
     return script
 
@@ -90,6 +101,98 @@ def test_normal_current_database_is_noop_before_normal_upgrade(monkeypatch):
     assert upgrade.call_args_list == [call(ANY, "head")]
 
 
+def test_exact_legacy_ancestor_schema_is_verified_before_normal_upgrade(monkeypatch):
+    _install_script(monkeypatch)
+    upgrade = Mock()
+    verify_schema = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(migration_startup, "_verify_legacy_ancestor_schema", verify_schema)
+    heads = iter(
+        [
+            (migration_startup.LEGACY_ANCESTOR_REVISION,),
+            (migration_startup.EXPECTED_REVISION,),
+        ]
+    )
+    monkeypatch.setattr(migration_startup, "_database_heads", lambda: next(heads))
+
+    result = migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    assert result == migration_startup.EXPECTED_REVISION
+    verify_schema.assert_called_once_with()
+    assert upgrade.call_args_list == [call(ANY, "head")]
+
+
+def test_legacy_ancestor_schema_mismatch_fails_before_migration(monkeypatch):
+    _install_script(monkeypatch)
+    upgrade = Mock()
+    monkeypatch.setattr(migration_startup.command, "upgrade", upgrade)
+    monkeypatch.setattr(
+        migration_startup,
+        "_verify_legacy_ancestor_schema",
+        Mock(side_effect=migration_startup.StartupMigrationError("schema mismatch")),
+    )
+    monkeypatch.setattr(
+        migration_startup,
+        "_database_heads",
+        lambda: (migration_startup.LEGACY_ANCESTOR_REVISION,),
+    )
+
+    with pytest.raises(migration_startup.StartupMigrationError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+
+    upgrade.assert_not_called()
+
+
+def test_legacy_ancestor_diagnostic_is_exact_and_reachable():
+    reason, reachable = migration_startup._diagnose_database_heads(
+        _script_with_valid_lineage(),
+        (migration_startup.LEGACY_ANCESTOR_REVISION,),
+        (migration_startup.EXPECTED_REVISION,),
+    )
+    assert reason == migration_startup.DIAGNOSTIC_REASON_LEGACY_ANCESTOR
+    assert reachable is True
+
+
+@pytest.mark.parametrize("defect", ["missing_column", "wrong_type", "missing_index"])
+def test_legacy_schema_guard_rejects_partial_or_altered_schema(monkeypatch, defect):
+    columns = [
+        {"name": "verification_status", "type": String(50), "nullable": True},
+        {"name": "verification_error", "type": Text(), "nullable": True},
+        {"name": "verified_at", "type": DateTime(timezone=True), "nullable": True},
+        {"name": "original_url", "type": Text(), "nullable": True},
+        {"name": "canonical_url", "type": Text(), "nullable": True},
+    ]
+    indexes = [
+        {
+            "name": "ix_mentions_verification_status",
+            "column_names": ["verification_status"],
+            "unique": False,
+        }
+    ]
+    if defect == "missing_column":
+        columns.pop()
+    elif defect == "wrong_type":
+        columns[0]["type"] = String(255)
+    else:
+        indexes.clear()
+
+    inspector = Mock()
+    inspector.get_table_names.return_value = ["mentions"]
+    inspector.get_columns.return_value = columns
+    inspector.get_indexes.return_value = indexes
+    connection = Mock()
+    test_engine = MagicMock()
+    test_engine.connect.return_value.__enter__.return_value = connection
+    monkeypatch.setattr(migration_startup, "engine", test_engine)
+    monkeypatch.setattr(migration_startup, "inspect", Mock(return_value=inspector))
+
+    with pytest.raises(
+        migration_startup.StartupMigrationError,
+        match="legacy ancestor schema verification failed",
+    ):
+        migration_startup._verify_legacy_ancestor_schema()
+
+
 @pytest.mark.parametrize(
     "heads",
     [
@@ -130,8 +233,14 @@ def test_unsupported_states_emit_bounded_revision_diagnostic(
 ):
     script = _install_script(monkeypatch)
     script.iterate_revisions.side_effect = lambda upper, _lower: (
-        [_revision(migration_startup.MERGE_REVISION, "parent")]
-        if upper in {migration_startup.EXPECTED_REVISION, migration_startup.MERGE_REVISION}
+        [
+            _revision(migration_startup.MERGE_REVISION, "parent"),
+            _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
+            _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
+        ]
+        if upper == migration_startup.EXPECTED_REVISION
+        else [_revision(migration_startup.MERGE_REVISION, "parent")]
+        if upper == migration_startup.MERGE_REVISION
         else []
     )
     upgrade = Mock()
@@ -196,8 +305,14 @@ def test_malformed_revision_value_is_redacted_and_never_migrated(monkeypatch, ca
 def test_mergepoint_already_present_never_triggers_migration(monkeypatch):
     script = _install_script(monkeypatch)
     script.iterate_revisions.side_effect = lambda upper, _lower: (
-        [_revision(migration_startup.MERGE_REVISION, "parent")]
-        if upper in {migration_startup.EXPECTED_REVISION, migration_startup.MERGE_REVISION}
+        [
+            _revision(migration_startup.MERGE_REVISION, "parent"),
+            _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
+            _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
+        ]
+        if upper == migration_startup.EXPECTED_REVISION
+        else [_revision(migration_startup.MERGE_REVISION, "parent")]
+        if upper == migration_startup.MERGE_REVISION
         else []
     )
     upgrade = Mock()
