@@ -38,6 +38,24 @@ DIAGNOSTIC_REASON_SIBLING_SET = "UNSUPPORTED_SIBLING_HEAD_SET"
 DIAGNOSTIC_REASON_MERGEPOINT = "UNSUPPORTED_MERGEPOINT_OR_DESCENDANT"
 DIAGNOSTIC_REASON_UNKNOWN = "UNKNOWN_REVISION_SET"
 REVISION_ID_PATTERN = re.compile(r"^[0-9a-f]{12}$")
+SCHEMA_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
+SCHEMA_CONTRACT_TABLE = "mentions"
+SCHEMA_CONTRACT_INDEX = "ix_mentions_verification_status"
+SCHEMA_CONTRACT_COLUMNS = (
+    ("verification_status", "varchar_50", True, "na"),
+    ("verification_error", "text", True, "na"),
+    ("verified_at", "timestamp", True, "true"),
+    ("original_url", "text", True, "na"),
+    ("canonical_url", "text", True, "na"),
+)
+SCHEMA_REASON_COLUMN_MISSING = "COLUMN_MISSING"
+SCHEMA_REASON_COLUMN_TYPE = "COLUMN_TYPE_MISMATCH"
+SCHEMA_REASON_COLUMN_NULLABILITY = "COLUMN_NULLABILITY_MISMATCH"
+SCHEMA_REASON_TIMESTAMP_TIMEZONE = "TIMESTAMP_TIMEZONE_MISMATCH"
+SCHEMA_REASON_INDEX_MISSING = "INDEX_MISSING"
+SCHEMA_REASON_INDEX_COLUMN = "INDEX_COLUMN_MISMATCH"
+SCHEMA_REASON_INDEX_UNIQUENESS = "INDEX_UNIQUENESS_MISMATCH"
+SCHEMA_REASON_MULTIPLE = "MULTIPLE_SCHEMA_MISMATCHES"
 
 
 class StartupMigrationError(RuntimeError):
@@ -99,53 +117,120 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
     return repository_heads
 
 
+def _normalized_schema_type(value: object) -> str:
+    """Map reflected SQLAlchemy types to a fixed, non-sensitive vocabulary."""
+    if isinstance(value, Text):
+        return "text"
+    if isinstance(value, DateTime):
+        return "timestamp"
+    if isinstance(value, String):
+        return "varchar_50" if value.length == 50 else "varchar_other"
+    return "other"
+
+
+def _normalized_bool(value: object) -> str:
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    return "none"
+
+
+def _normalized_index_columns(value: object) -> str:
+    """Report a bounded list of reflected column identifiers only."""
+    if not value:
+        return "none"
+    if not isinstance(value, (list, tuple)) or len(value) > 8:
+        return "other"
+    identifiers = [
+        item
+        for item in value
+        if isinstance(item, str) and SCHEMA_IDENTIFIER_PATTERN.fullmatch(item)
+    ]
+    return "+".join(identifiers) if len(identifiers) == len(value) else "other"
+
+
+def _schema_contract_reason(mismatches: list[str]) -> str:
+    reasons = tuple(dict.fromkeys(mismatches))
+    return reasons[0] if len(reasons) == 1 else SCHEMA_REASON_MULTIPLE
+
+
 def _verify_legacy_ancestor_schema() -> None:
-    """Verify only the schema objects created by the historical revision."""
-    required_columns = {
-        "verification_status",
-        "verification_error",
-        "verified_at",
-        "original_url",
-        "canonical_url",
-    }
+    """Verify and safely diagnose only objects owned by the legacy revision."""
     with engine.connect() as connection:
         inspector = inspect(connection)
-        if "mentions" not in inspector.get_table_names():
-            raise StartupMigrationError("legacy ancestor schema verification failed")
-        columns = {column["name"]: column for column in inspector.get_columns("mentions")}
-        if not required_columns.issubset(columns):
-            raise StartupMigrationError("legacy ancestor schema verification failed")
-        expected_types = {
-            "verification_error": Text,
-            "verified_at": DateTime,
-            "original_url": Text,
-            "canonical_url": Text,
-        }
-        status_type = columns["verification_status"]["type"]
-        if (
-            not isinstance(status_type, String)
-            or status_type.length != 50
-            or columns["verification_status"].get("nullable") is not True
-        ):
-            raise StartupMigrationError("legacy ancestor schema verification failed")
-        for name, expected_type in expected_types.items():
-            if (
-                not isinstance(columns[name]["type"], expected_type)
-                or columns[name].get("nullable") is not True
-            ):
-                raise StartupMigrationError("legacy ancestor schema verification failed")
-        if columns["verified_at"]["type"].timezone is not True:
-            raise StartupMigrationError("legacy ancestor schema verification failed")
-        matching_indexes = [
-            index
-            for index in inspector.get_indexes("mentions")
-            if index.get("name") == "ix_mentions_verification_status"
-        ]
-        if len(matching_indexes) != 1:
-            raise StartupMigrationError("legacy ancestor schema verification failed")
-        index = matching_indexes[0]
-        if index.get("column_names") != ["verification_status"] or index.get("unique"):
-            raise StartupMigrationError("legacy ancestor schema verification failed")
+        table_present = SCHEMA_CONTRACT_TABLE in inspector.get_table_names()
+        reflected_columns = inspector.get_columns(SCHEMA_CONTRACT_TABLE) if table_present else []
+        columns = {column.get("name"): column for column in reflected_columns}
+        reflected_indexes = inspector.get_indexes(SCHEMA_CONTRACT_TABLE) if table_present else []
+
+    mismatches: list[str] = []
+    column_states: list[str] = []
+    for name, expected_type, expected_nullable, expected_timezone in SCHEMA_CONTRACT_COLUMNS:
+        column = columns.get(name)
+        present = column is not None
+        actual_type = _normalized_schema_type(column.get("type")) if present else "none"
+        actual_nullable = _normalized_bool(column.get("nullable")) if present else "none"
+        if name == "verified_at" and present and isinstance(column.get("type"), DateTime):
+            actual_timezone = _normalized_bool(column["type"].timezone)
+        else:
+            actual_timezone = "na"
+
+        column_match = present
+        if not present:
+            mismatches.append(SCHEMA_REASON_COLUMN_MISSING)
+        else:
+            if actual_type != expected_type:
+                mismatches.append(SCHEMA_REASON_COLUMN_TYPE)
+                column_match = False
+            if actual_nullable != _normalized_bool(expected_nullable):
+                mismatches.append(SCHEMA_REASON_COLUMN_NULLABILITY)
+                column_match = False
+            if actual_timezone != expected_timezone:
+                mismatches.append(SCHEMA_REASON_TIMESTAMP_TIMEZONE)
+                column_match = False
+        column_states.append(
+            f"{name}:present={str(present).lower()}:expected_type={expected_type}:"
+            f"actual_type={actual_type}:expected_nullable={str(expected_nullable).lower()}:"
+            f"actual_nullable={actual_nullable}:expected_timezone={expected_timezone}:"
+            f"actual_timezone={actual_timezone}:match={str(column_match).lower()}"
+        )
+
+    matching_indexes = [
+        index for index in reflected_indexes if index.get("name") == SCHEMA_CONTRACT_INDEX
+    ]
+    index_present = len(matching_indexes) == 1
+    index = matching_indexes[0] if matching_indexes else {}
+    actual_index_columns = _normalized_index_columns(index.get("column_names"))
+    actual_unique = _normalized_bool(index.get("unique")) if matching_indexes else "none"
+    index_match = index_present
+    if not matching_indexes:
+        mismatches.append(SCHEMA_REASON_INDEX_MISSING)
+    elif len(matching_indexes) != 1:
+        mismatches.append(SCHEMA_REASON_INDEX_COLUMN)
+        index_match = False
+    if matching_indexes and actual_index_columns != "verification_status":
+        mismatches.append(SCHEMA_REASON_INDEX_COLUMN)
+        index_match = False
+    if matching_indexes and actual_unique != "false":
+        mismatches.append(SCHEMA_REASON_INDEX_UNIQUENESS)
+        index_match = False
+
+    if mismatches:
+        logger.error(
+            "SCHEMA_CONTRACT_STATE table=%s reason=%s columns=%s "
+            "index=%s:present=%s:expected_columns=verification_status:"
+            "actual_columns=%s:expected_unique=false:actual_unique=%s:match=%s",
+            SCHEMA_CONTRACT_TABLE,
+            _schema_contract_reason(mismatches),
+            ",".join(column_states),
+            SCHEMA_CONTRACT_INDEX,
+            str(index_present).lower(),
+            actual_index_columns,
+            actual_unique,
+            str(index_match).lower(),
+        )
+        raise StartupMigrationError("legacy ancestor schema verification failed")
 
 
 def _revision_ancestry(script: ScriptDirectory, revision: str) -> set[str]:

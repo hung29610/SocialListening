@@ -153,8 +153,7 @@ def test_legacy_ancestor_diagnostic_is_exact_and_reachable():
     assert reachable is True
 
 
-@pytest.mark.parametrize("defect", ["missing_column", "wrong_type", "missing_index"])
-def test_legacy_schema_guard_rejects_partial_or_altered_schema(monkeypatch, defect):
+def _legacy_schema_contract():
     columns = [
         {"name": "verification_status", "type": String(50), "nullable": True},
         {"name": "verification_error", "type": Text(), "nullable": True},
@@ -169,13 +168,10 @@ def test_legacy_schema_guard_rejects_partial_or_altered_schema(monkeypatch, defe
             "unique": False,
         }
     ]
-    if defect == "missing_column":
-        columns.pop()
-    elif defect == "wrong_type":
-        columns[0]["type"] = String(255)
-    else:
-        indexes.clear()
+    return columns, indexes
 
+
+def _install_schema_inspector(monkeypatch, columns, indexes):
     inspector = Mock()
     inspector.get_table_names.return_value = ["mentions"]
     inspector.get_columns.return_value = columns
@@ -186,11 +182,89 @@ def test_legacy_schema_guard_rejects_partial_or_altered_schema(monkeypatch, defe
     monkeypatch.setattr(migration_startup, "engine", test_engine)
     monkeypatch.setattr(migration_startup, "inspect", Mock(return_value=inspector))
 
-    with pytest.raises(
+
+@pytest.mark.parametrize(
+    ("defect", "reason"),
+    [
+        ("missing_verification_status", migration_startup.SCHEMA_REASON_COLUMN_MISSING),
+        ("wrong_verification_status_length", migration_startup.SCHEMA_REASON_COLUMN_TYPE),
+        ("wrong_verification_error_type", migration_startup.SCHEMA_REASON_COLUMN_TYPE),
+        ("verified_at_without_timezone", migration_startup.SCHEMA_REASON_TIMESTAMP_TIMEZONE),
+        ("wrong_original_url_type", migration_startup.SCHEMA_REASON_COLUMN_TYPE),
+        ("wrong_canonical_url_type", migration_startup.SCHEMA_REASON_COLUMN_TYPE),
+        ("unexpected_not_null", migration_startup.SCHEMA_REASON_COLUMN_NULLABILITY),
+        ("missing_index", migration_startup.SCHEMA_REASON_INDEX_MISSING),
+        ("wrong_index_columns", migration_startup.SCHEMA_REASON_INDEX_COLUMN),
+        ("unique_index", migration_startup.SCHEMA_REASON_INDEX_UNIQUENESS),
+        ("multiple_mismatches", migration_startup.SCHEMA_REASON_MULTIPLE),
+    ],
+)
+def test_legacy_schema_guard_emits_bounded_contract_diagnostic(
+    monkeypatch, caplog, defect, reason
+):
+    columns, indexes = _legacy_schema_contract()
+    by_name = {column["name"]: column for column in columns}
+    if defect == "missing_verification_status":
+        columns.remove(by_name["verification_status"])
+    elif defect == "wrong_verification_status_length":
+        by_name["verification_status"]["type"] = String(255)
+    elif defect == "wrong_verification_error_type":
+        by_name["verification_error"]["type"] = String(50)
+    elif defect == "verified_at_without_timezone":
+        by_name["verified_at"]["type"] = DateTime(timezone=False)
+    elif defect == "wrong_original_url_type":
+        by_name["original_url"]["type"] = String(50)
+    elif defect == "wrong_canonical_url_type":
+        by_name["canonical_url"]["type"] = String(50)
+    elif defect == "unexpected_not_null":
+        by_name["canonical_url"]["nullable"] = False
+    elif defect == "missing_index":
+        indexes.clear()
+    elif defect == "wrong_index_columns":
+        indexes[0]["column_names"] = ["canonical_url"]
+    elif defect == "unique_index":
+        indexes[0]["unique"] = True
+    elif defect == "multiple_mismatches":
+        columns.remove(by_name["verification_status"])
+        indexes[0]["unique"] = True
+
+    _install_schema_inspector(monkeypatch, columns, indexes)
+
+    with caplog.at_level("ERROR"), pytest.raises(
         migration_startup.StartupMigrationError,
         match="legacy ancestor schema verification failed",
     ):
         migration_startup._verify_legacy_ancestor_schema()
+
+    line = next(
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("SCHEMA_CONTRACT_STATE")
+    )
+    assert f"reason={reason}" in line
+    assert "table=mentions" in line
+    assert "verification_status" in line
+    assert "verification_error" in line
+    assert "verified_at" in line
+    assert "original_url" in line
+    assert "canonical_url" in line
+    assert "ix_mentions_verification_status" in line
+    assert "credential" not in line.lower()
+    assert "database_url" not in line.lower()
+    assert "tenant" not in line.lower()
+    assert re.fullmatch(r"SCHEMA_CONTRACT_STATE(?: [a-zA-Z0-9_=,:+]+)+", line)
+    if defect == "wrong_index_columns":
+        assert "actual_columns=canonical_url" in line
+
+
+def test_exact_legacy_schema_contract_passes_without_diagnostic(monkeypatch, caplog):
+    columns, indexes = _legacy_schema_contract()
+    _install_schema_inspector(monkeypatch, columns, indexes)
+
+    with caplog.at_level("ERROR"):
+        migration_startup._verify_legacy_ancestor_schema()
+
+    assert "SCHEMA_CONTRACT_STATE" not in caplog.text
 
 
 @pytest.mark.parametrize(
