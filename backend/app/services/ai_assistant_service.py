@@ -48,9 +48,11 @@ def _tenant_filters(model: Any, user: User) -> List[Any]:
     filters: List[Any] = []
     org_id = getattr(user, "current_organization_id", None)
     if hasattr(model, "organization_id") and org_id:
-        filters.append(or_(model.organization_id == org_id, model.organization_id.is_(None)))
+        # Ownerless legacy rows are quarantined by exclusion. They must never
+        # become visible to a tenant merely because their scope is NULL.
+        filters.append(model.organization_id == org_id)
     elif hasattr(model, "user_id"):
-        filters.append(or_(model.user_id == user.id, model.user_id.is_(None)))
+        filters.append(model.user_id == user.id)
     return filters
 
 

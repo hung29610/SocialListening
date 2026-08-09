@@ -32,6 +32,9 @@ class ReconciliationSummary:
     repaired: int = 0
     quarantined: int = 0
     reasons: dict = field(default_factory=dict)
+    active_integrity_violations: int = 0
+    ownership_conflicts: int = 0
+    quarantined_legacy: int = 0
 
 
 def _values(*values) -> set[int]:
@@ -256,6 +259,25 @@ def _record_quarantine(db: Session, decision: ReconciliationDecision) -> None:
         ))
 
 
+def _is_safely_ownerless_legacy(row, decision: ReconciliationDecision) -> bool:
+    """True only when a no-evidence row has no direct tenant owner fields."""
+    if decision.reason != TenantReason.NO_PARENT_EVIDENCE:
+        return False
+    direct_owner_fields = (
+        "organization_id",
+        "user_id",
+        "created_by_user_id",
+        "generated_by",
+        "requested_by",
+        "blocked_by_user_id",
+    )
+    return all(
+        getattr(row, field_name, None) is None
+        for field_name in direct_owner_fields
+        if hasattr(row, field_name)
+    )
+
+
 def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size: int = 500) -> ReconciliationSummary:
     """Inspect every tenant table. Mutations occur only when dry_run is False."""
     from app.models.tenant_integrity import TenantIntegrityAuditState
@@ -285,6 +307,16 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
                     summary.quarantined += 1
                     reason = decision.reason.value
                     summary.reasons[reason] = summary.reasons.get(reason, 0) + 1
+                    if decision.reason in {
+                        TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
+                        TenantReason.SCOPE_CONFLICT,
+                        TenantReason.USER_ORGANIZATION_MISMATCH,
+                    }:
+                        summary.ownership_conflicts += 1
+                    elif _is_safely_ownerless_legacy(row, decision):
+                        summary.quarantined_legacy += 1
+                    else:
+                        summary.active_integrity_violations += 1
                     if not dry_run:
                         _record_quarantine(db, decision)
             if not dry_run:

@@ -22,6 +22,8 @@ from app.models.organization import Organization, OrganizationMember
 from app.models.source import Source, SourceType
 from app.models.user import User
 from app.services.tenant_reconciliation import derive_scope_for_row, reconcile_tenant_integrity
+from app.core.tenant import apply_tenant_filter
+from app.services.ai_assistant_service import _tenant_filters
 
 
 @pytest.fixture()
@@ -208,6 +210,53 @@ def test_dry_run_is_idempotent_and_non_mutating(db):
     db.refresh(mention)
     assert first.__dict__ == second.__dict__
     assert mention.organization_id is None and mention.user_id is None
+
+
+def test_ownerless_legacy_mentions_are_invisible_to_tenant_queries(db):
+    user, org, project, _, _ = seed_scope(db)
+    visible = Mention(
+        organization_id=org.id,
+        user_id=user.id,
+        project_id=project.id,
+        content_hash="tenant-visible",
+    )
+    quarantined = Mention(content_hash="legacy-ownerless")
+    db.add_all([visible, quarantined])
+    db.commit()
+
+    api_rows = db.execute(
+        apply_tenant_filter(select(Mention), Mention, user, include_unverifiable=True)
+    ).scalars().all()
+    assistant_rows = db.execute(
+        select(Mention).where(*_tenant_filters(Mention, user))
+    ).scalars().all()
+
+    assert [row.id for row in api_rows] == [visible.id]
+    assert [row.id for row in assistant_rows] == [visible.id]
+    db.refresh(quarantined)
+    assert quarantined.organization_id is None
+    assert quarantined.user_id is None
+    summary = reconcile_tenant_integrity(db, dry_run=True)
+    assert summary.quarantined_legacy == 1
+    assert summary.active_integrity_violations == 0
+
+
+def test_directly_scoped_no_parent_row_is_not_safe_legacy_quarantine(db):
+    _, org, _, _, _ = seed_scope(db)
+    row = Source(
+        organization_id=org.id,
+        user_id=None,
+        name="Incomplete direct scope",
+        source_type=SourceType.RSS,
+        url="https://incomplete.test/feed.xml",
+    )
+    db.add(row)
+    db.commit()
+
+    summary = reconcile_tenant_integrity(db, dry_run=True)
+
+    assert summary.active_integrity_violations >= 1
+    assert summary.quarantined_legacy == 0
 
 
 def test_apply_repairs_once_and_quarantine_is_idempotent(db):

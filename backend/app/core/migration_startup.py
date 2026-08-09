@@ -491,9 +491,35 @@ def run_verified_startup_migrations(backend_dir: Path) -> str:
     script = ScriptDirectory.from_config(config)
     repository_heads = _prepare_known_lineage(config, script)
 
-    command.upgrade(config, "head")
+    try:
+        command.upgrade(config, "head")
+    except Exception as exc:
+        try:
+            failed_heads = tuple(
+                revision
+                for revision in _database_heads()
+                if REVISION_ID_PATTERN.fullmatch(revision)
+            )
+        except Exception:
+            failed_heads = ()
+        logger.critical(
+            "STARTUP_STATE phase=migration status=failed "
+            "reason=ALEMBIC_UPGRADE_FAILED database_revisions=%s error_type=%s",
+            ",".join(failed_heads) or "unknown",
+            type(exc).__name__,
+        )
+        raise
     database_heads = _database_heads()
     if database_heads != repository_heads:
+        logger.critical(
+            "STARTUP_STATE phase=migration status=failed "
+            "reason=FINAL_HEAD_MISMATCH database_revisions=%s",
+            ",".join(
+                revision
+                for revision in database_heads
+                if REVISION_ID_PATTERN.fullmatch(revision)
+            ) or "unknown",
+        )
         raise StartupMigrationError("database migration head does not match repository head")
 
     logger.info("ALEMBIC_HEAD_VERIFIED revision=%s", EXPECTED_REVISION)
