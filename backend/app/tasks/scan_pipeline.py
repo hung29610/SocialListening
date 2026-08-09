@@ -6,6 +6,8 @@ calling an external AI provider, and opens a fresh transaction to atomically
 finalize idempotent downstream rows.
 """
 
+# Runtime release contract: startup-state-machine-v1.
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

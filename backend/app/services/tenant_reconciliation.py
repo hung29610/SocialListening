@@ -1,5 +1,7 @@
 """Deterministic, idempotent tenant reconciliation with explicit quarantine."""
 
+# Runtime release contract: startup-state-machine-v1.
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Iterable, Optional

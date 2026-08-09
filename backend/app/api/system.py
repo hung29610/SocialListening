@@ -1,3 +1,4 @@
+# Runtime release contract: startup-state-machine-v1.
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 

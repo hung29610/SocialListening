@@ -1,6 +1,7 @@
 """
 Real-time WebSocket and metrics API.
 """
+# Runtime release contract: startup-state-machine-v1.
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional

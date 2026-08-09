@@ -229,7 +229,9 @@ def test_public_state_contains_only_bounded_fields():
     startup_state.reset_for_startup("free_mvp_embedded")
     startup_state.set_migration_ready("d72f8a913b21")
     startup_state.set_tenant_readiness(False, "OWNERSHIP_CONFLICT")
+    assert startup_state.public_snapshot()["release_contract"] == "startup-state-machine-v1"
     assert set(startup_state.public_snapshot()) == {
+        "release_contract",
         "status",
         "database",
         "migration",

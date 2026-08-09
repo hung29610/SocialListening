@@ -10,6 +10,7 @@ from copy import deepcopy
 from threading import RLock
 
 
+RELEASE_CONTRACT = "startup-state-machine-v1"
 _lock = RLock()
 _state = {
     "enforced": False,
@@ -101,6 +102,7 @@ def tenant_workloads_allowed() -> bool:
 def public_snapshot() -> dict:
     state = snapshot()
     return {
+        "release_contract": RELEASE_CONTRACT,
         "status": state["status"],
         "database": state["database"],
         "migration": state["migration"],

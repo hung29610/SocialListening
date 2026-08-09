@@ -1,5 +1,7 @@
 """Deterministic, dry-run-only bootstrap for tenant readiness."""
 
+# Runtime release contract: startup-state-machine-v1.
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

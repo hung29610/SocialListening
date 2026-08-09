@@ -1,5 +1,7 @@
 """Single authoritative database and tenant-readiness startup path."""
 
+# Runtime release contract: startup-state-machine-v1.
+
 from __future__ import annotations
 
 from contextlib import contextmanager

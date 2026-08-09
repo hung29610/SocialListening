@@ -1,3 +1,5 @@
+"""Nope360 API runtime (startup-state-machine-v1 release contract)."""
+
 import os
 import logging
 import traceback
