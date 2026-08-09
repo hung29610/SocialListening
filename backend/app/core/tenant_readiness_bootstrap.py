@@ -19,7 +19,11 @@ from app.services.tenant_reconciliation import reconcile_tenant_integrity
 
 
 logger = logging.getLogger(__name__)
-OPERATION_KEY = f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v1"
+OPERATION_VERSION = "v2"
+OPERATION_KEY = f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:{OPERATION_VERSION}"
+RETIRED_OPERATION_KEYS = (
+    f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v1",
+)
 
 
 @dataclass(frozen=True)
@@ -155,9 +159,16 @@ def establish_tenant_readiness() -> TenantReadinessResult:
         return TenantReadinessResult("failed", "MIGRATION_HEAD_MISMATCH")
 
     db = SessionLocal()
+    stage = "claim"
+    claimed = False
     try:
+        logger.info(
+            "STARTUP_STATE phase=tenant_readiness step=claim status=running contract=%s",
+            OPERATION_VERSION,
+        )
         claimed = _claim_operation(db)
         if not claimed:
+            stage = "load_terminal_state"
             existing = _load_operation(db)
             if existing is None:
                 return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
@@ -171,14 +182,34 @@ def establish_tenant_readiness() -> TenantReadinessResult:
                     and state.conflict_count == 0
                 ):
                     return TenantReadinessResult("failed", "READINESS_LEDGER_MISSING")
+            logger.info(
+                "STARTUP_STATE phase=tenant_readiness step=claim status=reused "
+                "contract=%s result=%s reason=%s",
+                OPERATION_VERSION,
+                result.status,
+                result.reason_code,
+            )
             return result
 
         # The uncommitted INSERT above is the claim. Concurrent INSERT attempts
         # wait for this transaction and then observe its terminal state. A crash
         # rolls the claim back, making a later safe dry-run attempt possible.
+        logger.info(
+            "STARTUP_STATE phase=tenant_readiness step=claim status=acquired contract=%s",
+            OPERATION_VERSION,
+        )
+        stage = "dry_run_1"
         first = _normalize(reconcile_tenant_integrity(db, dry_run=True, batch_size=500))
+        logger.info(
+            "STARTUP_STATE phase=tenant_readiness step=dry_run_1 status=completed"
+        )
         db.expire_all()
+        stage = "dry_run_2"
         second = _normalize(reconcile_tenant_integrity(db, dry_run=True, batch_size=500))
+        logger.info(
+            "STARTUP_STATE phase=tenant_readiness step=dry_run_2 status=completed"
+        )
+        stage = "compare"
         if first != second:
             result = TenantReadinessResult("failed", "DRY_RUN_SUMMARIES_DIFFER")
         else:
@@ -212,6 +243,7 @@ def establish_tenant_readiness() -> TenantReadinessResult:
             state.last_run_at = datetime.now(timezone.utc)
             db.add(state)
         _store_operation(db, result)
+        stage = "commit_terminal_state"
         db.commit()
         logger.info(
             "STARTUP_STATE phase=tenant_readiness status=%s reason=%s",
@@ -221,14 +253,19 @@ def establish_tenant_readiness() -> TenantReadinessResult:
         return result
     except Exception as exc:
         db.rollback()
-        result = TenantReadinessResult("failed", f"BOOTSTRAP_{type(exc).__name__.upper()}")
-        try:
-            _store_operation(db, result)
-            db.commit()
-        except Exception:
-            db.rollback()
+        safe_stage = stage.upper()
+        result = TenantReadinessResult(
+            "failed", f"BOOTSTRAP_{safe_stage}_{type(exc).__name__.upper()}"
+        )
+        if claimed:
+            try:
+                _store_operation(db, result)
+                db.commit()
+            except Exception:
+                db.rollback()
         logger.error(
-            "STARTUP_STATE phase=tenant_readiness status=failed reason=%s",
+            "STARTUP_STATE phase=tenant_readiness step=%s status=failed reason=%s",
+            stage,
             result.reason_code,
         )
         return result
