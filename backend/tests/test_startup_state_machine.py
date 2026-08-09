@@ -245,6 +245,34 @@ def test_readiness_claim_is_single_atomic_insert():
     assert db.commit.call_count == 0
 
 
+def test_readiness_v2_contract_does_not_reuse_failed_v1_operation():
+    assert bootstrap.OPERATION_VERSION == "v2"
+    assert bootstrap.OPERATION_KEY.endswith(":v2")
+    assert bootstrap.RETIRED_OPERATION_KEYS == (
+        f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v1",
+    )
+    assert bootstrap.OPERATION_KEY not in bootstrap.RETIRED_OPERATION_KEYS
+
+
+def test_claim_failure_cannot_overwrite_an_existing_terminal_operation(monkeypatch):
+    db = MagicMock()
+    monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
+    monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(
+        bootstrap,
+        "_claim_operation",
+        Mock(side_effect=RuntimeError("bounded claim failure")),
+    )
+    store = Mock()
+    monkeypatch.setattr(bootstrap, "_store_operation", store)
+
+    result = bootstrap.establish_tenant_readiness()
+
+    assert result.reason_code == "BOOTSTRAP_CLAIM_RUNTIMEERROR"
+    store.assert_not_called()
+    db.commit.assert_not_called()
+
+
 def test_migration_corruption_remains_startup_fatal(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setattr(startup_orchestrator, "_startup_singleton_lock", lambda: __import__("contextlib").nullcontext())
