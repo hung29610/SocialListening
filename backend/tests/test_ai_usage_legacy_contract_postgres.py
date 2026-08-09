@@ -102,9 +102,23 @@ def legacy_database(tmp_path, monkeypatch):
         ),
     )
     _write_revision(
+        versions / "long_revision.py",
+        migration_startup.LONG_REVISION_ID,
+        migration_startup.MERGE_REVISION,
+    )
+    _write_revision(
+        versions / "ai_chat_parent.py",
+        "33f8bf51df62",
+        migration_startup.LONG_REVISION_ID,
+    )
+    shutil.copy2(
+        backend_dir / "alembic" / "versions" / "7c2e4d6b8a91_add_ai_chat_messages.py",
+        versions / "7c2e4d6b8a91_add_ai_chat_messages.py",
+    )
+    _write_revision(
         versions / "head.py",
         migration_startup.EXPECTED_REVISION,
-        migration_startup.MERGE_REVISION,
+        "7c2e4d6b8a91",
     )
     config = Config()
     config.set_main_option("script_location", str(script_dir))
@@ -189,6 +203,36 @@ def _create_proven_legacy_state(engine):
         )
         connection.execute(
             text(
+                "CREATE TABLE ai_chat_messages ("
+                "id SERIAL PRIMARY KEY, organization_id INTEGER NULL "
+                "REFERENCES organizations(id) ON DELETE CASCADE, "
+                "user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, "
+                "role VARCHAR(20) NOT NULL, content TEXT NOT NULL, "
+                "provider VARCHAR(50) NULL, model VARCHAR(255) NULL, "
+                "used_tools JSON NULL, error_message TEXT NULL, "
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+            )
+        )
+        connection.execute(text("INSERT INTO users DEFAULT VALUES"))
+        for name, columns in {
+            "ix_ai_chat_messages_id": "id",
+            "ix_ai_chat_messages_organization_id": "organization_id",
+            "ix_ai_chat_messages_user_id": "user_id",
+            "ix_ai_chat_messages_created_at": "created_at",
+            "idx_ai_chat_user_created": "user_id, created_at",
+            "idx_ai_chat_org_created": "organization_id, created_at",
+        }.items():
+            connection.execute(
+                text(f"CREATE INDEX {name} ON ai_chat_messages ({columns})")
+            )
+        connection.execute(
+            text(
+                "INSERT INTO ai_chat_messages (user_id, role, content) "
+                "VALUES (1, 'user', 'preserve-me')"
+            )
+        )
+        connection.execute(
+            text(
                 "CREATE TABLE alembic_version ("
                 "version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
             )
@@ -225,3 +269,4 @@ def test_exact_production_drift_reaches_head_and_is_restart_safe(legacy_database
     }
     with engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM ai_usage_logs")).scalar_one() == 1
+        assert connection.execute(text("SELECT COUNT(*) FROM ai_chat_messages")).scalar_one() == 1
