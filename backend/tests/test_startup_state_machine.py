@@ -245,13 +245,26 @@ def test_readiness_claim_is_single_atomic_insert():
     assert db.commit.call_count == 0
 
 
-def test_readiness_v2_contract_does_not_reuse_failed_v1_operation():
-    assert bootstrap.OPERATION_VERSION == "v2"
-    assert bootstrap.OPERATION_KEY.endswith(":v2")
+def test_readiness_v3_contract_does_not_reuse_retired_operations():
+    assert bootstrap.OPERATION_VERSION == "v3"
+    assert bootstrap.OPERATION_KEY.endswith(":v3")
     assert bootstrap.RETIRED_OPERATION_KEYS == (
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v1",
+        f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v2",
     )
     assert bootstrap.OPERATION_KEY not in bootstrap.RETIRED_OPERATION_KEYS
+
+
+def test_postgres_readiness_claim_has_bounded_lock_wait():
+    db = MagicMock()
+    db.get_bind.return_value.dialect.name = "postgresql"
+    insert_result = MagicMock()
+    insert_result.scalar_one_or_none.return_value = bootstrap.OPERATION_KEY
+    db.execute.side_effect = [MagicMock(), insert_result]
+
+    assert bootstrap._claim_operation(db) is True
+    assert str(db.execute.call_args_list[0].args[0]) == "SET LOCAL lock_timeout = '10s'"
+    assert "ON CONFLICT (key) DO NOTHING" in str(db.execute.call_args_list[1].args[0])
 
 
 def test_claim_failure_cannot_overwrite_an_existing_terminal_operation(monkeypatch):
