@@ -59,6 +59,12 @@ SCHEMA_REASON_INDEX_UNIQUENESS = "INDEX_UNIQUENESS_MISMATCH"
 SCHEMA_REASON_MULTIPLE = "MULTIPLE_SCHEMA_MISMATCHES"
 SCHEMA_REASON_LENGTH_UNSAFE = "VERIFICATION_STATUS_LENGTH_UNSAFE"
 REPAIRABLE_VARCHAR_TYPES = {"varchar_unbounded", "varchar_length_other"}
+ALEMBIC_VERSION_TABLE = "alembic_version"
+ALEMBIC_VERSION_COLUMN = "version_num"
+ALEMBIC_VERSION_LEGACY_LENGTH = 32
+ALEMBIC_VERSION_REQUIRED_LENGTH = 64
+LONG_REVISION_ID = "029_ensure_report_email_recipients"
+LONG_REVISION_PARENT = "05c3b568d49b"
 
 
 class StartupMigrationError(RuntimeError):
@@ -90,12 +96,14 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
     merge = script.get_revision(MERGE_REVISION)
     legacy = script.get_revision(LEGACY_ANCESTOR_REVISION)
     legacy_child = script.get_revision(LEGACY_CHILD_REVISION)
+    long_revision = script.get_revision(LONG_REVISION_ID)
     if (
         stranded is None
         or sibling is None
         or merge is None
         or legacy is None
         or legacy_child is None
+        or long_revision is None
     ):
         raise StartupMigrationError("required migration lineage is missing")
     if stranded.down_revision != BRANCHPOINT_REVISION:
@@ -108,14 +116,19 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
         raise StartupMigrationError("legacy ancestor parent is unexpected")
     if legacy_child.down_revision != LEGACY_ANCESTOR_REVISION:
         raise StartupMigrationError("legacy ancestor child is unexpected")
+    if long_revision.down_revision != LONG_REVISION_PARENT:
+        raise StartupMigrationError("long revision parent is unexpected")
 
     expected_ancestry = {
         revision.revision
         for revision in script.iterate_revisions(EXPECTED_REVISION, "base")
     }
-    if not {MERGE_REVISION, LEGACY_ANCESTOR_REVISION, LEGACY_CHILD_REVISION}.issubset(
-        expected_ancestry
-    ):
+    if not {
+        MERGE_REVISION,
+        LEGACY_ANCESTOR_REVISION,
+        LEGACY_CHILD_REVISION,
+        LONG_REVISION_ID,
+    }.issubset(expected_ancestry):
         raise StartupMigrationError("repository head does not descend from merge revision")
     return repository_heads
 
@@ -478,6 +491,88 @@ def _log_pending_legacy_schema_state() -> None:
     )
 
 
+def _ensure_alembic_version_capacity(database_heads: tuple[str, ...]) -> str:
+    """Widen only the canonical Alembic metadata column on the legacy path.
+
+    The repository contains the 34-character revision identifier
+    ``029_ensure_report_email_recipients``.  Alembic's historical default
+    ``VARCHAR(32)`` cannot record it.  This preflight changes only metadata
+    capacity; it never edits or stamps a revision value.
+    """
+    if database_heads not in {
+        (LEGACY_ANCESTOR_REVISION,),
+        (STRANDED_REVISION,),
+    }:
+        raise StartupMigrationError("Alembic version capacity revision is unexpected")
+
+    with engine.begin() as connection:
+        connection.execute(text("LOCK TABLE alembic_version IN ACCESS EXCLUSIVE MODE"))
+        transaction_heads = tuple(
+            sorted(MigrationContext.configure(connection).get_current_heads())
+        )
+        if transaction_heads != database_heads:
+            raise StartupMigrationError("Alembic version capacity revision changed")
+
+        inspector = inspect(connection)
+        columns = inspector.get_columns(ALEMBIC_VERSION_TABLE)
+        primary_key = inspector.get_pk_constraint(ALEMBIC_VERSION_TABLE)
+        if (
+            len(columns) != 1
+            or columns[0].get("name") != ALEMBIC_VERSION_COLUMN
+            or columns[0].get("nullable") is not False
+            or primary_key.get("constrained_columns") != [ALEMBIC_VERSION_COLUMN]
+        ):
+            logger.error(
+                "ALEMBIC_VERSION_CAPACITY status=rejected reason=METADATA_CONTRACT_MISMATCH"
+            )
+            raise StartupMigrationError("Alembic version metadata contract is unexpected")
+
+        column_type = columns[0].get("type")
+        if not isinstance(column_type, VARCHAR) or column_type.length is None:
+            logger.error(
+                "ALEMBIC_VERSION_CAPACITY status=rejected reason=TYPE_MISMATCH"
+            )
+            raise StartupMigrationError("Alembic version column type is unexpected")
+
+        current_length = int(column_type.length)
+        if current_length >= ALEMBIC_VERSION_REQUIRED_LENGTH:
+            logger.info(
+                "ALEMBIC_VERSION_CAPACITY status=verified length=%d",
+                current_length,
+            )
+            return "verified"
+        if current_length != ALEMBIC_VERSION_LEGACY_LENGTH:
+            logger.error(
+                "ALEMBIC_VERSION_CAPACITY status=rejected reason=UNSUPPORTED_LENGTH "
+                "length=%d",
+                current_length,
+            )
+            raise StartupMigrationError("Alembic version column length is unsupported")
+
+        connection.execute(
+            text(
+                "ALTER TABLE alembic_version ALTER COLUMN version_num "
+                "TYPE VARCHAR(64)"
+            )
+        )
+        repaired_columns = inspect(connection).get_columns(ALEMBIC_VERSION_TABLE)
+        repaired_type = (
+            repaired_columns[0].get("type") if len(repaired_columns) == 1 else None
+        )
+        if (
+            not isinstance(repaired_type, VARCHAR)
+            or repaired_type.length != ALEMBIC_VERSION_REQUIRED_LENGTH
+        ):
+            raise StartupMigrationError("Alembic version capacity verification failed")
+
+        logger.warning(
+            "ALEMBIC_VERSION_CAPACITY status=repaired from_length=%d to_length=%d",
+            current_length,
+            ALEMBIC_VERSION_REQUIRED_LENGTH,
+        )
+        return "repaired"
+
+
 def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str, ...]:
     """Prepare only exact, repository-proven historical states."""
     repository_heads = _verify_repository_contract(script)
@@ -488,23 +583,28 @@ def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str
         return repository_heads
     if database_heads == (LEGACY_ANCESTOR_REVISION,):
         schema_result = _verify_or_repair_legacy_ancestor_schema(database_heads)
+        version_capacity_result = _ensure_alembic_version_capacity(database_heads)
         _log_pending_legacy_schema_state()
         logger.warning(
             "ALEMBIC_BOOTSTRAP_LEGACY_ANCESTOR_VERIFIED revision=%s child=%s "
-            "schema_result=%s",
+            "schema_result=%s version_capacity_result=%s",
             LEGACY_ANCESTOR_REVISION,
             LEGACY_CHILD_REVISION,
             schema_result,
+            version_capacity_result,
         )
         return repository_heads
     if database_heads != (STRANDED_REVISION,):
         _log_head_diagnostic(script, database_heads, repository_heads)
         raise StartupMigrationError("database migration state is not supported by bootstrap")
 
+    version_capacity_result = _ensure_alembic_version_capacity(database_heads)
     logger.warning(
-        "ALEMBIC_BOOTSTRAP_REPAIR current=%s sibling=%s",
+        "ALEMBIC_BOOTSTRAP_REPAIR current=%s sibling=%s "
+        "version_capacity_result=%s",
         STRANDED_REVISION,
         MISSING_SIBLING_REVISION,
+        version_capacity_result,
     )
     command.upgrade(config, MISSING_SIBLING_REVISION)
     sibling_heads = _database_heads()

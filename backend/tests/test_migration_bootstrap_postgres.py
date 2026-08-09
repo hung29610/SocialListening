@@ -118,9 +118,14 @@ def test_real_postgres_supported_historical_state_reaches_verified_head(
         (migration_startup.MISSING_SIBLING_REVISION, migration_startup.STRANDED_REVISION),
     )
     _write_revision(
+        versions / "long_revision.py",
+        migration_startup.LONG_REVISION_ID,
+        migration_startup.MERGE_REVISION,
+    )
+    _write_revision(
         versions / "head.py",
         migration_startup.EXPECTED_REVISION,
-        migration_startup.MERGE_REVISION,
+        migration_startup.LONG_REVISION_ID,
     )
 
     config = Config()
@@ -169,6 +174,11 @@ def test_real_postgres_supported_historical_state_reaches_verified_head(
         with engine.connect() as connection:
             assert MigrationContext.configure(connection).get_current_heads() == (
                 migration_startup.EXPECTED_REVISION,
+            )
+            version_column = inspect(connection).get_columns("alembic_version")[0]
+            assert (
+                version_column["type"].length
+                == migration_startup.ALEMBIC_VERSION_REQUIRED_LENGTH
             )
         assert "sibling_applied" in {
             column["name"]
