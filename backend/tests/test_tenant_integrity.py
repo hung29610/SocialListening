@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base
@@ -210,6 +210,29 @@ def test_dry_run_is_idempotent_and_non_mutating(db):
     db.refresh(mention)
     assert first.__dict__ == second.__dict__
     assert mention.organization_id is None and mention.user_id is None
+
+
+def test_reconciliation_parent_and_membership_queries_are_bounded(db):
+    _, _, project, _, _ = seed_scope(db)
+    db.add_all(
+        [Mention(project_id=project.id, content_hash=f"cached-{index}") for index in range(100)]
+    )
+    db.commit()
+    statements = []
+
+    def record_statement(_conn, _cursor, statement, _params, _context, _many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(db.get_bind(), "before_cursor_execute", record_statement)
+    try:
+        summary = reconcile_tenant_integrity(db, dry_run=True, batch_size=100)
+    finally:
+        event.remove(db.get_bind(), "before_cursor_execute", record_statement)
+
+    assert summary.inspected >= 100
+    assert summary.repairable >= 100
+    assert len(statements) <= 60
 
 
 def test_ownerless_legacy_mentions_are_invisible_to_tenant_queries(db):

@@ -39,6 +39,14 @@ class ReconciliationSummary:
     quarantined_legacy: int = 0
 
 
+@dataclass
+class ReconciliationLookupCache:
+    """Strong per-pass cache for immutable ownership evidence lookups."""
+
+    parents: dict = field(default_factory=dict)
+    membership_organizations: dict = field(default_factory=dict)
+
+
 def _values(*values) -> set[int]:
     return {int(value) for value in values if value is not None}
 
@@ -56,18 +64,31 @@ def _add_parent(row, organizations: set, users: set, projects: set) -> None:
     projects.update(_values(getattr(row, "project_id", None)))
 
 
-def _active_membership_orgs(db: Session, user_id: int) -> set[int]:
+def _active_membership_orgs(
+    db: Session,
+    user_id: int,
+    cache: Optional[ReconciliationLookupCache] = None,
+) -> set[int]:
     from app.models.organization import OrganizationMember
 
-    return set(db.execute(
+    if cache is not None and user_id in cache.membership_organizations:
+        return cache.membership_organizations[user_id]
+    organizations = set(db.execute(
         select(OrganizationMember.organization_id).where(
             OrganizationMember.user_id == user_id,
             OrganizationMember.status == "active",
         )
     ).scalars())
+    if cache is not None:
+        cache.membership_organizations[user_id] = organizations
+    return organizations
 
 
-def derive_scope_for_row(db: Session, row) -> ReconciliationDecision:
+def derive_scope_for_row(
+    db: Session,
+    row,
+    lookup_cache: Optional[ReconciliationLookupCache] = None,
+) -> ReconciliationDecision:
     """Return exactly one evidence-backed scope or a stable quarantine reason."""
     from app.models.alert import Alert
     from app.models.crawl import CrawlJob, ScanSchedule
@@ -105,7 +126,13 @@ def derive_scope_for_row(db: Session, row) -> ReconciliationDecision:
         nonlocal missing_parent
         if parent_id is None:
             return None
-        value = db.get(model, parent_id)
+        cache_key = (model, int(parent_id))
+        if lookup_cache is not None and cache_key in lookup_cache.parents:
+            value = lookup_cache.parents[cache_key]
+        else:
+            value = db.get(model, parent_id)
+            if lookup_cache is not None:
+                lookup_cache.parents[cache_key] = value
         if value is None:
             missing_parent = True
         _add_parent(value, organizations, users, projects)
@@ -164,7 +191,7 @@ def derive_scope_for_row(db: Session, row) -> ReconciliationDecision:
         pass
 
     for user_id in tuple(users):
-        membership_orgs = _active_membership_orgs(db, user_id)
+        membership_orgs = _active_membership_orgs(db, user_id, lookup_cache)
         if not organizations:
             organizations.update(membership_orgs)
         elif organizations and not organizations.intersection(membership_orgs):
@@ -177,7 +204,7 @@ def derive_scope_for_row(db: Session, row) -> ReconciliationDecision:
         organization_id = next(iter(organizations))
         valid_direct_users = {
             user_id for user_id in direct_users
-            if organization_id in _active_membership_orgs(db, user_id)
+            if organization_id in _active_membership_orgs(db, user_id, lookup_cache)
         }
         if len(valid_direct_users) == 1:
             users = valid_direct_users
@@ -285,6 +312,7 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
     from app.models.tenant_integrity import TenantIntegrityAuditState
 
     summary = ReconciliationSummary(dry_run=dry_run)
+    lookup_cache = ReconciliationLookupCache()
     for model in tenant_scoped_models():
         last_id = 0
         while True:
@@ -296,7 +324,7 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
             for row in rows:
                 last_id = row.id
                 summary.inspected += 1
-                decision = derive_scope_for_row(db, row)
+                decision = derive_scope_for_row(db, row, lookup_cache)
                 if decision.recoverable:
                     if _already_consistent(row, decision.scope):
                         summary.already_consistent += 1
