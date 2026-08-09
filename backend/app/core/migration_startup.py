@@ -64,7 +64,6 @@ ALEMBIC_VERSION_COLUMN = "version_num"
 ALEMBIC_VERSION_LEGACY_LENGTH = 32
 ALEMBIC_VERSION_REQUIRED_LENGTH = 64
 LONG_REVISION_ID = "029_ensure_report_email_recipients"
-LONG_REVISION_PARENT = "05c3b568d49b"
 
 
 class StartupMigrationError(RuntimeError):
@@ -96,14 +95,12 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
     merge = script.get_revision(MERGE_REVISION)
     legacy = script.get_revision(LEGACY_ANCESTOR_REVISION)
     legacy_child = script.get_revision(LEGACY_CHILD_REVISION)
-    long_revision = script.get_revision(LONG_REVISION_ID)
     if (
         stranded is None
         or sibling is None
         or merge is None
         or legacy is None
         or legacy_child is None
-        or long_revision is None
     ):
         raise StartupMigrationError("required migration lineage is missing")
     if stranded.down_revision != BRANCHPOINT_REVISION:
@@ -116,8 +113,6 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
         raise StartupMigrationError("legacy ancestor parent is unexpected")
     if legacy_child.down_revision != LEGACY_ANCESTOR_REVISION:
         raise StartupMigrationError("legacy ancestor child is unexpected")
-    if long_revision.down_revision != LONG_REVISION_PARENT:
-        raise StartupMigrationError("long revision parent is unexpected")
 
     expected_ancestry = {
         revision.revision
@@ -127,9 +122,10 @@ def _verify_repository_contract(script: ScriptDirectory) -> tuple[str, ...]:
         MERGE_REVISION,
         LEGACY_ANCESTOR_REVISION,
         LEGACY_CHILD_REVISION,
-        LONG_REVISION_ID,
     }.issubset(expected_ancestry):
         raise StartupMigrationError("repository head does not descend from merge revision")
+    if max(len(revision) for revision in expected_ancestry) > ALEMBIC_VERSION_REQUIRED_LENGTH:
+        raise StartupMigrationError("repository revision exceeds metadata capacity")
     return repository_heads
 
 

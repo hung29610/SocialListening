@@ -45,10 +45,6 @@ def _script_with_valid_lineage() -> Mock:
             migration_startup.LEGACY_CHILD_REVISION,
             migration_startup.LEGACY_ANCESTOR_REVISION,
         ),
-        migration_startup.LONG_REVISION_ID: _revision(
-            migration_startup.LONG_REVISION_ID,
-            migration_startup.LONG_REVISION_PARENT,
-        ),
     }
     script.get_revision.side_effect = revisions.get
     script.iterate_revisions.return_value = [
@@ -56,7 +52,6 @@ def _script_with_valid_lineage() -> Mock:
         revisions[migration_startup.MERGE_REVISION],
         revisions[migration_startup.LEGACY_CHILD_REVISION],
         revisions[migration_startup.LEGACY_ANCESTOR_REVISION],
-        revisions[migration_startup.LONG_REVISION_ID],
     ]
     return script
 
@@ -326,7 +321,6 @@ def test_unsupported_states_emit_bounded_revision_diagnostic(
                 _revision(migration_startup.MERGE_REVISION, "parent"),
                 _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
                 _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
-                _revision(migration_startup.LONG_REVISION_ID, "parent"),
         ]
         if upper == migration_startup.EXPECTED_REVISION
         else [_revision(migration_startup.MERGE_REVISION, "parent")]
@@ -399,7 +393,6 @@ def test_mergepoint_already_present_never_triggers_migration(monkeypatch):
                 _revision(migration_startup.MERGE_REVISION, "parent"),
                 _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
                 _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
-                _revision(migration_startup.LONG_REVISION_ID, "parent"),
         ]
         if upper == migration_startup.EXPECTED_REVISION
         else [_revision(migration_startup.MERGE_REVISION, "parent")]
@@ -472,10 +465,6 @@ def test_upgrade_failure_logs_bounded_revision_state(monkeypatch, caplog):
             migration_startup.LEGACY_CHILD_REVISION,
             migration_startup.LEGACY_ANCESTOR_REVISION,
         ),
-        migration_startup.LONG_REVISION_ID: _revision(
-            migration_startup.LONG_REVISION_ID,
-            migration_startup.LONG_REVISION_PARENT,
-        ),
     }
     script.get_revision.side_effect = revisions.get
     script.iterate_revisions.return_value = [
@@ -485,7 +474,6 @@ def test_upgrade_failure_logs_bounded_revision_state(monkeypatch, caplog):
             migration_startup.MERGE_REVISION,
             migration_startup.LEGACY_ANCESTOR_REVISION,
             migration_startup.LEGACY_CHILD_REVISION,
-            migration_startup.LONG_REVISION_ID,
         }
     ]
     monkeypatch.setattr(migration_startup.ScriptDirectory, "from_config", lambda _c: script)
