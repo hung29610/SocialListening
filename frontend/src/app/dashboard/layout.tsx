@@ -45,7 +45,8 @@ import {
   Award,
   HelpCircle,
   Zap,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 
 /* Shared micro-interaction primitives (SIGNAL: 150–250ms, reduced-motion honored) */
@@ -406,7 +407,14 @@ function DashboardSidebar({ sidebarOpen, setSidebarOpen, user, badges, setIsWebi
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const router = useRouter();
-  const { user, isLoading: authLoading, isHydrating } = useAuth();
+  const {
+    user,
+    isLoading: authLoading,
+    isHydrating,
+    sessionState,
+    readinessReason,
+    refreshContext,
+  } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isWebinarModalOpen, setIsWebinarModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -436,14 +444,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!mounted || !hasLocalSession || authLoading || isHydrating || user) {
+    if (!mounted || !hasLocalSession || authLoading || isHydrating) {
       return;
     }
 
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('cached_user');
-    window.location.replace('/login?expired=1');
-  }, [mounted, hasLocalSession, authLoading, isHydrating, user]);
+    if (sessionState === 'UNAUTHENTICATED') {
+      window.location.replace('/login?expired=1');
+    }
+  }, [mounted, hasLocalSession, authLoading, isHydrating, sessionState]);
 
   useEffect(() => {
     if (user) {
@@ -459,7 +467,60 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  if (!mounted || !hasLocalSession || authLoading || isHydrating || !user) {
+  if (!mounted || !hasLocalSession || authLoading || isHydrating) {
+    return <LoadingSpinner message={t('common.loading')} />;
+  }
+
+  if (sessionState === 'AUTHENTICATED_NOT_READY') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-void px-4">
+        <section
+          className="w-full max-w-xl rounded-2xl border border-warning/25 bg-void-surface p-6 shadow-tile sm:p-8"
+          aria-live="polite"
+          data-testid="authenticated-not-ready"
+        >
+          <div className="flex items-start gap-4">
+            <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-warning" aria-hidden="true" />
+            <div>
+              <h1 className="font-display text-xl font-semibold text-paper">
+                {t('readiness.title')}
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-paper-muted">
+                {t('readiness.description')}
+              </p>
+              <p className="mt-3 text-xs text-paper-faint">
+                {t('readiness.sessionPreserved')}
+              </p>
+              {readinessReason && (
+                <p className="mt-2 font-mono text-[11px] text-paper-faint">
+                  {t('readiness.reason')}: {readinessReason}
+                </p>
+              )}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void refreshContext()}
+                  data-testid="readiness-retry"
+                  className="rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-signal-deep motion-reduce:transition-none"
+                >
+                  {t('readiness.retry')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { auth.logout(); router.push('/login'); }}
+                  className="rounded-lg border border-edge px-4 py-2 text-sm font-medium text-paper-muted transition-colors duration-150 hover:bg-paper/[0.04] hover:text-paper motion-reduce:transition-none"
+                >
+                  {t('nav.logout')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (sessionState === 'UNAUTHENTICATED' || !user) {
     return <LoadingSpinner message={t('common.loading')} />;
   }
 

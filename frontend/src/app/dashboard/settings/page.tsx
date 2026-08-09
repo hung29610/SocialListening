@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Shield, Building, Mail, Bell, Globe, Palette, FileText, User as UserIcon, Lock, Monitor, Settings, Sparkles } from 'lucide-react';
-import { auth } from '@/lib/api';
+import { auth, isAuthError } from '@/lib/api';
 import { canAccessAdmin, type User } from '@/lib/permissions';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -54,9 +54,10 @@ export default function SettingsPage() {
         setLoading(false);
       } catch (error) {
         console.error('Failed to get user:', error);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('cached_user');
-        router.replace('/login?expired=1');
+        if (isAuthError(error)) {
+          auth.logout();
+          router.replace('/login?expired=1');
+        }
         setLoading(false);
       }
     };

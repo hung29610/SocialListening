@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
+import { type AuthSessionState, shouldInvalidateSession } from '@/lib/authSessionState';
 
 interface User {
   id: number;
@@ -25,6 +27,8 @@ interface AuthContextType {
   permissions: string[];
   isLoading: boolean;
   isHydrating: boolean;
+  sessionState: AuthSessionState;
+  readinessReason: string | null;
   hasPermission: (permission: string) => boolean;
   switchOrganization: (orgId: number) => Promise<void>;
   refreshContext: () => Promise<void>;
@@ -37,6 +41,8 @@ const AuthContext = createContext<AuthContextType>({
   permissions: [],
   isLoading: false,
   isHydrating: false,
+  sessionState: 'UNAUTHENTICATED',
+  readinessReason: null,
   hasPermission: () => false,
   switchOrganization: async () => {},
   refreshContext: async () => {},
@@ -117,16 +123,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('access_token');
   });
+  const [sessionState, setSessionState] = useState<AuthSessionState>(() => {
+    if (typeof window === 'undefined') return 'UNAUTHENTICATED';
+    return localStorage.getItem('access_token')
+      ? 'AUTHENTICATED_NOT_READY'
+      : 'UNAUTHENTICATED';
+  });
+  const [readinessReason, setReadinessReason] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
   const bgFetchRef = useRef<AbortController | null>(null);
+
+  const backendUrl = API_BASE_URL.replace(/\/+$/, '');
+  const apiUrl = (path: string) => backendUrl ? `${backendUrl}${path}` : path;
+
+  const invalidateSession = () => {
+    clearInvalidAuthSession();
+    setUser(null);
+    setOrganizations([]);
+    setPermissions([]);
+    setSessionState('UNAUTHENTICATED');
+    setReadinessReason(null);
+    setIsHydrating(false);
+    if (pathname.startsWith('/dashboard')) {
+      window.location.href = '/login?expired=1';
+    }
+  };
+
+  const readBoundedReadiness = async (signal: AbortSignal): Promise<string> => {
+    try {
+      const response = await fetch(apiUrl('/readyz'), { signal, cache: 'no-store' });
+      const body = await response.json().catch(() => null);
+      return typeof body?.reason_code === 'string'
+        ? body.reason_code
+        : 'APPLICATION_NOT_READY';
+    } catch (error: any) {
+      if (error?.name === 'AbortError') throw error;
+      return 'READINESS_UNAVAILABLE';
+    }
+  };
 
   const fetchContext = async (showLoader = false) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) {
       setUser(null);
       setCachedUser(null);
+      setSessionState('UNAUTHENTICATED');
       setIsHydrating(false);
       return;
     }
@@ -138,39 +181,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     bgFetchRef.current = new AbortController();
 
     try {
-      const backendUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-      const authContextUrl = backendUrl ? `${backendUrl}/api/auth/me/context` : '/api/auth/me/context';
-      const res = await fetch(authContextUrl, {
+      const identityResponse = await fetch(apiUrl('/api/auth/me'), {
         headers: { Authorization: `Bearer ${token}` },
         signal: bgFetchRef.current.signal,
         cache: 'no-store',
       });
 
-      if (res.status === 401 || res.status === 403) {
-        clearInvalidAuthSession();
-        setUser(null);
-        setIsHydrating(false);
-        if (pathname.startsWith('/dashboard')) {
-          window.location.href = '/login?expired=1';
-        }
+      if (shouldInvalidateSession(identityResponse.status)) {
+        invalidateSession();
         return;
       }
 
-      if (res.ok) {
-        const data = await res.json();
+      if (!identityResponse.ok) {
+        setSessionState('AUTHENTICATED_NOT_READY');
+        setReadinessReason(
+          identityResponse.status === 503
+            ? await readBoundedReadiness(bgFetchRef.current.signal)
+            : `IDENTITY_HTTP_${identityResponse.status}`,
+        );
+        return;
+      }
+
+      const identity = await identityResponse.json();
+      setUser(identity);
+      setCachedUser(identity);
+
+      const contextResponse = await fetch(apiUrl('/api/auth/me/context'), {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: bgFetchRef.current.signal,
+        cache: 'no-store',
+      });
+
+      if (shouldInvalidateSession(contextResponse.status)) {
+        invalidateSession();
+        return;
+      }
+
+      if (contextResponse.ok) {
+        const data = await contextResponse.json();
         if (data.user) {
           setUser(data.user);
           setCachedUser(data.user);
         }
-        if (data.organizations) setOrganizations(data.organizations);
-        if (data.permissions) setPermissions(data.permissions);
-      } else {
-        console.warn(`[Auth] Context fetch returned HTTP ${res.status}; preserving cached session`);
+        setOrganizations(data.organizations || []);
+        setPermissions(data.permissions || []);
+        setSessionState('AUTHENTICATED_READY');
+        setReadinessReason(null);
+        return;
       }
+
+      setOrganizations([]);
+      setPermissions([]);
+      setSessionState('AUTHENTICATED_NOT_READY');
+      setReadinessReason(
+        contextResponse.status === 503
+          ? await readBoundedReadiness(bgFetchRef.current.signal)
+          : `CONTEXT_HTTP_${contextResponse.status}`,
+      );
     } catch (err: any) {
       if (err?.name === 'AbortError') return; // Intentional cancel
       // Network error — keep cached user, don't block
-      console.warn('[Auth] Background context fetch failed, using cached data');
+      setSessionState('AUTHENTICATED_NOT_READY');
+      setReadinessReason('READINESS_UNAVAILABLE');
+      console.warn('[Auth] Background session bootstrap failed; preserving authentication');
     } finally {
       setIsHydrating(false);
       if (showLoader) setIsLoading(false);
@@ -182,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) {
       // No token — clear everything instantly, no loading
       setUser(null);
+      setSessionState('UNAUTHENTICATED');
       setIsHydrating(false);
       if (pathname.startsWith('/dashboard')) {
         router.replace('/login');
@@ -194,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!payload || (payload.exp && payload.exp * 1000 < Date.now())) {
       clearInvalidAuthSession();
       setUser(null);
+      setSessionState('UNAUTHENTICATED');
       setIsHydrating(false);
       router.replace('/login?expired=1');
       return;
@@ -203,6 +278,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchContext(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount — not on every pathname change
+
+  useEffect(() => {
+    if (sessionState !== 'AUTHENTICATED_NOT_READY') return;
+    const retry = window.setInterval(() => fetchContext(false), 30_000);
+    return () => window.clearInterval(retry);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionState]);
 
   const currentOrganization = user?.current_organization_id
     ? organizations.find(o => o.id === user.current_organization_id) || null
@@ -226,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions,
       isLoading,
       isHydrating,
+      sessionState,
+      readinessReason,
       hasPermission,
       switchOrganization,
       refreshContext: () => fetchContext(true),

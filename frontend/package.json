@@ -17,7 +17,8 @@
     "check-hardcoded-ratchet": "node scripts/check-hardcoded-ui.mjs --self-test-ratchet",
     "check-connectors": "node scripts/check-connector-contract.mjs",
     "check-free-runtime": "node scripts/check-free-runtime-contract.mjs",
-    "check-i18n-all": "npm run check-i18n && npm run check-locales && npm run check-hardcoded && npm run check-hardcoded-ratchet && npm run check-connectors && npm run check-free-runtime"
+    "check-auth-readiness": "node scripts/check-auth-readiness-contract.mjs",
+    "check-i18n-all": "npm run check-i18n && npm run check-locales && npm run check-hardcoded && npm run check-hardcoded-ratchet && npm run check-connectors && npm run check-free-runtime && npm run check-auth-readiness"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

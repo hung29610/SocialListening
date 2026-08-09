@@ -1,4 +1,11 @@
 export const vi = {
+  readiness: {
+    title: 'Dịch vụ đang chuẩn bị',
+    description: 'Phiên đăng nhập vẫn còn hiệu lực, nhưng dữ liệu workspace tạm thời chưa sẵn sàng. Hệ thống sẽ tự kiểm tra lại.',
+    sessionPreserved: 'Bạn không cần đăng nhập lại.',
+    reason: 'Trạng thái',
+    retry: 'Kiểm tra lại',
+  },
   dashboard: {
     title: "Dashboard",
     subtitle: "Tổng quan giám sát truyền thông, mentions và cảnh báo rủi ro.",
