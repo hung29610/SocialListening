@@ -115,10 +115,17 @@ def legacy_database(tmp_path, monkeypatch):
         backend_dir / "alembic" / "versions" / "7c2e4d6b8a91_add_ai_chat_messages.py",
         versions / "7c2e4d6b8a91_add_ai_chat_messages.py",
     )
+    shutil.copy2(
+        backend_dir
+        / "alembic"
+        / "versions"
+        / "c1a2b3d4e5f6_add_tenant_integrity_staging.py",
+        versions / "c1a2b3d4e5f6_add_tenant_integrity_staging.py",
+    )
     _write_revision(
         versions / "head.py",
         migration_startup.EXPECTED_REVISION,
-        "7c2e4d6b8a91",
+        "c1a2b3d4e5f6",
     )
     config = Config()
     config.set_main_option("script_location", str(script_dir))
@@ -156,6 +163,16 @@ def _create_proven_legacy_state(engine):
         connection.execute(text("CREATE TABLE organizations (id SERIAL PRIMARY KEY)"))
         connection.execute(text("CREATE TABLE users (id SERIAL PRIMARY KEY)"))
         connection.execute(text("CREATE TABLE ai_model_config (id SERIAL PRIMARY KEY)"))
+        for table in (
+            "source_items",
+            "crawl_jobs",
+            "scan_schedules",
+            "discovery_jobs",
+            "discovered_sources",
+            "blocked_domains",
+            "report_exports",
+        ):
+            connection.execute(text(f"CREATE TABLE {table} (id SERIAL PRIMARY KEY)"))
         connection.execute(
             text(
                 "CREATE TABLE mentions (id SERIAL PRIMARY KEY, "
@@ -233,6 +250,55 @@ def _create_proven_legacy_state(engine):
         )
         connection.execute(
             text(
+                "CREATE TABLE tenant_integrity_quarantine ("
+                "id SERIAL PRIMARY KEY, table_name VARCHAR(80) NOT NULL, "
+                "row_identifier VARCHAR(255) NOT NULL, "
+                "reason_code VARCHAR(80) NOT NULL, evidence JSON NOT NULL, "
+                "status VARCHAR(20) NOT NULL, "
+                "first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), "
+                "last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), "
+                "resolved_at TIMESTAMPTZ NULL, "
+                "CONSTRAINT uq_tenant_quarantine_row_reason UNIQUE "
+                "(table_name, row_identifier, reason_code))"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX ix_tenant_integrity_quarantine_table_name "
+                "ON tenant_integrity_quarantine (table_name)"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX ix_tenant_integrity_quarantine_reason_code "
+                "ON tenant_integrity_quarantine (reason_code)"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX ix_tenant_integrity_quarantine_status "
+                "ON tenant_integrity_quarantine (status)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO tenant_integrity_quarantine "
+                "(table_name, row_identifier, reason_code, evidence, status) "
+                "VALUES ('legacy', 'bounded', 'AMBIGUOUS', '{}', 'open')"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE TABLE tenant_integrity_audit_state ("
+                "id SERIAL PRIMARY KEY, status VARCHAR(20) NOT NULL, "
+                "unresolved_count INTEGER NOT NULL, "
+                "conflict_count INTEGER NOT NULL, details JSON NOT NULL, "
+                "last_run_at TIMESTAMPTZ NULL, "
+                "updated_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+            )
+        )
+        connection.execute(
+            text(
                 "CREATE TABLE alembic_version ("
                 "version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
             )
@@ -270,3 +336,17 @@ def test_exact_production_drift_reaches_head_and_is_restart_safe(legacy_database
     with engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM ai_usage_logs")).scalar_one() == 1
         assert connection.execute(text("SELECT COUNT(*) FROM ai_chat_messages")).scalar_one() == 1
+        assert connection.execute(
+            text("SELECT COUNT(*) FROM tenant_integrity_quarantine")
+        ).scalar_one() == 1
+    for table, columns in {
+        "source_items": ("organization_id", "user_id"),
+        "crawl_jobs": ("organization_id", "project_id"),
+        "scan_schedules": ("organization_id",),
+        "discovery_jobs": ("organization_id",),
+        "discovered_sources": ("organization_id", "user_id"),
+        "blocked_domains": ("organization_id",),
+        "report_exports": ("organization_id",),
+    }.items():
+        reflected = {item["name"] for item in inspect(engine).get_columns(table)}
+        assert set(columns).issubset(reflected)
