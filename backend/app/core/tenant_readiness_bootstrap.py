@@ -19,10 +19,11 @@ from app.services.tenant_reconciliation import reconcile_tenant_integrity
 
 
 logger = logging.getLogger(__name__)
-OPERATION_VERSION = "v2"
+OPERATION_VERSION = "v3"
 OPERATION_KEY = f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:{OPERATION_VERSION}"
 RETIRED_OPERATION_KEYS = (
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v1",
+    f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v2",
 )
 
 
@@ -111,6 +112,11 @@ def _load_operation(db) -> dict | None:
 
 def _claim_operation(db) -> bool:
     """Atomically elect one bootstrap runner without committing tenant work."""
+    if db.get_bind().dialect.name == "postgresql":
+        # A superseded Render generation can retain an uncommitted claim while
+        # the platform keeps that process alive after a deploy timeout. Never
+        # let a replacement generation wait for the full deployment window.
+        db.execute(text("SET LOCAL lock_timeout = '10s'"))
     row = db.execute(
         text(
             "INSERT INTO system_settings "
