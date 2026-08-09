@@ -50,6 +50,7 @@ def test_clean_bootstrap_runs_two_dry_runs_and_commits_ready(monkeypatch):
     calls = []
     monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
     monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(bootstrap, "_claim_operation", lambda _db: True)
     monkeypatch.setattr(
         bootstrap,
         "reconcile_tenant_integrity",
@@ -82,6 +83,7 @@ def test_quarantine_only_is_ready_without_mutation(monkeypatch):
     )
     monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
     monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(bootstrap, "_claim_operation", lambda _db: True)
     monkeypatch.setattr(bootstrap, "reconcile_tenant_integrity", lambda *_a, **_k: legacy)
 
     result = bootstrap.establish_tenant_readiness()
@@ -122,6 +124,7 @@ def test_unsafe_tenant_states_are_persisted_blocked_without_apply(monkeypatch, s
     db = _new_operation_db()
     monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
     monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(bootstrap, "_claim_operation", lambda _db: True)
     monkeypatch.setattr(bootstrap, "reconcile_tenant_integrity", lambda *_a, **_k: summary)
 
     result = bootstrap.establish_tenant_readiness()
@@ -137,6 +140,7 @@ def test_differing_summaries_fail_closed_without_ready_ledger(monkeypatch):
     values = iter([_summary(), _summary(inspected=5, already_consistent=5)])
     monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
     monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(bootstrap, "_claim_operation", lambda _db: True)
     monkeypatch.setattr(bootstrap, "reconcile_tenant_integrity", lambda *_a, **_k: next(values))
 
     result = bootstrap.establish_tenant_readiness()
@@ -171,6 +175,7 @@ def test_terminal_and_pending_operation_states_do_not_rerun(monkeypatch, status)
     reconcile = Mock()
     monkeypatch.setattr(bootstrap, "_current_heads", lambda: (bootstrap.EXPECTED_REVISION,))
     monkeypatch.setattr(bootstrap, "SessionLocal", lambda: db)
+    monkeypatch.setattr(bootstrap, "_claim_operation", lambda _db: False)
     monkeypatch.setattr(bootstrap, "reconcile_tenant_integrity", reconcile)
 
     result = bootstrap.establish_tenant_readiness()
@@ -182,6 +187,7 @@ def test_terminal_and_pending_operation_states_do_not_rerun(monkeypatch, status)
 def test_orchestrator_blocks_tenant_workloads_without_killing_process(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setattr(startup_orchestrator, "_startup_singleton_lock", lambda: __import__("contextlib").nullcontext())
+    monkeypatch.setattr(startup_orchestrator, "verify_exact_database_head", lambda _p: None)
     monkeypatch.setattr(startup_orchestrator, "run_verified_startup_migrations", lambda _p: "d72f8a913b21")
     monkeypatch.setattr(
         startup_orchestrator,
@@ -196,9 +202,53 @@ def test_orchestrator_blocks_tenant_workloads_without_killing_process(monkeypatc
     assert startup_state.tenant_workloads_allowed() is False
 
 
+def test_exact_head_preflight_never_waits_on_superseded_generation_lock(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    migration_lock = Mock(side_effect=AssertionError("stale lock must not be entered"))
+    migration_upgrade = Mock(side_effect=AssertionError("exact head must not be upgraded"))
+    monkeypatch.setattr(startup_orchestrator, "_startup_singleton_lock", migration_lock)
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "verify_exact_database_head",
+        lambda _p: "d72f8a913b21",
+    )
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "run_verified_startup_migrations",
+        migration_upgrade,
+    )
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "establish_tenant_readiness",
+        lambda: bootstrap.TenantReadinessResult("succeeded", "READY"),
+    )
+
+    outcome = startup_orchestrator.run_startup_orchestrator(
+        Path("backend"), "free_mvp_embedded"
+    )
+
+    assert outcome == startup_orchestrator.StartupOutcome(
+        "d72f8a913b21", True, "READY"
+    )
+    migration_lock.assert_not_called()
+    migration_upgrade.assert_not_called()
+
+
+def test_readiness_claim_is_single_atomic_insert():
+    db = MagicMock()
+    db.execute.return_value.scalar_one_or_none.return_value = bootstrap.OPERATION_KEY
+
+    assert bootstrap._claim_operation(db) is True
+    statement = str(db.execute.call_args.args[0])
+    assert "ON CONFLICT (key) DO NOTHING" in statement
+    assert "RETURNING key" in statement
+    assert db.commit.call_count == 0
+
+
 def test_migration_corruption_remains_startup_fatal(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setattr(startup_orchestrator, "_startup_singleton_lock", lambda: __import__("contextlib").nullcontext())
+    monkeypatch.setattr(startup_orchestrator, "verify_exact_database_head", lambda _p: None)
     monkeypatch.setattr(
         startup_orchestrator,
         "run_verified_startup_migrations",
@@ -214,6 +264,7 @@ def test_production_cannot_use_test_startup_bypass(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("RUN_MIGRATIONS_ON_STARTUP", "false")
     monkeypatch.setattr(startup_orchestrator, "_startup_singleton_lock", lambda: __import__("contextlib").nullcontext())
+    monkeypatch.setattr(startup_orchestrator, "verify_exact_database_head", lambda _p: None)
     monkeypatch.setattr(startup_orchestrator, "run_verified_startup_migrations", migration)
     monkeypatch.setattr(
         startup_orchestrator,

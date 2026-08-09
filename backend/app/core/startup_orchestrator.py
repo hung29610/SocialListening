@@ -13,7 +13,11 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.core.database import engine
-from app.core.migration_startup import StartupMigrationError, run_verified_startup_migrations
+from app.core.migration_startup import (
+    StartupMigrationError,
+    run_verified_startup_migrations,
+    verify_exact_database_head,
+)
 from app.core import startup_state
 from app.core.tenant_readiness_bootstrap import establish_tenant_readiness
 
@@ -70,18 +74,29 @@ def run_startup_orchestrator(backend_dir: Path, runtime: str) -> StartupOutcome:
         )
         return StartupOutcome("test-fixture", True, "TEST_FIXTURE_READY")
 
-    logger.info("STARTUP_STATE phase=lock status=waiting reason=STARTUP_SINGLETON")
     try:
-        with _startup_singleton_lock():
-            logger.info("STARTUP_STATE phase=migration status=running reason=VERIFY_AND_UPGRADE")
-            revision = run_verified_startup_migrations(backend_dir)
-            startup_state.set_migration_ready(revision)
+        revision = verify_exact_database_head(backend_dir)
+        if revision is None:
+            logger.info("STARTUP_STATE phase=lock status=waiting reason=STARTUP_SINGLETON")
+            with _startup_singleton_lock():
+                logger.info(
+                    "STARTUP_STATE phase=migration status=running reason=VERIFY_AND_UPGRADE"
+                )
+                revision = run_verified_startup_migrations(backend_dir)
+        else:
             logger.info(
-                "STARTUP_STATE phase=migration status=ready reason=EXACT_HEAD revision=%s",
-                revision,
+                "STARTUP_STATE phase=lock status=skipped reason=EXACT_HEAD_ALREADY_VERIFIED"
             )
-            result = establish_tenant_readiness()
-            startup_state.set_tenant_readiness(result.ready, result.reason_code)
+
+        # Migration serialization ends before the idempotent tenant bootstrap.
+        # Its database claim is the authority for concurrent/restarted processes.
+        startup_state.set_migration_ready(revision)
+        logger.info(
+            "STARTUP_STATE phase=migration status=ready reason=EXACT_HEAD revision=%s",
+            revision,
+        )
+        result = establish_tenant_readiness()
+        startup_state.set_tenant_readiness(result.ready, result.reason_code)
     except StartupMigrationError:
         startup_state.set_migration_failed("MIGRATION_CONTRACT_FAILED")
         logger.critical(

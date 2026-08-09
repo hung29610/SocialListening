@@ -105,6 +105,26 @@ def _load_operation(db) -> dict | None:
     return payload if isinstance(payload, dict) else {"status": "failed", "reason_code": "INVALID_OPERATION_STATE"}
 
 
+def _claim_operation(db) -> bool:
+    """Atomically elect one bootstrap runner without committing tenant work."""
+    row = db.execute(
+        text(
+            "INSERT INTO system_settings "
+            "(key, value, value_type, description, is_public) "
+            "VALUES (:key, :value, 'json', 'Deterministic tenant readiness bootstrap', false) "
+            "ON CONFLICT (key) DO NOTHING RETURNING key"
+        ),
+        {
+            "key": OPERATION_KEY,
+            "value": json.dumps(
+                {"status": "pending", "reason_code": "DRY_RUNS_PENDING"},
+                sort_keys=True,
+            ),
+        },
+    ).scalar_one_or_none()
+    return row == OPERATION_KEY
+
+
 def _store_operation(db, result: TenantReadinessResult) -> None:
     value = json.dumps(
         {"status": result.status, "reason_code": result.reason_code},
@@ -136,8 +156,11 @@ def establish_tenant_readiness() -> TenantReadinessResult:
 
     db = SessionLocal()
     try:
-        existing = _load_operation(db)
-        if existing is not None:
+        claimed = _claim_operation(db)
+        if not claimed:
+            existing = _load_operation(db)
+            if existing is None:
+                return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
             result = _result_from_payload(existing)
             if result.status == "succeeded":
                 state = db.get(TenantIntegrityAuditState, 1)
@@ -150,11 +173,9 @@ def establish_tenant_readiness() -> TenantReadinessResult:
                     return TenantReadinessResult("failed", "READINESS_LEDGER_MISSING")
             return result
 
-        # Pending is part of the transaction and is never externally visible
-        # unless the transaction reaches a terminal state. A crash rolls it
-        # back, making a later safe read-only attempt possible.
-        pending = TenantReadinessResult("pending", "DRY_RUNS_PENDING")
-        _store_operation(db, pending)
+        # The uncommitted INSERT above is the claim. Concurrent INSERT attempts
+        # wait for this transaction and then observe its terminal state. A crash
+        # rolls the claim back, making a later safe dry-run attempt possible.
         first = _normalize(reconcile_tenant_integrity(db, dry_run=True, batch_size=500))
         db.expire_all()
         second = _normalize(reconcile_tenant_integrity(db, dry_run=True, batch_size=500))
