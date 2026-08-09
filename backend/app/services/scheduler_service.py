@@ -3,6 +3,7 @@ Background Scheduler Service for Automated Scanning
 Uses APScheduler to run scheduled scans based on source configurations.
 Supports standalone worker mode and heartbeat tracking.
 """
+# Runtime release contract: startup-state-machine-v1.
 import os
 import logging
 import redis
