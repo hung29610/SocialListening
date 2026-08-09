@@ -180,7 +180,8 @@ jobs:
           PY
           TEST_DATABASE_URL="$TEST_DATABASE_URL" python -m pytest \
             tests/test_migration_bootstrap_postgres.py \
-            tests/test_post_schema_repair_startup_postgres.py -q -rs \
+            tests/test_post_schema_repair_startup_postgres.py \
+            tests/test_ai_usage_legacy_contract_postgres.py -q -rs \
             --junitxml="${RUNNER_TEMP}/startup-state-postgres.xml"
           python - <<'PY'
           import xml.etree.ElementTree as ET
@@ -194,11 +195,11 @@ jobs:
               for key in ("tests", "failures", "errors", "skipped")
           }
           assert totals == {
-              "tests": 11,
+              "tests": 12,
               "failures": 0,
               "errors": 0,
               "skipped": 0,
-          }, f"startup PostgreSQL matrix did not run exactly eleven passing tests: {totals}"
+          }, f"startup PostgreSQL matrix did not run exactly twelve passing tests: {totals}"
           print(f"startup PostgreSQL matrix: {totals}")
           PY
           DATABASE_URL="$TEST_DATABASE_URL" python -m app.scripts.audit_tenant_integrity
