@@ -61,3 +61,8 @@ def test_existing_superuser_dependency_still_denies_non_admin():
     with pytest.raises(Exception) as exc_info:
         dep(current_user=SimpleNamespace(is_superuser=False))
     assert getattr(exc_info.value, "status_code", None) == 403
+
+
+def test_startup_readiness_evidence_rejects_anonymous_requests():
+    response = client.get("/api/system/startup-readiness")
+    assert response.status_code in {401, 403}

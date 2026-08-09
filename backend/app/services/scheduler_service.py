@@ -118,7 +118,11 @@ def get_due_sources(db: Session) -> List[Source]:
     """
     now = datetime.now(timezone.utc)
     sources = db.execute(
-        select(Source).where(Source.is_active == True)
+        select(Source).where(
+            Source.is_active == True,
+            Source.organization_id.is_not(None),
+            Source.user_id.is_not(None),
+        )
     ).scalars().all()
 
     due = []
@@ -209,6 +213,11 @@ def execute_scheduled_scan(source_id: int):
 
         if not source or not source.is_active:
             logger.info(f"Source {source_id} not found or inactive, skipping")
+            return
+        if not source.organization_id or not source.user_id:
+            logger.warning(
+                "Scheduled source scan blocked: source tenant scope is unavailable"
+            )
             return
 
         # Check for active job
@@ -961,7 +970,11 @@ def sync_scan_schedules():
         
         # Find all active schedules
         active_schedules = db.execute(
-            select(ScanSchedule).where(ScanSchedule.is_active == True)
+            select(ScanSchedule).where(
+                ScanSchedule.is_active == True,
+                ScanSchedule.organization_id.is_not(None),
+                ScanSchedule.user_id.is_not(None),
+            )
         ).scalars().all()
         
         # Get existing scan schedule jobs

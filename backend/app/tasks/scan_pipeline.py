@@ -147,6 +147,10 @@ def _acquire_pipeline_lease(job_id: int, now: datetime) -> dict:
         ).scalar_one_or_none()
         if not job:
             return {"status": "missing", "job_id": job_id}
+        if not job.organization_id or not job.user_id or not job.project_id:
+            # Legacy ownerless jobs are quarantine candidates. A worker must
+            # never adopt or mutate them without deterministic tenant scope.
+            return {"status": "tenant_scope_blocked", "job_id": job_id}
 
         pipeline = _pipeline(job)
         status = pipeline.get("status", "queued")

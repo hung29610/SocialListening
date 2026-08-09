@@ -12,7 +12,8 @@ from starlette.concurrency import run_in_threadpool
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.database import engine, Base, SessionLocal
+from app.core.database import engine, SessionLocal
+from app.core import startup_state
 from app.core import ownership as _ownership  # register fail-closed write guards
 from app.core.ownership import TenantOwnershipError, TenantReason
 from app.core.security import get_current_superuser
@@ -72,42 +73,25 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create tables + seed data + start scheduler."""
+    """Run the one authoritative startup state machine, then serve safely."""
     logger.info("Starting Social Listening Platform...")
+    from pathlib import Path
+    from app.core.startup_orchestrator import run_startup_orchestrator
 
-    # Run database migrations automatically if configured. Migration failures
-    # are startup-fatal: maintenance must never run against an unverified head.
-    import os
-    run_migrations = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").lower() == "true"
-        
-    # If running on Render, default to false to avoid port binding timeout.
-    if "RENDER" in os.environ and "RUN_MIGRATIONS_ON_STARTUP" not in os.environ:
-        run_migrations = False
-            
-    if run_migrations:
-        from pathlib import Path
-        from app.core.migration_startup import run_verified_startup_migrations
-
-        logger.info("Running automatic database migrations...")
-        backend_dir = Path(__file__).resolve().parent.parent
-        run_verified_startup_migrations(backend_dir)
-        logger.info("Database migrations applied and verified successfully.")
-    else:
-        logger.info("Skipping automatic database migrations (RUN_MIGRATIONS_ON_STARTUP is false)")
-
-    from app.core.free_mvp_maintenance import run_free_mvp_maintenance_if_enabled
-    run_free_mvp_maintenance_if_enabled()
-
-    # Bounded check: reads one audit-state row, never scans tenant tables.
-    from app.core.tenant_readiness import enforce_tenant_integrity_readiness
-    enforce_tenant_integrity_readiness()
+    free_mvp_embedded = os.getenv("FREE_MVP_RUNTIME_MODE", "").lower() == "embedded"
+    runtime_label = "free_mvp_embedded" if free_mvp_embedded else "standard"
+    outcome = run_startup_orchestrator(
+        Path(__file__).resolve().parent.parent,
+        runtime_label,
+    )
+    tenant_ready = outcome.tenant_ready
 
     # ── Optional admin seed: promote an existing user to super_admin once ──────
     # Set ADMIN_SEED_EMAIL in your environment to enable this.
     # The target user must already exist in the database.
     # If already a super_admin the UPDATE is a no-op.
     admin_seed_email = (settings.ADMIN_SEED_EMAIL or "").strip()
-    if admin_seed_email:
+    if tenant_ready and admin_seed_email:
         db = SessionLocal()
         try:
             from sqlalchemy import text
@@ -132,46 +116,63 @@ async def lifespan(app: FastAPI):
         finally:
             db.close()
 
-    try:
-        from app.models.webinar import WebinarRegistration
-        WebinarRegistration.metadata.create_all(bind=engine)
-        logger.info("Webinar table created/verified")
-    except Exception as e:
-        logger.warning(f"Webinar table creation failed: {e}")
-
     # Seed service data
-    try:
-        from app.scripts.seed_services import seed_services_if_empty
-        db = SessionLocal()
+    if tenant_ready:
         try:
-            seed_services_if_empty(db)
-            logger.info("Service seed check complete")
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Service seed skipped: {e}")
+            from app.scripts.seed_services import seed_services_if_empty
+            db = SessionLocal()
+            try:
+                seed_services_if_empty(db)
+                logger.info("Service seed check complete")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("Service seed skipped error_type=%s", type(e).__name__)
 
     # The web process may run APScheduler only when explicitly enabled.  It is
     # never inferred from the legacy standalone-worker SCHEDULER_ENABLED flag.
-    free_mvp_embedded = os.getenv("FREE_MVP_RUNTIME_MODE", "").lower() == "embedded"
     enable_embedded_scheduler = free_mvp_embedded or (
         os.getenv("ENABLE_EMBEDDED_SCHEDULER", "false").lower() == "true"
     )
-    if enable_embedded_scheduler:
+    scheduler_active = False
+    if enable_embedded_scheduler and tenant_ready:
         try:
             from app.services.scheduler_service import start_scheduler
             is_started = start_scheduler(is_embedded=True)
             if is_started:
                 logger.info("Background scheduler started")
+                scheduler_active = True
             else:
                 logger.warning("Scheduler start failed or was disabled")
         except Exception as e:
-            logger.warning(f"Scheduler start failed: {e}")
+            logger.warning("Scheduler start failed error_type=%s", type(e).__name__)
+    elif enable_embedded_scheduler:
+        logger.warning(
+            "STARTUP_STATE phase=scheduler status=inactive reason=TENANT_READINESS_BLOCKED"
+        )
+
+    startup_state.set_scheduler(
+        scheduler_active,
+        None if scheduler_active else (
+            "SCHEDULER_INACTIVE" if tenant_ready else "TENANT_READINESS_BLOCKED"
+        ),
+    )
+    startup_state.mark_complete()
+    logger.info(
+        "STARTUP_STATE phase=scheduler status=%s reason=%s",
+        "active" if scheduler_active else "inactive",
+        "SINGLETON_LEASE_ACQUIRED" if scheduler_active else startup_state.snapshot()["reason_code"],
+    )
+    logger.info(
+        "STARTUP_STATE phase=complete status=%s reason=%s",
+        startup_state.snapshot()["status"],
+        startup_state.snapshot()["reason_code"],
+    )
 
     yield
     
     # Shutdown scheduler
-    if enable_embedded_scheduler:
+    if scheduler_active:
         try:
             from app.services.scheduler_service import stop_scheduler
             stop_scheduler()
@@ -221,6 +222,28 @@ async def security_controls(request: Request, call_next):
     else:
         correlation_id = str(uuid.uuid4())
     request.state.correlation_id = correlation_id
+
+    readiness_exempt = request.url.path in {
+        "/",
+        "/health",
+        "/readyz",
+        "/docs",
+        "/openapi.json",
+        "/api/auth/login",
+        "/api/system/startup-readiness",
+    }
+    if not readiness_exempt and not startup_state.tenant_workloads_allowed():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": {
+                    "code": "APPLICATION_NOT_READY",
+                    "message": "Tenant workloads are temporarily unavailable.",
+                    "correlation_id": correlation_id,
+                }
+            },
+            headers={"X-Correlation-ID": correlation_id},
+        )
 
     scope = classify_rate_limit_scope(request.url.path)
     if scope:
@@ -354,23 +377,43 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ─── Health ───────────────────────────────────────────────────────────────────
-@app.get("/health")
-def health_check():
-    """Health check with DB connectivity test."""
+def _database_connection_status() -> str:
     db_status = "disconnected"
+    db = None
     try:
         db = SessionLocal()
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
-        db.close()
         db_status = "connected"
     except Exception:
         db_status = "disconnected"
-    return {
-        "status": "ok" if db_status == "connected" else "degraded",
-        "database": db_status,
-        "environment": os.environ.get("ENVIRONMENT", settings.ENVIRONMENT),
-        "version": "1.0.0",
-    }
+    finally:
+        if db is not None:
+            db.close()
+    return db_status
+
+
+@app.get("/health")
+def health_check():
+    """Liveness check. It remains available while tenant work is blocked."""
+    db_status = _database_connection_status()
+    state = startup_state.public_snapshot()
+    state["database"] = db_status
+    state["status"] = "live" if db_status == "connected" else "degraded"
+    return state
+
+
+@app.get("/readyz")
+def readiness_check():
+    """Bounded readiness check for normal tenant workloads."""
+    state = startup_state.public_snapshot()
+    state["database"] = _database_connection_status()
+    ready = (
+        state["database"] == "connected"
+        and state["migration"] == "ready"
+        and state["tenant_integrity"] == "ready"
+    )
+    payload = {**state, "status": "ready" if ready else "not_ready"}
+    return JSONResponse(status_code=200 if ready else 503, content=payload)
 
 
 # ─── Debug routes (non-production only) ───────────────────────────────────────

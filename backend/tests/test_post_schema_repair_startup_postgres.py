@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,7 +12,13 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
-from app.core import free_mvp_maintenance, migration_startup, tenant_readiness
+from app.core import (
+    free_mvp_maintenance,
+    migration_startup,
+    startup_orchestrator,
+    tenant_readiness,
+    tenant_readiness_bootstrap,
+)
 from app.services.tenant_reconciliation import ReconciliationSummary
 
 
@@ -151,6 +158,9 @@ def production_sequence_database(tmp_path, monkeypatch, request):
     monkeypatch.setattr(free_mvp_maintenance, "engine", engine)
     monkeypatch.setattr(free_mvp_maintenance, "SessionLocal", TestSession)
     monkeypatch.setattr(tenant_readiness, "SessionLocal", TestSession)
+    monkeypatch.setattr(tenant_readiness_bootstrap, "engine", engine)
+    monkeypatch.setattr(tenant_readiness_bootstrap, "SessionLocal", TestSession)
+    monkeypatch.setattr(startup_orchestrator, "engine", engine)
     try:
         yield engine
     finally:
@@ -209,6 +219,67 @@ def test_repaired_legacy_sequence_reaches_head_then_readiness(
     evidence = free_mvp_maintenance.run_free_mvp_maintenance_if_enabled()
     assert evidence["passes_match"] is True
     assert tenant_readiness.check_tenant_integrity_readiness() is True
+
+
+def test_complete_render_restart_loop_is_idempotent(
+    production_sequence_database, monkeypatch
+):
+    engine = production_sequence_database
+    calls = []
+    clean = ReconciliationSummary(dry_run=True)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setattr(
+        tenant_readiness_bootstrap,
+        "reconcile_tenant_integrity",
+        lambda *_args, **_kwargs: calls.append("dry-run") or clean,
+    )
+
+    first = startup_orchestrator.run_startup_orchestrator(
+        Path("backend"), "free_mvp_embedded"
+    )
+    second = startup_orchestrator.run_startup_orchestrator(
+        Path("backend"), "free_mvp_embedded"
+    )
+    third = startup_orchestrator.run_startup_orchestrator(
+        Path("backend"), "free_mvp_embedded"
+    )
+
+    assert first.tenant_ready and second.tenant_ready and third.tenant_ready
+    assert _heads(engine) == (migration_startup.EXPECTED_REVISION,)
+    assert calls == ["dry-run", "dry-run"]
+    with engine.connect() as connection:
+        operation = connection.execute(
+            text("SELECT value FROM system_settings WHERE key = :key"),
+            {"key": tenant_readiness_bootstrap.OPERATION_KEY},
+        ).scalar_one()
+    assert '"status": "succeeded"' in operation
+    assert tenant_readiness.check_tenant_integrity_readiness() is True
+
+
+def test_concurrent_startup_uses_one_database_bootstrap(
+    production_sequence_database, monkeypatch
+):
+    calls = []
+    clean = ReconciliationSummary(dry_run=True)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setattr(
+        tenant_readiness_bootstrap,
+        "reconcile_tenant_integrity",
+        lambda *_args, **_kwargs: calls.append("dry-run") or clean,
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = list(
+            executor.map(
+                lambda _item: startup_orchestrator.run_startup_orchestrator(
+                    Path("backend"), "free_mvp_embedded"
+                ),
+                range(2),
+            )
+        )
+
+    assert all(outcome.tenant_ready for outcome in outcomes)
+    assert calls == ["dry-run", "dry-run"]
 
 
 def test_post_branch_failure_rolls_back_upgrade_but_not_prior_schema_repair(

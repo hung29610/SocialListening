@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core import startup_state
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.mention import Mention, AIAnalysis, SentimentScore
@@ -34,6 +35,9 @@ def _verify_ws_token(token: Optional[str]) -> bool:
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(None)):
     """WebSocket for real-time mention updates. Pass JWT as ?token="""
+    if not startup_state.tenant_workloads_allowed():
+        await websocket.close(code=1013, reason="application_not_ready")
+        return
     if not _verify_ws_token(token):
         await websocket.close(code=4001)
         return

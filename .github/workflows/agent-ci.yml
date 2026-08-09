@@ -178,6 +178,29 @@ jobs:
           }, f"mention PostgreSQL benchmark gate did not run exactly two passing tests: {totals}"
           print(f"mention PostgreSQL benchmark gate: {totals}")
           PY
+          TEST_DATABASE_URL="$TEST_DATABASE_URL" python -m pytest \
+            tests/test_migration_bootstrap_postgres.py \
+            tests/test_post_schema_repair_startup_postgres.py -q -rs \
+            --junitxml="${RUNNER_TEMP}/startup-state-postgres.xml"
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path("${{ runner.temp }}/startup-state-postgres.xml")
+          root = ET.parse(report).getroot()
+          suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+          totals = {
+              key: sum(int(suite.attrib.get(key, 0)) for suite in suites)
+              for key in ("tests", "failures", "errors", "skipped")
+          }
+          assert totals == {
+              "tests": 11,
+              "failures": 0,
+              "errors": 0,
+              "skipped": 0,
+          }, f"startup PostgreSQL matrix did not run exactly eleven passing tests: {totals}"
+          print(f"startup PostgreSQL matrix: {totals}")
+          PY
           DATABASE_URL="$TEST_DATABASE_URL" python -m app.scripts.audit_tenant_integrity
 
   frontend:
@@ -233,7 +256,7 @@ jobs:
       - name: Start isolated API
         env:
           DATABASE_URL: sqlite:///./cors-smoke.db
-          ENVIRONMENT: production
+          ENVIRONMENT: test
           FRONTEND_URL: https://social-listening-azure.vercel.app
           REDIS_ENABLED: "false"
           RUN_MIGRATIONS_ON_STARTUP: "false"

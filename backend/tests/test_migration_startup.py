@@ -433,11 +433,71 @@ def test_final_revision_mismatch_fails_closed(monkeypatch):
         migration_startup.run_verified_startup_migrations(Path("backend"))
 
 
-def test_bootstrap_failure_prevents_uvicorn_startup():
+def test_upgrade_failure_logs_bounded_revision_state(monkeypatch, caplog):
+    script = Mock()
+    script.get_heads.return_value = [migration_startup.EXPECTED_REVISION]
+    revisions = {
+        migration_startup.STRANDED_REVISION: _revision(
+            migration_startup.STRANDED_REVISION,
+            migration_startup.BRANCHPOINT_REVISION,
+        ),
+        migration_startup.MISSING_SIBLING_REVISION: _revision(
+            migration_startup.MISSING_SIBLING_REVISION,
+            migration_startup.BRANCHPOINT_REVISION,
+        ),
+        migration_startup.MERGE_REVISION: _revision(
+            migration_startup.MERGE_REVISION,
+            (
+                migration_startup.STRANDED_REVISION,
+                migration_startup.MISSING_SIBLING_REVISION,
+            ),
+        ),
+        migration_startup.LEGACY_ANCESTOR_REVISION: _revision(
+            migration_startup.LEGACY_ANCESTOR_REVISION,
+            migration_startup.LEGACY_PARENT_REVISION,
+        ),
+        migration_startup.LEGACY_CHILD_REVISION: _revision(
+            migration_startup.LEGACY_CHILD_REVISION,
+            migration_startup.LEGACY_ANCESTOR_REVISION,
+        ),
+    }
+    script.get_revision.side_effect = revisions.get
+    script.iterate_revisions.return_value = [
+        _revision(value, None)
+        for value in {
+            migration_startup.EXPECTED_REVISION,
+            migration_startup.MERGE_REVISION,
+            migration_startup.LEGACY_ANCESTOR_REVISION,
+            migration_startup.LEGACY_CHILD_REVISION,
+        }
+    ]
+    monkeypatch.setattr(migration_startup.ScriptDirectory, "from_config", lambda _c: script)
+    monkeypatch.setattr(migration_startup, "_config", lambda _p: Mock())
+    heads = iter(
+        [
+            (migration_startup.EXPECTED_REVISION,),
+            (migration_startup.STRANDED_REVISION,),
+        ]
+    )
+    monkeypatch.setattr(migration_startup, "_database_heads", lambda: next(heads))
+    monkeypatch.setattr(
+        migration_startup.command,
+        "upgrade",
+        Mock(side_effect=RuntimeError("sensitive-provider-detail")),
+    )
+    with caplog.at_level("CRITICAL"), pytest.raises(RuntimeError):
+        migration_startup.run_verified_startup_migrations(Path("backend"))
+    assert "reason=ALEMBIC_UPGRADE_FAILED" in caplog.text
+    assert migration_startup.STRANDED_REVISION in caplog.text
+    assert "sensitive-provider-detail" not in caplog.text
+
+
+def test_render_uses_fastapi_lifespan_as_the_single_startup_authority():
     render = (Path(__file__).parents[1] / "render.yaml").read_text(encoding="utf-8")
     command_line = next(line.strip() for line in render.splitlines() if "startCommand:" in line)
-    assert "python -m app.scripts.bootstrap_production_migrations && uvicorn" in command_line
-    assert "alembic upgrade head && uvicorn" not in command_line
+    assert "startCommand: uvicorn app.main:app" in command_line
+    assert "bootstrap_production_migrations" not in command_line
+    assert "alembic upgrade head" not in command_line
 
 
 def test_bootstrap_failure_emits_only_redacted_error_type(monkeypatch, caplog):
@@ -453,10 +513,10 @@ def test_bootstrap_failure_emits_only_redacted_error_type(monkeypatch, caplog):
     assert "credential-shaped-sensitive-detail" not in caplog.text
 
 
-def test_maintenance_runs_only_after_verified_migrations():
-    source = (Path(__file__).parents[1] / "app" / "main.py").read_text(encoding="utf-8")
+def test_readiness_bootstrap_runs_only_after_verified_migrations():
+    source = (Path(__file__).parents[1] / "app" / "core" / "startup_orchestrator.py").read_text(encoding="utf-8")
     assert source.index("run_verified_startup_migrations(backend_dir)") < source.index(
-        "run_free_mvp_maintenance_if_enabled()"
+        "establish_tenant_readiness()"
     )
 
 
@@ -613,9 +673,10 @@ def test_differing_dry_runs_never_stage_ready_ledger(monkeypatch):
     db.add.assert_not_called()
 
 
-def test_startup_order_is_migration_then_maintenance_then_readiness():
-    source = (Path(__file__).parents[1] / "app" / "main.py").read_text(encoding="utf-8")
+def test_startup_order_is_migration_then_deterministic_readiness():
+    source = (Path(__file__).parents[1] / "app" / "core" / "startup_orchestrator.py").read_text(encoding="utf-8")
     migration = source.index("run_verified_startup_migrations(backend_dir)")
-    maintenance = source.index("run_free_mvp_maintenance_if_enabled()")
-    readiness = source.index("enforce_tenant_integrity_readiness()")
-    assert migration < maintenance < readiness
+    readiness = source.index("establish_tenant_readiness()")
+    assert migration < readiness
+    main_source = (Path(__file__).parents[1] / "app" / "main.py").read_text(encoding="utf-8")
+    assert "run_free_mvp_maintenance_if_enabled()" not in main_source
