@@ -63,6 +63,11 @@ def _install_script(monkeypatch, script=None):
         "from_config",
         Mock(return_value=script),
     )
+    monkeypatch.setattr(
+        migration_startup,
+        "_ensure_alembic_version_capacity",
+        Mock(return_value="verified"),
+    )
     return script
 
 
@@ -313,9 +318,9 @@ def test_unsupported_states_emit_bounded_revision_diagnostic(
     script = _install_script(monkeypatch)
     script.iterate_revisions.side_effect = lambda upper, _lower: (
         [
-            _revision(migration_startup.MERGE_REVISION, "parent"),
-            _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
-            _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
+                _revision(migration_startup.MERGE_REVISION, "parent"),
+                _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
+                _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
         ]
         if upper == migration_startup.EXPECTED_REVISION
         else [_revision(migration_startup.MERGE_REVISION, "parent")]
@@ -385,9 +390,9 @@ def test_mergepoint_already_present_never_triggers_migration(monkeypatch):
     script = _install_script(monkeypatch)
     script.iterate_revisions.side_effect = lambda upper, _lower: (
         [
-            _revision(migration_startup.MERGE_REVISION, "parent"),
-            _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
-            _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
+                _revision(migration_startup.MERGE_REVISION, "parent"),
+                _revision(migration_startup.LEGACY_CHILD_REVISION, "parent"),
+                _revision(migration_startup.LEGACY_ANCESTOR_REVISION, "parent"),
         ]
         if upper == migration_startup.EXPECTED_REVISION
         else [_revision(migration_startup.MERGE_REVISION, "parent")]
