@@ -492,12 +492,57 @@ def test_upgrade_failure_logs_bounded_revision_state(monkeypatch, caplog):
     assert "sensitive-provider-detail" not in caplog.text
 
 
+def test_pending_legacy_schema_diagnostic_is_presence_only(monkeypatch, caplog):
+    class InspectorStub:
+        def get_table_names(self):
+            return ["ai_model_config", "ai_usage_logs"]
+
+        def get_columns(self, table_name):
+            assert table_name == "ai_model_config"
+            return [{"name": "id"}, {"name": "system_prompt"}]
+
+        def get_indexes(self, table_name):
+            assert table_name == "ai_usage_logs"
+            return [
+                {"name": "ix_ai_usage_logs_id"},
+                {"name": "ix_ai_usage_logs_organization_id"},
+            ]
+
+    class ConnectionStub:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(migration_startup.engine, "connect", lambda: ConnectionStub())
+    monkeypatch.setattr(migration_startup, "inspect", lambda _connection: InspectorStub())
+
+    with caplog.at_level("WARNING"):
+        migration_startup._log_pending_legacy_schema_state()
+
+    assert "ALEMBIC_PENDING_SCHEMA_STATE base=5fe3f0fbfb82" in caplog.text
+    assert "ai_usage_logs_present=true" in caplog.text
+    assert "system_prompt_present=true" in caplog.text
+    assert "usage_index_id_present=true" in caplog.text
+    assert "usage_index_model_config_present=false" in caplog.text
+    assert "DATABASE_URL" not in caplog.text
+    assert "SELECT " not in caplog.text
+
+
 def test_render_uses_fastapi_lifespan_as_the_single_startup_authority():
     render = (Path(__file__).parents[1] / "render.yaml").read_text(encoding="utf-8")
     command_line = next(line.strip() for line in render.splitlines() if "startCommand:" in line)
     assert "startCommand: uvicorn app.main:app" in command_line
     assert "bootstrap_production_migrations" not in command_line
     assert "alembic upgrade head" not in command_line
+
+
+def test_alembic_preserves_existing_startup_loggers():
+    env_path = Path(__file__).resolve().parents[1] / "alembic" / "env.py"
+    source = env_path.read_text(encoding="utf-8")
+
+    assert "fileConfig(config.config_file_name, disable_existing_loggers=False)" in source
 
 
 def test_bootstrap_failure_emits_only_redacted_error_type(monkeypatch, caplog):

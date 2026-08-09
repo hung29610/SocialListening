@@ -21,7 +21,10 @@ if settings.DATABASE_URL:
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Alembic runs inside Uvicorn during production startup. Preserve the
+    # application's loggers so a migration exception cannot end lifespan with
+    # status 3 before the orchestrator emits its bounded failure reason.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
