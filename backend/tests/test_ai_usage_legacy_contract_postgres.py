@@ -122,10 +122,12 @@ def legacy_database(tmp_path, monkeypatch):
         / "c1a2b3d4e5f6_add_tenant_integrity_staging.py",
         versions / "c1a2b3d4e5f6_add_tenant_integrity_staging.py",
     )
-    _write_revision(
-        versions / "head.py",
-        migration_startup.EXPECTED_REVISION,
-        "c1a2b3d4e5f6",
+    shutil.copy2(
+        backend_dir
+        / "alembic"
+        / "versions"
+        / "d72f8a913b21_add_mention_feed_cursor_indexes.py",
+        versions / "d72f8a913b21_add_mention_feed_cursor_indexes.py",
     )
     config = Config()
     config.set_main_option("script_location", str(script_dir))
@@ -176,6 +178,8 @@ def _create_proven_legacy_state(engine):
         connection.execute(
             text(
                 "CREATE TABLE mentions (id SERIAL PRIMARY KEY, "
+                "organization_id INTEGER NULL, project_id INTEGER NULL, "
+                "keyword_id INTEGER NULL, collected_at TIMESTAMPTZ NULL, "
                 "verification_status VARCHAR(50) NULL, "
                 "verification_error TEXT NULL, verified_at TIMESTAMPTZ NULL, "
                 "original_url TEXT NULL, canonical_url TEXT NULL)"
