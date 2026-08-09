@@ -8,6 +8,7 @@ read-only tenant reconciliation passes.
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -96,6 +97,38 @@ def _finish_operation(db, operation_id: str, status: str, evidence: dict) -> Non
     db.commit()
 
 
+def _require_ready_summary(summary: dict) -> None:
+    """Accept only a complete, mutation-free tenant audit with no work left."""
+    if not summary["dry_run"] or summary["repaired"] != 0:
+        raise FreeMvpMaintenanceError("tenant dry-run summary is not mutation-free")
+    if _CONFLICT_REASONS.intersection(summary["reasons"]):
+        raise FreeMvpMaintenanceError("tenant ownership conflicts were detected")
+    if summary["repairable"] != 0:
+        raise FreeMvpMaintenanceError("deterministic tenant repairs remain")
+    if summary["quarantined"] != 0 or summary["reasons"]:
+        raise FreeMvpMaintenanceError("unresolved tenant rows remain")
+    if summary["inspected"] != summary["already_consistent"]:
+        raise FreeMvpMaintenanceError("tenant dry-run aggregate accounting is inconsistent")
+
+
+def _record_ready_audit_state(db, summary: dict) -> None:
+    """Stage the bounded readiness ledger after two verified dry-run passes."""
+    from app.models.tenant_integrity import TenantIntegrityAuditState
+
+    state = db.get(TenantIntegrityAuditState, 1) or TenantIntegrityAuditState(id=1)
+    state.status = "ready"
+    state.unresolved_count = 0
+    state.conflict_count = 0
+    state.details = {
+        "source": "free_mvp_maintenance",
+        "dry_run_passes": 2,
+        "passes_match": True,
+        "summary": summary,
+    }
+    state.last_run_at = datetime.now(timezone.utc)
+    db.add(state)
+
+
 def run_free_mvp_maintenance_if_enabled() -> dict | None:
     """Run the fixed one-time dry-run contract, or no-op when disabled."""
     if not _enabled():
@@ -117,10 +150,13 @@ def run_free_mvp_maintenance_if_enabled() -> dict | None:
         db.rollback()
         if first != second:
             raise FreeMvpMaintenanceError("tenant dry-run aggregate summaries differ")
-        if _CONFLICT_REASONS.intersection(first["reasons"]):
-            raise FreeMvpMaintenanceError("tenant ownership conflicts were detected")
+        _require_ready_summary(first)
 
         evidence = {"revision": revision, "summary": first, "passes_match": True}
+        # The readiness row and completed operation evidence commit together.
+        # Tenant rows remain untouched because both reconciliation passes above
+        # are dry-run-only and any remaining repair/unresolved count rejects.
+        _record_ready_audit_state(db, first)
         _finish_operation(db, operation_id, "completed", evidence)
         logger.info(
             "FREE_MVP_MAINTENANCE_COMPLETED operation_id=%s evidence=%s",

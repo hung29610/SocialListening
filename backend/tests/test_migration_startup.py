@@ -7,6 +7,7 @@ from sqlalchemy import DateTime, String, Text
 from sqlalchemy.sql.sqltypes import VARCHAR
 
 from app.core import free_mvp_maintenance, migration_startup
+from app.services.tenant_reconciliation import ReconciliationSummary
 from app.scripts import bootstrap_production_migrations
 
 
@@ -473,3 +474,148 @@ def test_maintenance_contract_has_no_apply_path_and_keeps_revision_guard():
     assert "--apply" not in source
     assert "database revision does not match the approved revision" in source
     assert free_mvp_maintenance.EXPECTED_REVISION == migration_startup.EXPECTED_REVISION
+
+
+def _ready_summary(**overrides):
+    values = {
+        "dry_run": True,
+        "inspected": 4,
+        "already_consistent": 4,
+        "repairable": 0,
+        "repaired": 0,
+        "quarantined": 0,
+        "reasons": {},
+    }
+    values.update(overrides)
+    return ReconciliationSummary(**values)
+
+
+def test_maintenance_flag_absent_never_opens_a_database_session(monkeypatch):
+    session_factory = Mock()
+    monkeypatch.delenv(free_mvp_maintenance.ENABLED_ENV, raising=False)
+    monkeypatch.setattr(free_mvp_maintenance, "SessionLocal", session_factory)
+
+    assert free_mvp_maintenance.run_free_mvp_maintenance_if_enabled() is None
+    session_factory.assert_not_called()
+
+
+def test_two_matching_clean_dry_runs_stage_ready_ledger_before_completion(monkeypatch):
+    db = MagicMock()
+    claim_result = Mock()
+    claim_result.first.return_value = (1,)
+    db.execute.return_value = claim_result
+    db.get.return_value = None
+    summaries = iter([_ready_summary(), _ready_summary()])
+    monkeypatch.setenv(free_mvp_maintenance.ENABLED_ENV, "true")
+    monkeypatch.setenv(free_mvp_maintenance.OPERATION_ID_ENV, "unit-ready-01")
+    monkeypatch.setattr(free_mvp_maintenance, "SessionLocal", lambda: db)
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "_current_revision",
+        lambda: migration_startup.EXPECTED_REVISION,
+    )
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "reconcile_tenant_integrity",
+        lambda *_args, **_kwargs: next(summaries),
+    )
+
+    result = free_mvp_maintenance.run_free_mvp_maintenance_if_enabled()
+
+    assert result["passes_match"] is True
+    state = db.add.call_args.args[0]
+    assert state.status == "ready"
+    assert state.unresolved_count == 0
+    assert state.conflict_count == 0
+    assert state.details["dry_run_passes"] == 2
+    assert state.details["passes_match"] is True
+    assert db.commit.call_count == 2
+
+
+@pytest.mark.parametrize(
+    ("summary", "message"),
+    [
+        (_ready_summary(repairable=1, already_consistent=3), "repairs remain"),
+        (
+            _ready_summary(
+                quarantined=1,
+                already_consistent=3,
+                reasons={"ORPHAN_PARENT": 1},
+            ),
+            "unresolved tenant rows remain",
+        ),
+        (
+            _ready_summary(
+                quarantined=1,
+                already_consistent=3,
+                reasons={"SCOPE_CONFLICT": 1},
+            ),
+            "ownership conflicts",
+        ),
+    ],
+)
+def test_nonready_dry_runs_never_stage_ready_ledger(monkeypatch, summary, message):
+    db = MagicMock()
+    claim_result = Mock()
+    claim_result.first.return_value = (1,)
+    db.execute.return_value = claim_result
+    monkeypatch.setenv(free_mvp_maintenance.ENABLED_ENV, "true")
+    monkeypatch.setenv(free_mvp_maintenance.OPERATION_ID_ENV, "unit-not-ready-01")
+    monkeypatch.setattr(free_mvp_maintenance, "SessionLocal", lambda: db)
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "_current_revision",
+        lambda: migration_startup.EXPECTED_REVISION,
+    )
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "reconcile_tenant_integrity",
+        lambda *_args, **_kwargs: summary,
+    )
+
+    with pytest.raises(free_mvp_maintenance.FreeMvpMaintenanceError, match=message):
+        free_mvp_maintenance.run_free_mvp_maintenance_if_enabled()
+
+    db.add.assert_not_called()
+
+
+def test_differing_dry_runs_never_stage_ready_ledger(monkeypatch):
+    db = MagicMock()
+    claim_result = Mock()
+    claim_result.first.return_value = (1,)
+    db.execute.return_value = claim_result
+    summaries = iter(
+        [
+            _ready_summary(),
+            _ready_summary(inspected=5, already_consistent=5),
+        ]
+    )
+    monkeypatch.setenv(free_mvp_maintenance.ENABLED_ENV, "true")
+    monkeypatch.setenv(free_mvp_maintenance.OPERATION_ID_ENV, "unit-differing-01")
+    monkeypatch.setattr(free_mvp_maintenance, "SessionLocal", lambda: db)
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "_current_revision",
+        lambda: migration_startup.EXPECTED_REVISION,
+    )
+    monkeypatch.setattr(
+        free_mvp_maintenance,
+        "reconcile_tenant_integrity",
+        lambda *_args, **_kwargs: next(summaries),
+    )
+
+    with pytest.raises(
+        free_mvp_maintenance.FreeMvpMaintenanceError,
+        match="aggregate summaries differ",
+    ):
+        free_mvp_maintenance.run_free_mvp_maintenance_if_enabled()
+
+    db.add.assert_not_called()
+
+
+def test_startup_order_is_migration_then_maintenance_then_readiness():
+    source = (Path(__file__).parents[1] / "app" / "main.py").read_text(encoding="utf-8")
+    migration = source.index("run_verified_startup_migrations(backend_dir)")
+    maintenance = source.index("run_free_mvp_maintenance_if_enabled()")
+    readiness = source.index("enforce_tenant_integrity_readiness()")
+    assert migration < maintenance < readiness
