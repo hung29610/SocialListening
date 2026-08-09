@@ -42,6 +42,10 @@ def legacy_database(monkeypatch):
     config.set_main_option("script_location", str(backend_dir / "alembic"))
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     test_engine = create_engine(database_url)
+    # The repository env.py deliberately prefers application settings over the
+    # Config URL. Point that same settings object at this isolated database so
+    # this proof can never migrate the shared CI fixture database.
+    monkeypatch.setattr(migration_startup.settings, "DATABASE_URL", database_url)
     monkeypatch.setattr(migration_startup, "engine", test_engine)
     monkeypatch.setattr(migration_startup, "_config", lambda _backend_dir: config)
 
