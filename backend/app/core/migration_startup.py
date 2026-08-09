@@ -654,3 +654,21 @@ def run_verified_startup_migrations(backend_dir: Path) -> str:
 
     logger.info("ALEMBIC_HEAD_VERIFIED revision=%s", EXPECTED_REVISION)
     return EXPECTED_REVISION
+
+
+def verify_exact_database_head(backend_dir: Path) -> str | None:
+    """Return the exact head without entering Alembic's upgrade path.
+
+    A superseded Render generation can still hold the migration singleton while
+    the database transaction it ran has already committed the repository head.
+    This read-only preflight lets the replacement generation prove that there is
+    no migration work left, without waiting on that stale process lock.
+    """
+    config = _config(backend_dir)
+    script = ScriptDirectory.from_config(config)
+    repository_heads = _verify_repository_contract(script)
+    database_heads = _database_heads()
+    if database_heads != repository_heads:
+        return None
+    logger.info("ALEMBIC_HEAD_VERIFIED revision=%s path=read_only_preflight", EXPECTED_REVISION)
+    return EXPECTED_REVISION
