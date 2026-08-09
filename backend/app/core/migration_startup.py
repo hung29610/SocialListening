@@ -445,6 +445,39 @@ def _log_head_diagnostic(
     )
 
 
+def _log_pending_legacy_schema_state() -> None:
+    """Log bounded object presence for the two revisions after legacy head."""
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        tables = set(inspector.get_table_names())
+        usage_table_present = "ai_usage_logs" in tables
+        model_table_present = "ai_model_config" in tables
+        model_columns = (
+            {column["name"] for column in inspector.get_columns("ai_model_config")}
+            if model_table_present
+            else set()
+        )
+        usage_indexes = (
+            {index["name"] for index in inspector.get_indexes("ai_usage_logs")}
+            if usage_table_present
+            else set()
+        )
+
+    logger.warning(
+        "ALEMBIC_PENDING_SCHEMA_STATE base=%s "
+        "ai_usage_logs_present=%s system_prompt_present=%s "
+        "usage_index_id_present=%s usage_index_model_config_present=%s "
+        "usage_index_organization_present=%s usage_index_user_present=%s",
+        LEGACY_ANCESTOR_REVISION,
+        str(usage_table_present).lower(),
+        str("system_prompt" in model_columns).lower(),
+        str("ix_ai_usage_logs_id" in usage_indexes).lower(),
+        str("ix_ai_usage_logs_model_config_id" in usage_indexes).lower(),
+        str("ix_ai_usage_logs_organization_id" in usage_indexes).lower(),
+        str("ix_ai_usage_logs_user_id" in usage_indexes).lower(),
+    )
+
+
 def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str, ...]:
     """Prepare only exact, repository-proven historical states."""
     repository_heads = _verify_repository_contract(script)
@@ -455,6 +488,7 @@ def _prepare_known_lineage(config: Config, script: ScriptDirectory) -> tuple[str
         return repository_heads
     if database_heads == (LEGACY_ANCESTOR_REVISION,):
         schema_result = _verify_or_repair_legacy_ancestor_schema(database_heads)
+        _log_pending_legacy_schema_state()
         logger.warning(
             "ALEMBIC_BOOTSTRAP_LEGACY_ANCESTOR_VERIFIED revision=%s child=%s "
             "schema_result=%s",
