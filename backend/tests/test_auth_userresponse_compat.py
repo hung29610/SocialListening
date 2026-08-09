@@ -34,6 +34,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base, get_db
+from app.core import startup_state
 from app.core.security import create_access_token, get_password_hash
 from app.models.organization import Organization, OrganizationMember
 from app.models.user import User
@@ -177,3 +178,39 @@ def test_invalid_and_expired_token_remain_401(seeded_user):
     expired_resp = client.get("/api/auth/me", headers=_auth_headers(expired))
     assert expired_resp.status_code == 401
     assert expired_resp.json()["detail"] == "Could not validate credentials"
+
+
+def test_blocked_tenant_readiness_preserves_login_and_minimal_identity(seeded_user):
+    original = startup_state.snapshot()
+    try:
+        startup_state.reset_for_startup("free_mvp_embedded")
+        startup_state.set_migration_ready("d72f8a913b21")
+        startup_state.set_tenant_readiness(False, "OWNERSHIP_CONFLICT")
+
+        login = _login(seeded_user["email"], "TempPass123!")
+        assert login.status_code == 200, login.text
+        token = login.json()["access_token"]
+        headers = _auth_headers(token)
+
+        identity = client.get("/api/auth/me", headers=headers)
+        assert identity.status_code == 200, identity.text
+        assert set(identity.json()) == {
+            "id", "email", "full_name", "is_active", "is_superuser",
+            "role", "created_at", "updated_at",
+        }
+
+        for path in (
+            "/api/auth/me/context",
+            "/api/auth/me/preferences",
+            "/api/mentions",
+        ):
+            blocked = client.get(path, headers=headers)
+            assert blocked.status_code == 503, (path, blocked.text)
+            assert blocked.json()["detail"]["code"] == "APPLICATION_NOT_READY"
+
+        invalid = client.get("/api/auth/me", headers=_auth_headers("invalid"))
+        assert invalid.status_code == 401
+    finally:
+        with startup_state._lock:
+            startup_state._state.clear()
+            startup_state._state.update(original)

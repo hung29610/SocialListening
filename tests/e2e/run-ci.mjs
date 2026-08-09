@@ -22,7 +22,7 @@ for (const suite of data.suites || []) visit(suite);
 const tests = specs.flatMap(spec => spec.tests || []);
 const skipped = tests.filter(test => test.status === 'skipped' || test.results?.length === 0 || test.results?.at(-1)?.status === 'skipped');
 const failed = tests.filter(test => test.status !== 'expected' || test.results?.at(-1)?.status !== 'passed');
-if (result.status !== 0 || tests.length !== 9 || skipped.length !== 0 || failed.length !== 0) {
+if (result.status !== 0 || tests.length !== 10 || skipped.length !== 0 || failed.length !== 0) {
   console.error(`Authenticated E2E gate failed: child=${result.status} tests=${tests.length} skipped=${skipped.length} failed=${failed.length}`);
   process.exit(1);
 }

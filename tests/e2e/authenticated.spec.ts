@@ -225,4 +225,75 @@ test.describe.serial('authenticated MVP contract', () => {
     const ownerDownload = await request.get(`${API}${reads[6]}`, { headers: { Authorization: `Bearer ${tokenA}` } });
     expect([200, 400, 404], 'Tenant A legacy export download transition').toContain(ownerDownload.status());
   });
+
+  test('10. readiness degradation preserves the session and recovers without login', async ({ browser }) => {
+    const page = await authedPage(browser, tokenA, userA, PROJECT_A);
+    let loginNavigations = 0;
+    page.on('framenavigated', frame => {
+      if (frame === page.mainFrame() && new URL(frame.url()).pathname === '/login') {
+        loginNavigations += 1;
+      }
+    });
+
+    await page.route(`${API}/api/auth/me`, route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: { code: 'APPLICATION_NOT_READY' } }),
+    }));
+    await page.route(`${API}/readyz`, route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ reason_code: 'TENANT_READINESS_BLOCKED' }),
+    }));
+
+    await page.goto('/dashboard');
+    await expect(page.getByTestId('authenticated-not-ready')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).toBe(tokenA);
+    expect(loginNavigations).toBe(0);
+
+    await page.reload();
+    await expect(page.getByTestId('authenticated-not-ready')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).toBe(tokenA);
+    expect(loginNavigations).toBe(0);
+
+    await page.unroute(`${API}/api/auth/me`);
+    await page.route(`${API}/api/auth/me/context`, route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: { code: 'APPLICATION_NOT_READY' } }),
+    }));
+    await page.reload();
+    await expect(page.getByTestId('authenticated-not-ready')).toBeVisible();
+
+    await page.route(`${API}/api/auth/me/preferences`, route => route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: { code: 'APPLICATION_NOT_READY' } }),
+    }));
+    const preferencesStatus = await page.evaluate(async api => {
+      const token = localStorage.getItem('access_token');
+      return (await fetch(`${api}/api/auth/me/preferences`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })).status;
+    }, API);
+    expect(preferencesStatus).toBe(503);
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).toBe(tokenA);
+
+    await page.unroute(`${API}/api/auth/me/context`);
+    await page.getByTestId('readiness-retry').click();
+    await expect(page.getByTestId('authenticated-not-ready')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+    expect(loginNavigations).toBe(0);
+
+    await page.route(`${API}/api/auth/me`, route => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Could not validate credentials' }),
+    }));
+    await page.reload();
+    await expect(page).toHaveURL(/\/login\?expired=1/);
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).toBeNull();
+    expect(loginNavigations).toBe(1);
+    await page.context().close();
+  });
 });

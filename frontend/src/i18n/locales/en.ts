@@ -1,4 +1,11 @@
 export const en = {
+  readiness: {
+    title: 'Service is preparing',
+    description: 'Your session is still active, but tenant workloads are temporarily unavailable. We will check again automatically.',
+    sessionPreserved: 'You do not need to sign in again.',
+    reason: 'Status',
+    retry: 'Check again',
+  },
   dashboard: {
     title: "Dashboard",
     subtitle: "Overview of media monitoring, mentions, and risk alerts.",

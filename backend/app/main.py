@@ -232,6 +232,11 @@ async def security_controls(request: Request, call_next):
         "/docs",
         "/openapi.json",
         "/api/auth/login",
+        # Identity/session validation is safe independently of tenant-owned
+        # business rows. Keep this exact endpoint available while tenant
+        # workloads remain fail-closed; tenant context and preferences are not
+        # exempt.
+        "/api/auth/me",
         "/api/system/startup-readiness",
     }
     if not readiness_exempt and not startup_state.tenant_workloads_allowed():

@@ -95,6 +95,11 @@ export function isPermissionError(error: any): boolean {
   return error?.response?.status === 403;
 }
 
+/** A readiness failure never proves that authentication is invalid. */
+export function isServiceNotReady(error: any): boolean {
+  return error?.response?.status === 503;
+}
+
 /** Extract readable error message from axios error, including HTTP status. */
 export function getErrorMessage(error: any, fallback = 'Lỗi không xác định'): string {
   const status = error?.response?.status;
@@ -108,7 +113,7 @@ export function getErrorMessage(error: any, fallback = 'Lỗi không xác địn
   }
 
   // ── Specific HTTP status codes ──
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     return 'Phiên đăng nhập chưa hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.';
   }
 
