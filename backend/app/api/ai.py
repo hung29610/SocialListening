@@ -10,6 +10,7 @@ from app.models.mention import Mention
 from app.models.incident import Incident
 from app.services.ai_service import generate_executive_brief as ai_generate_executive_brief
 from app.services.sentiment_client import analyze_sentiment
+from app.core.tenant import apply_tenant_filter
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -46,7 +47,10 @@ def generate_executive_brief_api(
     content_to_analyze = ""
     
     if incident_id:
-        incident = db.execute(select(Incident).where(Incident.id == incident_id)).scalar_one_or_none()
+        incident = db.execute(select(Incident).where(
+            Incident.id == incident_id,
+            Incident.user_id == current_user.id,
+        )).scalar_one_or_none()
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
             
@@ -55,12 +59,20 @@ def generate_executive_brief_api(
         content_to_analyze += f"Trạng thái: {incident.status}\n\n"
         
         if incident.mention_id:
-            mention = db.execute(select(Mention).where(Mention.id == incident.mention_id)).scalar_one_or_none()
+            mention = db.execute(
+                apply_tenant_filter(select(Mention), Mention, current_user).where(
+                    Mention.id == incident.mention_id
+                )
+            ).scalar_one_or_none()
             if mention:
                 content_to_analyze += f"Nội dung gốc: {mention.content}\n"
                 
     elif mention_ids:
-        mentions = db.execute(select(Mention).where(Mention.id.in_(mention_ids))).scalars().all()
+        mentions = db.execute(
+            apply_tenant_filter(select(Mention), Mention, current_user).where(
+                Mention.id.in_(mention_ids)
+            )
+        ).scalars().all()
         if not mentions:
             raise HTTPException(status_code=404, detail="No mentions found")
             

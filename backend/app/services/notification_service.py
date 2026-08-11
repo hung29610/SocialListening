@@ -349,7 +349,8 @@ def notify_high_risk_mention(db: Session, mention_id: int, analysis: Dict):
         select(Mention).where(Mention.id == mention_id)
     ).scalar_one_or_none()
     
-    if not mention:
+    from app.core.ownership import has_complete_direct_scope
+    if not mention or not has_complete_direct_scope(mention):
         return
     
     # Email notification
@@ -434,7 +435,8 @@ def notify_alert_created(db: Session, alert_id: int):
         select(Alert).where(Alert.id == alert_id)
     ).scalar_one_or_none()
     
-    if not alert:
+    from app.core.ownership import has_complete_direct_scope
+    if not alert or not has_complete_direct_scope(alert):
         return
     
     # Email notification

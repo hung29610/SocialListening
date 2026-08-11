@@ -96,6 +96,31 @@ def test_quarantine_only_is_ready_without_mutation(monkeypatch):
     assert result.ownership_conflict == 0
 
 
+def test_quarantine_safe_ambiguity_is_ready_but_unsafe_conflict_is_not():
+    safe = _summary(
+        inspected=2,
+        already_consistent=1,
+        quarantined=1,
+        reasons={"MULTIPLE_ORGANIZATION_CANDIDATES": 1},
+        quarantined_legacy=1,
+    )
+    unsafe = _summary(
+        inspected=2,
+        already_consistent=1,
+        quarantined=1,
+        reasons={"MULTIPLE_ORGANIZATION_CANDIDATES": 1},
+        ownership_conflicts=1,
+    )
+
+    safe_result = bootstrap._classify(bootstrap._normalize(safe))
+    unsafe_result = bootstrap._classify(bootstrap._normalize(unsafe))
+
+    assert safe_result.ready is True
+    assert safe_result.reason_code == "READY_WITH_QUARANTINE"
+    assert unsafe_result.ready is False
+    assert unsafe_result.reason_code == "OWNERSHIP_CONFLICT"
+
+
 @pytest.mark.parametrize(
     ("summary", "reason"),
     [
@@ -245,12 +270,13 @@ def test_readiness_claim_is_single_atomic_insert():
     assert db.commit.call_count == 0
 
 
-def test_readiness_v3_contract_does_not_reuse_retired_operations():
-    assert bootstrap.OPERATION_VERSION == "v3"
-    assert bootstrap.OPERATION_KEY.endswith(":v3")
+def test_readiness_v4_contract_does_not_reuse_retired_operations():
+    assert bootstrap.OPERATION_VERSION == "v4"
+    assert bootstrap.OPERATION_KEY.endswith(":v4")
     assert bootstrap.RETIRED_OPERATION_KEYS == (
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v1",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v2",
+        f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v3",
     )
     assert bootstrap.OPERATION_KEY not in bootstrap.RETIRED_OPERATION_KEYS
 
@@ -436,6 +462,14 @@ def test_quarantine_isolation_contract_removes_null_tenant_fallbacks():
     pipeline = (root / "tasks" / "scan_pipeline.py").read_text(encoding="utf-8")
     scheduler = (root / "services" / "scheduler_service.py").read_text(encoding="utf-8")
     realtime = (root / "api" / "realtime.py").read_text(encoding="utf-8")
+    tenant = (root / "core" / "tenant.py").read_text(encoding="utf-8")
+    workers = (root / "workers" / "tasks.py").read_text(encoding="utf-8")
+    reports = (root / "services" / "report_service.py").read_text(encoding="utf-8")
+    alerts = (root / "api" / "alerts.py").read_text(encoding="utf-8")
+    dashboard = (root / "api" / "dashboard.py").read_text(encoding="utf-8")
+    report_api = (root / "api" / "reports.py").read_text(encoding="utf-8")
+    exports = (root / "services" / "export_service.py").read_text(encoding="utf-8")
+    monitor = (root / "api" / "monitor.py").read_text(encoding="utf-8")
     assert "model.organization_id.is_(None)" not in assistant
     assert "model.user_id.is_(None)" not in assistant
     assert '"status": "tenant_scope_blocked"' in pipeline
@@ -446,3 +480,13 @@ def test_quarantine_isolation_contract_removes_null_tenant_fallbacks():
     assert "ScanSchedule.user_id.is_not(None)" in scheduler
     assert "startup_state.tenant_workloads_allowed()" in realtime
     assert "application_not_ready" in realtime
+    assert "direct_scope_predicates(model)" in tenant
+    assert workers.count("has_complete_direct_scope") >= 4
+    assert "Mention.organization_id == report.organization_id" in reports
+    assert "Alert.organization_id == report.organization_id" in reports
+    assert "Alert.organization_id == mention_scope.organization_id" in alerts
+    assert "apply_tenant_filter" in dashboard
+    assert "apply_tenant_filter" in report_api
+    assert "apply_tenant_filter(select(Mention), Mention, current_user)" in exports
+    assert "apply_tenant_filter(select(Alert), Alert, current_user)" in exports
+    assert monitor.count("apply_tenant_filter(select(Mention), Mention, current_user)") >= 2

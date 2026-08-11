@@ -103,12 +103,22 @@ def create_alert(
             detail=f"Má»©c Ä‘á»™ khÃ´ng há»£p lá»‡. Cho phÃ©p: {allowed_severities}"
         )
 
-    # Prevent duplicate active alert for the same mention
+    from app.core.ownership import resolve_actor_scope, resolve_mention_scope, stamp_scope
+    actor_scope = resolve_actor_scope(db, current_user)
+    mention_scope = resolve_mention_scope(
+        db, body.mention_id, expected_organization_id=actor_scope.organization_id
+    )
+
+    # Resolve ownership before checking duplicates so a caller cannot probe or
+    # adopt an ambiguous legacy mention by identifier.
     if body.mention_id:
         existing = db.execute(
             select(Alert).where(
                 and_(
                     Alert.mention_id == body.mention_id,
+                    Alert.organization_id == mention_scope.organization_id,
+                    Alert.user_id == mention_scope.user_id,
+                    Alert.project_id == mention_scope.project_id,
                     Alert.status.in_([AlertStatus.NEW, AlertStatus.ACKNOWLEDGED, AlertStatus.ASSIGNED])
                 )
             )
@@ -120,11 +130,6 @@ def create_alert(
                 "message": "Cảnh báo cho mention này đã tồn tại"
             }
 
-    from app.core.ownership import resolve_actor_scope, resolve_mention_scope, stamp_scope
-    actor_scope = resolve_actor_scope(db, current_user)
-    mention_scope = resolve_mention_scope(
-        db, body.mention_id, expected_organization_id=actor_scope.organization_id
-    )
     alert = Alert(
         mention_id=body.mention_id,
         title=body.title,

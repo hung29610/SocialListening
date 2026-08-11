@@ -64,6 +64,9 @@ class ReportService:
     ) -> Dict[str, Any]:
         """Generate report based on type"""
         try:
+            from app.core.ownership import has_complete_direct_scope
+            if not has_complete_direct_scope(report):
+                return {"success": False, "error": "Report has unresolved tenant ownership"}
             # Gather data
             data = await self._gather_report_data(db, report)
             
@@ -103,7 +106,10 @@ class ReportService:
         mention_query = select(Mention).where(
             and_(
                 Mention.collected_at >= start_date,
-                Mention.collected_at <= end_date
+                Mention.collected_at <= end_date,
+                Mention.organization_id == report.organization_id,
+                Mention.project_id == report.project_id,
+                Mention.user_id.is_not(None),
             )
         )
         
@@ -122,7 +128,10 @@ class ReportService:
         alert_query = select(Alert).where(
             and_(
                 Alert.created_at >= start_date,
-                Alert.created_at <= end_date
+                Alert.created_at <= end_date,
+                Alert.organization_id == report.organization_id,
+                Alert.project_id == report.project_id,
+                Alert.user_id.is_not(None),
             )
         )
         result = await db.execute(alert_query)
@@ -203,7 +212,11 @@ class ReportService:
         top_source_ids = sorted(source_mention_counts.items(), key=lambda x: x[1], reverse=True)[:10]
         top_sources = []
         for source_id, count in top_source_ids:
-            result = await db.execute(select(Source).where(Source.id == source_id))
+            result = await db.execute(select(Source).where(
+                Source.id == source_id,
+                Source.organization_id == report.organization_id,
+                Source.user_id.is_not(None),
+            ))
             source = result.scalar_one_or_none()
             if source:
                 top_sources.append({

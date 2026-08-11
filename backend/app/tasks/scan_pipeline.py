@@ -22,6 +22,7 @@ from app.models.alert import Alert, AlertSeverity, AlertStatus
 from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.models.mention import AIAnalysis, Mention, SentimentScore
 from app.models.report import Report, ReportStatus, ReportType
+from app.core.ownership import direct_scope_predicates
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -211,7 +212,9 @@ def _load_analysis_work(job_id: int) -> tuple[list[Mention], set[int]]:
     db = SessionLocal()
     try:
         mentions = db.execute(
-            select(Mention).where(Mention.job_id == job_id).order_by(Mention.id)
+            select(Mention)
+            .where(Mention.job_id == job_id, *direct_scope_predicates(Mention))
+            .order_by(Mention.id)
         ).scalars().all()
         mention_ids = [mention.id for mention in mentions]
         analyzed_ids = set()
@@ -303,7 +306,9 @@ def _finalize_pipeline(
             raise PipelineLeaseLost(f"pipeline lease lost for job {job_id}")
 
         mentions = db.execute(
-            select(Mention).where(Mention.job_id == job_id).order_by(Mention.id)
+            select(Mention)
+            .where(Mention.job_id == job_id, *direct_scope_predicates(Mention))
+            .order_by(Mention.id)
         ).scalars().all()
         threshold = float((job.meta_data or {}).get("alert_threshold", 70))
         analyses_created = 0
@@ -510,7 +515,10 @@ def reconcile_stale_scan_pipelines(
         status_expr = CrawlJob.meta_data["pipeline"]["status"].as_string()
         jobs = db.execute(
             select(CrawlJob)
-            .where(status_expr.in_(RECOVERABLE_PIPELINE_STATUSES))
+            .where(
+                status_expr.in_(RECOVERABLE_PIPELINE_STATUSES),
+                *direct_scope_predicates(CrawlJob),
+            )
             .order_by(CrawlJob.completed_at.asc(), CrawlJob.id.asc())
             .limit(RECONCILE_BATCH_SIZE)
             .with_for_update(skip_locked=True)

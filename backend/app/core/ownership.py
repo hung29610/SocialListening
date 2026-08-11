@@ -241,6 +241,15 @@ _DIRECT_REQUIRED = {
     "report_exports": ("organization_id", "requested_by", "project_id"),
 }
 
+_DIRECT_OWNER_FIELDS = {
+    "organization_id",
+    "user_id",
+    "created_by_user_id",
+    "generated_by",
+    "requested_by",
+    "blocked_by_user_id",
+}
+
 
 def required_ownership_fields(table_name: str) -> tuple[str, ...]:
     """Fields whose NULL value makes a newly inserted row tenant-incomplete."""
@@ -249,6 +258,34 @@ def required_ownership_fields(table_name: str) -> tuple[str, ...]:
     if table_name == "ai_analysis":
         return ("mention_id",)
     return _DIRECT_REQUIRED.get(table_name, ())
+
+
+def direct_scope_predicates(model) -> tuple:
+    """SQL predicates that exclude every tenant-incomplete direct-scope row."""
+    table_name = getattr(model, "__tablename__", "")
+    return tuple(
+        getattr(model, field_name).is_not(None)
+        for field_name in _DIRECT_REQUIRED.get(table_name, ())
+    )
+
+
+def has_complete_direct_scope(instance) -> bool:
+    """Return true only when every required durable scope field is populated."""
+    required = _DIRECT_REQUIRED.get(getattr(instance, "__tablename__", ""), ())
+    return bool(required) and all(
+        getattr(instance, field_name, None) is not None for field_name in required
+    )
+
+
+def is_fully_ownerless_direct_scope(instance) -> bool:
+    """Recognize legacy rows with no assigned direct organization or user owner."""
+    required = _DIRECT_REQUIRED.get(getattr(instance, "__tablename__", ""), ())
+    owner_fields = tuple(name for name in required if name in _DIRECT_OWNER_FIELDS)
+    return (
+        "organization_id" in owner_fields
+        and len(owner_fields) >= 2
+        and all(getattr(instance, field_name, None) is None for field_name in owner_fields)
+    )
 
 
 @event.listens_for(Session, "before_flush")

@@ -94,13 +94,11 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
 
     db = SessionLocal()
     start_time = time.time()
+    scope_validated = False
 
     try:
         job = db.execute(select(CrawlJob).where(CrawlJob.id == job_id)).scalar_one_or_none()
         if not job: return
-
-        job.status = CrawlJobStatus.RUNNING
-        job.started_at = datetime.now(timezone.utc)
 
         import logging
         logger = logging.getLogger(__name__)
@@ -115,6 +113,9 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
                 TenantReason.SCOPE_CONFLICT, "Scan job project conflicts with requested project"
             )
         project_scope = validate_explicit_scope(db, job.organization_id, job.user_id, job.project_id)
+        scope_validated = True
+        job.status = CrawlJobStatus.RUNNING
+        job.started_at = datetime.now(timezone.utc)
         current_meta = job.meta_data or {}
         organization_id = job.organization_id
         user_id = job.user_id
@@ -705,7 +706,7 @@ def execute_scan(job_id: int, project_id: int, keyword_texts: List[str], mode: s
         )
 
     except Exception as e:
-        if 'job' in locals() and job:
+        if 'job' in locals() and job and scope_validated:
             db.rollback()
             try:
                 # Need to fetch job again because session was rolled back

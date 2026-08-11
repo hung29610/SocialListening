@@ -9,7 +9,12 @@ from typing import Iterable, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.ownership import TenantReason, TenantScope, stamp_scope
+from app.core.ownership import (
+    TenantReason,
+    TenantScope,
+    is_fully_ownerless_direct_scope,
+    stamp_scope,
+)
 
 
 @dataclass
@@ -289,22 +294,15 @@ def _record_quarantine(db: Session, decision: ReconciliationDecision) -> None:
 
 
 def _is_safely_ownerless_legacy(row, decision: ReconciliationDecision) -> bool:
-    """True only when a no-evidence row has no direct tenant owner fields."""
-    if decision.reason != TenantReason.NO_PARENT_EVIDENCE:
+    """True only for explicitly supported reasons and fully ownerless direct rows."""
+    if decision.reason not in {
+        TenantReason.NO_PARENT_EVIDENCE,
+        TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
+        TenantReason.SCOPE_CONFLICT,
+        TenantReason.USER_ORGANIZATION_MISMATCH,
+    }:
         return False
-    direct_owner_fields = (
-        "organization_id",
-        "user_id",
-        "created_by_user_id",
-        "generated_by",
-        "requested_by",
-        "blocked_by_user_id",
-    )
-    return all(
-        getattr(row, field_name, None) is None
-        for field_name in direct_owner_fields
-        if hasattr(row, field_name)
-    )
+    return is_fully_ownerless_direct_scope(row)
 
 
 def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size: int = 500) -> ReconciliationSummary:
@@ -337,14 +335,14 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
                     summary.quarantined += 1
                     reason = decision.reason.value
                     summary.reasons[reason] = summary.reasons.get(reason, 0) + 1
-                    if decision.reason in {
+                    if _is_safely_ownerless_legacy(row, decision):
+                        summary.quarantined_legacy += 1
+                    elif decision.reason in {
                         TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
                         TenantReason.SCOPE_CONFLICT,
                         TenantReason.USER_ORGANIZATION_MISMATCH,
                     }:
                         summary.ownership_conflicts += 1
-                    elif _is_safely_ownerless_legacy(row, decision):
-                        summary.quarantined_legacy += 1
                     else:
                         summary.active_integrity_violations += 1
                     if not dry_run:

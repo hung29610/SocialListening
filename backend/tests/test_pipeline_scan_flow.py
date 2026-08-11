@@ -391,6 +391,84 @@ def test_reconciliation_only_enqueues_stale_bounded_work(monkeypatch, tmp_path):
         assert exhausted["dead_lettered_at"]
 
 
+def test_pipeline_and_reconciler_never_adopt_ownerless_legacy_rows(monkeypatch, tmp_path):
+    from app.tasks import scan_pipeline
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'pipeline-quarantine.db'}")
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    Base.metadata.create_all(engine)
+    monkeypatch.setattr(scan_pipeline, "SessionLocal", session_factory)
+    now = datetime(2026, 8, 11, 1, 0, tzinfo=timezone.utc)
+
+    with session_factory() as db:
+        _seed_tenant(db)
+        scoped_job = CrawlJob(
+            organization_id=17,
+            user_id=9,
+            project_id=41,
+            job_type="manual",
+            status=CrawlJobStatus.COMPLETED,
+            completed_at=now - timedelta(hours=1),
+            meta_data={"project_id": 41, "pipeline": {"status": "queued"}},
+        )
+        ownerless_job = CrawlJob(
+            organization_id=None,
+            user_id=None,
+            project_id=41,
+            job_type="legacy",
+            status=CrawlJobStatus.COMPLETED,
+            completed_at=now - timedelta(hours=1),
+            meta_data={
+                "pipeline": {
+                    "status": "queued",
+                    "queued_at": (now - timedelta(minutes=10)).isoformat(),
+                }
+            },
+        )
+        db.add_all([scoped_job, ownerless_job])
+        db.flush()
+        hidden_mention = Mention(
+            organization_id=None,
+            user_id=None,
+            project_id=41,
+            job_id=scoped_job.id,
+            content_hash="pipeline-hidden-ambiguity",
+            title="must not be analyzed",
+            content="must remain unchanged",
+        )
+        db.add(hidden_mention)
+        db.commit()
+        scoped_id = scoped_job.id
+        ownerless_id = ownerless_job.id
+        mention_id = hidden_mention.id
+        ownerless_before = dict(ownerless_job.meta_data)
+
+    analysis_calls = []
+    result = scan_pipeline.run_scan_pipeline(
+        scoped_id,
+        analysis_fn=lambda *_: analysis_calls.append(True) or {"status": "success"},
+    )
+    enqueued = []
+    reconciled = scan_pipeline.reconcile_stale_scan_pipelines(
+        now=now,
+        enqueue_fn=enqueued.append,
+    )
+
+    assert result["success"] is True
+    assert result["mentions"] == 0
+    assert analysis_calls == []
+    assert ownerless_id not in enqueued
+    assert reconciled["queued"] == 0
+    with session_factory() as db:
+        hidden = db.get(Mention, mention_id)
+        ownerless = db.get(CrawlJob, ownerless_id)
+        assert hidden.organization_id is None and hidden.user_id is None
+        assert hidden.content == "must remain unchanged"
+        assert ownerless.meta_data == ownerless_before
+        assert db.execute(select(AIAnalysis).where(AIAnalysis.mention_id == mention_id)).scalar_one_or_none() is None
+        assert db.execute(select(Alert).where(Alert.mention_id == mention_id)).scalar_one_or_none() is None
+
+
 def test_celery_registration_preserves_existing_and_pipeline_tasks():
     from app.workers.celery_app import celery_app
 
