@@ -110,6 +110,8 @@ def test_quarantine_safe_ambiguity_is_ready_but_unsafe_conflict_is_not():
         quarantined=1,
         reasons={"MULTIPLE_ORGANIZATION_CANDIDATES": 1},
         ownership_conflicts=1,
+        blocking_reason_classes=["MULTIPLE_ORGANIZATION_CANDIDATES"],
+        conflicting_owner_fields_present=True,
     )
 
     safe_result = bootstrap._classify(bootstrap._normalize(safe))
@@ -117,8 +119,15 @@ def test_quarantine_safe_ambiguity_is_ready_but_unsafe_conflict_is_not():
 
     assert safe_result.ready is True
     assert safe_result.reason_code == "READY_WITH_QUARANTINE"
+    assert safe_result.quarantine_eligible is True
+    assert safe_result.conflicting_owner_fields_present is False
     assert unsafe_result.ready is False
     assert unsafe_result.reason_code == "OWNERSHIP_CONFLICT"
+    assert unsafe_result.blocking_reason_classes == (
+        "MULTIPLE_ORGANIZATION_CANDIDATES",
+    )
+    assert unsafe_result.quarantine_eligible is False
+    assert unsafe_result.conflicting_owner_fields_present is True
 
 
 @pytest.mark.parametrize(
@@ -191,8 +200,16 @@ def test_wrong_revision_never_opens_session(monkeypatch):
 @pytest.mark.parametrize("status", ["succeeded", "blocked", "failed", "pending"])
 def test_terminal_and_pending_operation_states_do_not_rerun(monkeypatch, status):
     db = MagicMock()
-    db.execute.return_value.scalar_one_or_none.return_value = (
-        '{"status":"%s","reason_code":"EXISTING"}' % status
+    db.execute.return_value.scalar_one_or_none.return_value = json.dumps(
+        {
+            "status": status,
+            "reason_code": "EXISTING",
+            "readiness_policy_version": "v5",
+            "blocking_reason_classes": [],
+            "quarantine_eligible": False,
+            "conflicting_owner_fields_present": False,
+            "deterministic_repair_available": False,
+        }
     )
     db.get.return_value = SimpleNamespace(
         status="ready", unresolved_count=0, conflict_count=0
@@ -270,13 +287,14 @@ def test_readiness_claim_is_single_atomic_insert():
     assert db.commit.call_count == 0
 
 
-def test_readiness_v4_contract_does_not_reuse_retired_operations():
-    assert bootstrap.OPERATION_VERSION == "v4"
-    assert bootstrap.OPERATION_KEY.endswith(":v4")
+def test_readiness_v5_contract_does_not_reuse_retired_operations():
+    assert bootstrap.OPERATION_VERSION == "v5"
+    assert bootstrap.OPERATION_KEY.endswith(":v5")
     assert bootstrap.RETIRED_OPERATION_KEYS == (
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v1",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v2",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v3",
+        f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v4",
     )
     assert bootstrap.OPERATION_KEY not in bootstrap.RETIRED_OPERATION_KEYS
 
@@ -343,10 +361,21 @@ def test_production_cannot_use_test_startup_bypass(monkeypatch):
     migration.assert_called_once()
 
 
-def test_public_state_contains_only_bounded_fields():
+def test_public_readiness_state_contains_only_bounded_fields():
     startup_state.reset_for_startup("free_mvp_embedded")
     startup_state.set_migration_ready("d72f8a913b21")
-    startup_state.set_tenant_readiness(False, "OWNERSHIP_CONFLICT")
+    startup_state.set_tenant_readiness(
+        False,
+        "OWNERSHIP_CONFLICT",
+        readiness_policy_version="v5",
+        blocking_reason_classes=(
+            "SCOPE_CONFLICT",
+            "must-not-leak@example.invalid",
+        ),
+        quarantine_eligible=False,
+        conflicting_owner_fields_present=True,
+        deterministic_repair_available=False,
+    )
     assert startup_state.public_snapshot()["release_contract"] == "startup-state-machine-v1"
     assert set(startup_state.public_snapshot()) == {
         "release_contract",
@@ -359,6 +388,69 @@ def test_public_state_contains_only_bounded_fields():
         "reason_code",
         "revision",
     }
+    snapshot = startup_state.public_readiness_snapshot()
+    assert set(snapshot) == {
+        *startup_state.public_snapshot().keys(),
+        "readiness_policy_version",
+        "blocking_reason_classes",
+        "quarantine_eligible",
+        "conflicting_owner_fields_present",
+        "deterministic_repair_available",
+    }
+    assert snapshot["readiness_policy_version"] == "v5"
+    assert snapshot["blocking_reason_classes"] == ["SCOPE_CONFLICT"]
+    assert snapshot["quarantine_eligible"] is False
+    assert snapshot["conflicting_owner_fields_present"] is True
+    assert snapshot["deterministic_repair_available"] is False
+    serialized = json.dumps(snapshot, sort_keys=True)
+    assert "must-not-leak" not in serialized
+    for forbidden in (
+        "count",
+        "tenant_id",
+        "row_id",
+        "email",
+        "url",
+        "content",
+        "operation_id",
+        "secret",
+    ):
+        assert forbidden not in serialized.lower()
+
+
+def test_v5_operation_payload_round_trip_is_bounded():
+    result = bootstrap._result_from_payload(
+        {
+            "status": "blocked",
+            "reason_code": "OWNERSHIP_CONFLICT",
+            "readiness_policy_version": "v5",
+            "blocking_reason_classes": ["SCOPE_CONFLICT"],
+            "quarantine_eligible": False,
+            "conflicting_owner_fields_present": True,
+            "deterministic_repair_available": False,
+        }
+    )
+    assert result.status == "blocked"
+    assert result.blocking_reason_classes == ("SCOPE_CONFLICT",)
+    assert result.conflicting_owner_fields_present is True
+
+    rejected = bootstrap._result_from_payload(
+        {
+            "status": "blocked",
+            "reason_code": "OWNERSHIP_CONFLICT",
+            "readiness_policy_version": "v5",
+            "blocking_reason_classes": ["tenant-123"],
+        }
+    )
+    assert rejected.reason_code == "INVALID_OPERATION_STATE"
+
+    incomplete = bootstrap._result_from_payload(
+        {
+            "status": "blocked",
+            "reason_code": "OWNERSHIP_CONFLICT",
+            "readiness_policy_version": "v5",
+        }
+    )
+    assert incomplete.reason_code == "INVALID_OPERATION_STATE"
 
 
 def test_admin_readiness_evidence_is_bounded(monkeypatch):
@@ -401,12 +493,41 @@ def test_readiness_endpoint_is_503_while_tenant_bootstrap_is_blocked():
 
     startup_state.reset_for_startup("free_mvp_embedded")
     startup_state.set_migration_ready("d72f8a913b21")
-    startup_state.set_tenant_readiness(False, "DETERMINISTIC_REPAIR_REQUIRED")
+    startup_state.set_tenant_readiness(
+        False,
+        "DETERMINISTIC_REPAIR_REQUIRED",
+        readiness_policy_version="v5",
+        blocking_reason_classes=(),
+        quarantine_eligible=False,
+        conflicting_owner_fields_present=False,
+        deterministic_repair_available=True,
+    )
     response = readiness_check()
     payload = json.loads(response.body)
     assert response.status_code == 503
     assert payload["status"] == "not_ready"
     assert payload["reason_code"] == "DETERMINISTIC_REPAIR_REQUIRED"
+    assert payload["readiness_policy_version"] == "v5"
+    assert payload["blocking_reason_classes"] == []
+    assert payload["quarantine_eligible"] is False
+    assert payload["conflicting_owner_fields_present"] is False
+    assert payload["deterministic_repair_available"] is True
+    assert set(payload) == {
+        "release_contract",
+        "status",
+        "database",
+        "migration",
+        "tenant_integrity",
+        "runtime",
+        "scheduler",
+        "reason_code",
+        "revision",
+        "readiness_policy_version",
+        "blocking_reason_classes",
+        "quarantine_eligible",
+        "conflicting_owner_fields_present",
+        "deterministic_repair_available",
+    }
 
 
 def test_tenant_api_is_503_while_health_remains_exempt():

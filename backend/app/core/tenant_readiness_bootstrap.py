@@ -14,18 +14,21 @@ from sqlalchemy import text
 
 from app.core.database import SessionLocal, engine
 from app.core.migration_startup import EXPECTED_REVISION
+from app.core.ownership import TenantReason
 from app.models.tenant_integrity import TenantIntegrityAuditState
 from app.services.tenant_reconciliation import reconcile_tenant_integrity
 
 
 logger = logging.getLogger(__name__)
-OPERATION_VERSION = "v4"
+OPERATION_VERSION = "v5"
 OPERATION_KEY = f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:{OPERATION_VERSION}"
 RETIRED_OPERATION_KEYS = (
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v1",
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v2",
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v3",
+    f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v4",
 )
+_SAFE_BLOCKING_REASON_CLASSES = frozenset(reason.value for reason in TenantReason)
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,11 @@ class TenantReadinessResult:
     ownership_conflict: int = 0
     quarantined_legacy: int = 0
     safe: int = 0
+    readiness_policy_version: str = OPERATION_VERSION
+    blocking_reason_classes: tuple[str, ...] = ()
+    quarantine_eligible: bool = False
+    conflicting_owner_fields_present: bool = False
+    deterministic_repair_available: bool = False
 
     @property
     def ready(self) -> bool:
@@ -61,6 +69,10 @@ def _normalize(summary) -> dict:
         "active_integrity_violations": int(raw.get("active_integrity_violations", 0)),
         "ownership_conflicts": int(raw.get("ownership_conflicts", 0)),
         "quarantined_legacy": int(raw.get("quarantined_legacy", 0)),
+        "blocking_reason_classes": sorted(set(raw.get("blocking_reason_classes") or [])),
+        "conflicting_owner_fields_present": bool(
+            raw.get("conflicting_owner_fields_present", False)
+        ),
     }
 
 
@@ -94,6 +106,17 @@ def _classify(summary: dict) -> TenantReadinessResult:
         ownership_conflict=conflicts,
         quarantined_legacy=quarantined,
         safe=summary["already_consistent"],
+        blocking_reason_classes=tuple(summary["blocking_reason_classes"]),
+        quarantine_eligible=bool(
+            quarantined
+            and not conflicts
+            and not summary["repairable"]
+            and not active
+        ),
+        conflicting_owner_fields_present=summary[
+            "conflicting_owner_fields_present"
+        ],
+        deterministic_repair_available=bool(summary["repairable"]),
     )
 
 
@@ -128,7 +151,15 @@ def _claim_operation(db) -> bool:
         {
             "key": OPERATION_KEY,
             "value": json.dumps(
-                {"status": "pending", "reason_code": "DRY_RUNS_PENDING"},
+                {
+                    "status": "pending",
+                    "reason_code": "DRY_RUNS_PENDING",
+                    "readiness_policy_version": OPERATION_VERSION,
+                    "blocking_reason_classes": [],
+                    "quarantine_eligible": False,
+                    "conflicting_owner_fields_present": False,
+                    "deterministic_repair_available": False,
+                },
                 sort_keys=True,
             ),
         },
@@ -138,7 +169,15 @@ def _claim_operation(db) -> bool:
 
 def _store_operation(db, result: TenantReadinessResult) -> None:
     value = json.dumps(
-        {"status": result.status, "reason_code": result.reason_code},
+        {
+            "status": result.status,
+            "reason_code": result.reason_code,
+            "readiness_policy_version": result.readiness_policy_version,
+            "blocking_reason_classes": list(result.blocking_reason_classes),
+            "quarantine_eligible": result.quarantine_eligible,
+            "conflicting_owner_fields_present": result.conflicting_owner_fields_present,
+            "deterministic_repair_available": result.deterministic_repair_available,
+        },
         sort_keys=True,
     )
     db.execute(
@@ -157,7 +196,47 @@ def _result_from_payload(payload: dict) -> TenantReadinessResult:
     reason = payload.get("reason_code", "INVALID_OPERATION_STATE")
     if status not in {"pending", "succeeded", "blocked", "failed"}:
         return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
-    return TenantReadinessResult(status, str(reason))
+    required_diagnostics = {
+        "readiness_policy_version",
+        "blocking_reason_classes",
+        "quarantine_eligible",
+        "conflicting_owner_fields_present",
+        "deterministic_repair_available",
+    }
+    if not required_diagnostics.issubset(payload):
+        return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
+    raw_classes = payload.get("blocking_reason_classes", [])
+    if not isinstance(raw_classes, list) or any(
+        not isinstance(value, str) or value not in _SAFE_BLOCKING_REASON_CLASSES
+        for value in raw_classes
+    ):
+        return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
+    policy_version = payload["readiness_policy_version"]
+    if policy_version != OPERATION_VERSION:
+        return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
+    boolean_fields = (
+        "quarantine_eligible",
+        "conflicting_owner_fields_present",
+        "deterministic_repair_available",
+    )
+    if any(
+        field in payload and not isinstance(payload[field], bool)
+        for field in boolean_fields
+    ):
+        return TenantReadinessResult("failed", "INVALID_OPERATION_STATE")
+    return TenantReadinessResult(
+        status,
+        str(reason),
+        readiness_policy_version=policy_version,
+        blocking_reason_classes=tuple(sorted(set(raw_classes))),
+        quarantine_eligible=payload.get("quarantine_eligible", False),
+        conflicting_owner_fields_present=payload.get(
+            "conflicting_owner_fields_present", False
+        ),
+        deterministic_repair_available=payload.get(
+            "deterministic_repair_available", False
+        ),
+    )
 
 
 def establish_tenant_readiness() -> TenantReadinessResult:
