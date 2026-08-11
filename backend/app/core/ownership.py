@@ -297,6 +297,12 @@ def has_any_direct_owner_assignment(instance) -> bool:
     )
 
 
+def direct_owner_field_names(instance) -> tuple[str, ...]:
+    """Return the fixed owner-column allowlist for a direct-scope row."""
+    required = _DIRECT_REQUIRED.get(getattr(instance, "__tablename__", ""), ())
+    return tuple(name for name in required if name in _DIRECT_OWNER_FIELDS)
+
+
 @event.listens_for(Session, "before_flush")
 def reject_unscoped_tenant_writes(session, flush_context, instances):
     """Fail closed for every newly inserted tenant-scoped row."""

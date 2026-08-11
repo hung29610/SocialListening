@@ -19,6 +19,10 @@ from app.core.migration_startup import (
     verify_exact_database_head,
 )
 from app.core import startup_state
+from app.core.conflict_quarantine_maintenance import (
+    is_enabled as conflict_quarantine_enabled,
+    run_conflict_quarantine_if_enabled,
+)
 from app.core.tenant_readiness_bootstrap import establish_tenant_readiness
 
 
@@ -95,6 +99,15 @@ def run_startup_orchestrator(backend_dir: Path, runtime: str) -> StartupOutcome:
             "STARTUP_STATE phase=migration status=ready reason=EXACT_HEAD revision=%s",
             revision,
         )
+        if conflict_quarantine_enabled():
+            logger.info(
+                "STARTUP_STATE phase=conflict_quarantine status=running"
+            )
+            with _startup_singleton_lock():
+                run_conflict_quarantine_if_enabled()
+            logger.info(
+                "STARTUP_STATE phase=conflict_quarantine status=completed"
+            )
         result = establish_tenant_readiness()
         startup_state.set_tenant_readiness(
             result.ready,

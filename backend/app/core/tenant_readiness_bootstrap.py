@@ -20,13 +20,14 @@ from app.services.tenant_reconciliation import reconcile_tenant_integrity
 
 
 logger = logging.getLogger(__name__)
-OPERATION_VERSION = "v5"
+OPERATION_VERSION = "v6"
 OPERATION_KEY = f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:{OPERATION_VERSION}"
 RETIRED_OPERATION_KEYS = (
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v1",
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v2",
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v3",
     f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v4",
+    f"tenant-readiness-bootstrap:{EXPECTED_REVISION}:v5",
 )
 _SAFE_BLOCKING_REASON_CLASSES = frozenset(reason.value for reason in TenantReason)
 

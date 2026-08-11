@@ -267,6 +267,42 @@ def test_ownerless_legacy_mentions_are_invisible_to_tenant_queries(db):
     assert summary.active_integrity_violations == 0
 
 
+def test_inherited_analysis_is_quarantine_safe_only_with_ownerless_parent(db):
+    ownerless = Mention(content_hash="ownerless-parent")
+    db.add(ownerless)
+    db.flush()
+    analysis = AIAnalysis(
+        mention_id=ownerless.id,
+        sentiment=SentimentScore.NEUTRAL,
+        risk_score=0,
+        crisis_level=1,
+    )
+    db.add(analysis)
+    db.commit()
+
+    summary = reconcile_tenant_integrity(db, dry_run=True)
+
+    assert summary.quarantined_legacy == 2
+    assert summary.active_integrity_violations == 0
+
+
+def test_inherited_analysis_without_parent_is_not_quarantine_safe(db):
+    db.add(
+        AIAnalysis(
+            mention_id=999999,
+            sentiment=SentimentScore.NEUTRAL,
+            risk_score=0,
+            crisis_level=1,
+        )
+    )
+    db.commit()
+
+    summary = reconcile_tenant_integrity(db, dry_run=True)
+
+    assert summary.quarantined_legacy == 0
+    assert summary.active_integrity_violations >= 1
+
+
 def test_directly_scoped_no_parent_row_is_not_safe_legacy_quarantine(db):
     _, org, _, _, _ = seed_scope(db)
     row = Source(
