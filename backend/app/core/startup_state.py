@@ -100,7 +100,7 @@ def set_tenant_readiness(
             reason_code=reason_code,
             readiness_policy_version=(
                 readiness_policy_version
-                if readiness_policy_version in {"v5", "test"}
+                if readiness_policy_version in {"v6", "test"}
                 else "unknown"
             ),
             blocking_reason_classes=safe_reason_classes,

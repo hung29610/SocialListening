@@ -204,7 +204,7 @@ def test_terminal_and_pending_operation_states_do_not_rerun(monkeypatch, status)
         {
             "status": status,
             "reason_code": "EXISTING",
-            "readiness_policy_version": "v5",
+            "readiness_policy_version": "v6",
             "blocking_reason_classes": [],
             "quarantine_eligible": False,
             "conflicting_owner_fields_present": False,
@@ -242,6 +242,40 @@ def test_orchestrator_blocks_tenant_workloads_without_killing_process(monkeypatc
     assert outcome.tenant_ready is False
     assert startup_state.snapshot()["status"] == "degraded"
     assert startup_state.tenant_workloads_allowed() is False
+
+
+def test_conflict_quarantine_runs_after_exact_head_and_before_readiness(monkeypatch):
+    events = []
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "_startup_singleton_lock",
+        lambda: __import__("contextlib").nullcontext(),
+    )
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "verify_exact_database_head",
+        lambda _path: events.append("exact-head") or "d72f8a913b21",
+    )
+    monkeypatch.setattr(startup_orchestrator, "conflict_quarantine_enabled", lambda: True)
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "run_conflict_quarantine_if_enabled",
+        lambda: events.append("quarantine"),
+    )
+    monkeypatch.setattr(
+        startup_orchestrator,
+        "establish_tenant_readiness",
+        lambda: events.append("readiness")
+        or bootstrap.TenantReadinessResult("succeeded", "READY"),
+    )
+
+    outcome = startup_orchestrator.run_startup_orchestrator(
+        Path("backend"), "free_mvp_embedded"
+    )
+
+    assert outcome.tenant_ready is True
+    assert events == ["exact-head", "quarantine", "readiness"]
 
 
 def test_exact_head_preflight_never_waits_on_superseded_generation_lock(monkeypatch):
@@ -287,14 +321,15 @@ def test_readiness_claim_is_single_atomic_insert():
     assert db.commit.call_count == 0
 
 
-def test_readiness_v5_contract_does_not_reuse_retired_operations():
-    assert bootstrap.OPERATION_VERSION == "v5"
-    assert bootstrap.OPERATION_KEY.endswith(":v5")
+def test_readiness_v6_contract_does_not_reuse_retired_operations():
+    assert bootstrap.OPERATION_VERSION == "v6"
+    assert bootstrap.OPERATION_KEY.endswith(":v6")
     assert bootstrap.RETIRED_OPERATION_KEYS == (
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v1",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v2",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v3",
         f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v4",
+        f"tenant-readiness-bootstrap:{bootstrap.EXPECTED_REVISION}:v5",
     )
     assert bootstrap.OPERATION_KEY not in bootstrap.RETIRED_OPERATION_KEYS
 
@@ -367,7 +402,7 @@ def test_public_readiness_state_contains_only_bounded_fields():
     startup_state.set_tenant_readiness(
         False,
         "OWNERSHIP_CONFLICT",
-        readiness_policy_version="v5",
+        readiness_policy_version="v6",
         blocking_reason_classes=(
             "SCOPE_CONFLICT",
             "must-not-leak@example.invalid",
@@ -397,7 +432,7 @@ def test_public_readiness_state_contains_only_bounded_fields():
         "conflicting_owner_fields_present",
         "deterministic_repair_available",
     }
-    assert snapshot["readiness_policy_version"] == "v5"
+    assert snapshot["readiness_policy_version"] == "v6"
     assert snapshot["blocking_reason_classes"] == ["SCOPE_CONFLICT"]
     assert snapshot["quarantine_eligible"] is False
     assert snapshot["conflicting_owner_fields_present"] is True
@@ -417,12 +452,12 @@ def test_public_readiness_state_contains_only_bounded_fields():
         assert forbidden not in serialized.lower()
 
 
-def test_v5_operation_payload_round_trip_is_bounded():
+def test_v6_operation_payload_round_trip_is_bounded():
     result = bootstrap._result_from_payload(
         {
             "status": "blocked",
             "reason_code": "OWNERSHIP_CONFLICT",
-            "readiness_policy_version": "v5",
+            "readiness_policy_version": "v6",
             "blocking_reason_classes": ["SCOPE_CONFLICT"],
             "quarantine_eligible": False,
             "conflicting_owner_fields_present": True,
@@ -437,7 +472,7 @@ def test_v5_operation_payload_round_trip_is_bounded():
         {
             "status": "blocked",
             "reason_code": "OWNERSHIP_CONFLICT",
-            "readiness_policy_version": "v5",
+            "readiness_policy_version": "v6",
             "blocking_reason_classes": ["tenant-123"],
         }
     )
@@ -447,7 +482,7 @@ def test_v5_operation_payload_round_trip_is_bounded():
         {
             "status": "blocked",
             "reason_code": "OWNERSHIP_CONFLICT",
-            "readiness_policy_version": "v5",
+            "readiness_policy_version": "v6",
         }
     )
     assert incomplete.reason_code == "INVALID_OPERATION_STATE"
@@ -496,7 +531,7 @@ def test_readiness_endpoint_is_503_while_tenant_bootstrap_is_blocked():
     startup_state.set_tenant_readiness(
         False,
         "DETERMINISTIC_REPAIR_REQUIRED",
-        readiness_policy_version="v5",
+        readiness_policy_version="v6",
         blocking_reason_classes=(),
         quarantine_eligible=False,
         conflicting_owner_fields_present=False,
@@ -507,7 +542,7 @@ def test_readiness_endpoint_is_503_while_tenant_bootstrap_is_blocked():
     assert response.status_code == 503
     assert payload["status"] == "not_ready"
     assert payload["reason_code"] == "DETERMINISTIC_REPAIR_REQUIRED"
-    assert payload["readiness_policy_version"] == "v5"
+    assert payload["readiness_policy_version"] == "v6"
     assert payload["blocking_reason_classes"] == []
     assert payload["quarantine_eligible"] is False
     assert payload["conflicting_owner_fields_present"] is False

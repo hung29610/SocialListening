@@ -296,8 +296,12 @@ def _record_quarantine(db: Session, decision: ReconciliationDecision) -> None:
         ))
 
 
-def _is_safely_ownerless_legacy(row, decision: ReconciliationDecision) -> bool:
-    """True only for explicitly supported reasons and fully ownerless direct rows."""
+def _is_safely_ownerless_legacy(
+    db: Session,
+    row,
+    decision: ReconciliationDecision,
+) -> bool:
+    """Recognize direct or single-parent inherited ownerless quarantine."""
     if decision.reason not in {
         TenantReason.NO_PARENT_EVIDENCE,
         TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
@@ -305,7 +309,21 @@ def _is_safely_ownerless_legacy(row, decision: ReconciliationDecision) -> bool:
         TenantReason.USER_ORGANIZATION_MISMATCH,
     }:
         return False
-    return is_fully_ownerless_direct_scope(row)
+    if is_fully_ownerless_direct_scope(row):
+        return True
+
+    # These two models have no direct owner columns. They are safely isolated
+    # only through their single authoritative direct-scope parent.
+    from app.models.keyword import Keyword, KeywordGroup
+    from app.models.mention import AIAnalysis, Mention
+
+    if isinstance(row, Keyword):
+        parent = db.get(KeywordGroup, row.group_id)
+        return bool(parent and is_fully_ownerless_direct_scope(parent))
+    if isinstance(row, AIAnalysis):
+        parent = db.get(Mention, row.mention_id)
+        return bool(parent and is_fully_ownerless_direct_scope(parent))
+    return False
 
 
 def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size: int = 500) -> ReconciliationSummary:
@@ -338,7 +356,7 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
                     summary.quarantined += 1
                     reason = decision.reason.value
                     summary.reasons[reason] = summary.reasons.get(reason, 0) + 1
-                    if _is_safely_ownerless_legacy(row, decision):
+                    if _is_safely_ownerless_legacy(db, row, decision):
                         summary.quarantined_legacy += 1
                     elif decision.reason in {
                         TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES,
