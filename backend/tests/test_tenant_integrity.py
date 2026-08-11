@@ -16,14 +16,17 @@ from app.core.ownership import (
     validate_schedule_targets,
 )
 from app.models.alert import Alert, AlertSeverity, AlertStatus
+from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.models.keyword import Keyword, KeywordGroup
 from app.models.mention import AIAnalysis, Mention, SentimentScore
+from app.models.report import Report, ReportStatus, ReportType
 from app.models.organization import Organization, OrganizationMember
 from app.models.source import Source, SourceType
 from app.models.user import User
 from app.services.tenant_reconciliation import derive_scope_for_row, reconcile_tenant_integrity
 from app.core.tenant import apply_tenant_filter
 from app.services.ai_assistant_service import _tenant_filters
+from app.services.export_service import ExportService
 
 
 @pytest.fixture()
@@ -280,6 +283,170 @@ def test_directly_scoped_no_parent_row_is_not_safe_legacy_quarantine(db):
 
     assert summary.active_integrity_violations >= 1
     assert summary.quarantined_legacy == 0
+
+
+def test_fully_ownerless_true_ambiguity_is_quarantine_safe_and_unchanged(db):
+    user, org, project, _, other = seed_scope(db, second_org=True)
+    foreign = KeywordGroup(organization_id=other.id, user_id=user.id, name="Foreign")
+    db.add(foreign)
+    db.flush()
+    foreign_job = CrawlJob(
+        organization_id=other.id,
+        user_id=user.id,
+        project_id=foreign.id,
+        job_type="legacy",
+        status=CrawlJobStatus.COMPLETED,
+    )
+    ambiguous = Mention(
+        organization_id=None,
+        user_id=None,
+        project_id=project.id,
+        job_id=None,
+        content_hash="ambiguous-ownerless",
+        title="legacy ambiguity",
+    )
+    db.add_all([foreign_job, ambiguous])
+    db.flush()
+    ambiguous.job_id = foreign_job.id
+    db.commit()
+
+    before = {
+        "organization_id": ambiguous.organization_id,
+        "user_id": ambiguous.user_id,
+        "project_id": ambiguous.project_id,
+        "job_id": ambiguous.job_id,
+        "content_hash": ambiguous.content_hash,
+        "title": ambiguous.title,
+    }
+    decision = derive_scope_for_row(db, ambiguous)
+    first = reconcile_tenant_integrity(db, dry_run=True)
+    second = reconcile_tenant_integrity(db, dry_run=True)
+    db.refresh(ambiguous)
+
+    assert decision.reason == TenantReason.MULTIPLE_ORGANIZATION_CANDIDATES
+    assert first.__dict__ == second.__dict__
+    assert first.quarantined_legacy >= 1
+    assert first.ownership_conflicts == 0
+    assert {
+        "organization_id": ambiguous.organization_id,
+        "user_id": ambiguous.user_id,
+        "project_id": ambiguous.project_id,
+        "job_id": ambiguous.job_id,
+        "content_hash": ambiguous.content_hash,
+        "title": ambiguous.title,
+    } == before
+
+
+def test_partially_owned_conflict_remains_readiness_blocker(db):
+    user, org, project, _, other = seed_scope(db, second_org=True)
+    foreign = KeywordGroup(organization_id=other.id, user_id=user.id, name="Foreign")
+    db.add(foreign)
+    db.flush()
+    foreign_job = CrawlJob(
+        organization_id=other.id,
+        user_id=user.id,
+        project_id=foreign.id,
+        job_type="legacy",
+        status=CrawlJobStatus.COMPLETED,
+    )
+    row = Mention(
+        organization_id=org.id,
+        user_id=None,
+        project_id=project.id,
+        content_hash="unsafe-partial-conflict",
+    )
+    db.add_all([foreign_job, row])
+    db.flush()
+    row.job_id = foreign_job.id
+    db.commit()
+
+    summary = reconcile_tenant_integrity(db, dry_run=True)
+
+    assert summary.ownership_conflicts >= 1
+    assert summary.quarantined_legacy == 0
+
+
+def test_ownerless_ambiguity_is_hidden_from_superadmin_and_exports(db):
+    user, org, project, _, _ = seed_scope(db)
+    user.is_superuser = True
+    visible = Mention(
+        organization_id=org.id,
+        user_id=user.id,
+        project_id=project.id,
+        content_hash="visible-export",
+        title="visible export row",
+        url="https://visible.example.test/item",
+    )
+    hidden = Mention(
+        organization_id=None,
+        user_id=None,
+        project_id=project.id,
+        content_hash="hidden-export",
+        title="hidden ambiguous row",
+        url="https://hidden.example.test/item",
+    )
+    db.add_all([visible, hidden])
+    db.flush()
+    visible_alert = Alert(
+        organization_id=org.id,
+        user_id=user.id,
+        project_id=project.id,
+        mention_id=visible.id,
+        title="visible alert",
+        severity=AlertSeverity.LOW,
+        status=AlertStatus.NEW,
+    )
+    hidden_alert = Alert(
+        organization_id=None,
+        user_id=None,
+        project_id=project.id,
+        mention_id=hidden.id,
+        title="hidden alert",
+        severity=AlertSeverity.LOW,
+        status=AlertStatus.NEW,
+    )
+    visible_report = Report(
+        organization_id=org.id,
+        generated_by=user.id,
+        project_id=project.id,
+        report_type=ReportType.CUSTOM,
+        title="visible report",
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc),
+        status=ReportStatus.COMPLETED,
+    )
+    hidden_report = Report(
+        organization_id=None,
+        generated_by=None,
+        project_id=project.id,
+        report_type=ReportType.CUSTOM,
+        title="hidden report",
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc),
+        status=ReportStatus.COMPLETED,
+    )
+    db.add_all([visible_alert, hidden_alert, visible_report, hidden_report])
+    db.commit()
+
+    mention_rows = db.execute(
+        apply_tenant_filter(select(Mention), Mention, user, include_unverifiable=True)
+    ).scalars().all()
+    alert_rows = db.execute(
+        apply_tenant_filter(select(Alert), Alert, user)
+    ).scalars().all()
+    report_rows = db.execute(
+        apply_tenant_filter(select(Report), Report, user, "generated_by")
+    ).scalars().all()
+    csv_text = "".join(ExportService.export_mentions_csv(db, user, {}))
+    alert_csv = "".join(ExportService.export_alerts_csv(db, user, {}))
+
+    assert [row.id for row in mention_rows] == [visible.id]
+    assert [row.id for row in alert_rows] == [visible_alert.id]
+    assert [row.id for row in report_rows] == [visible_report.id]
+    assert "visible export row" in csv_text
+    assert "hidden ambiguous row" not in csv_text
+    assert "visible alert" in alert_csv
+    assert "hidden alert" not in alert_csv
 
 
 def test_apply_repairs_once_and_quarantine_is_idempotent(db):

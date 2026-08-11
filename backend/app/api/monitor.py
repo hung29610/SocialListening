@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
+from app.core.tenant import apply_tenant_filter
 from app.models.user import User
 from app.models.mention import Mention, AIAnalysis, SentimentScore
 from app.models.alert import Alert, AlertSeverity, AlertStatus
@@ -112,6 +113,7 @@ def start_monitoring(
         select(Source).where(
             Source.is_active == True,
             Source.organization_id == actor_scope.organization_id,
+            Source.user_id.is_not(None),
         )
     ).scalars().all()
 
@@ -270,7 +272,7 @@ def get_monitor_dashboard(
         keyword_pattern = f"%{keyword}%"
 
         mentions_query = (
-            select(Mention)
+            apply_tenant_filter(select(Mention), Mention, current_user)
             .where(
                 or_(
                     Mention.content.ilike(keyword_pattern),
@@ -382,7 +384,9 @@ def get_monitor_dashboard(
             if platform == "Unknown":
                 try:
                     source = db.execute(
-                        select(Source).where(Source.id == m.source_id)
+                        apply_tenant_filter(select(Source), Source, current_user).where(
+                            Source.id == m.source_id
+                        )
                     ).scalar_one_or_none()
                     if source:
                         stype = source.source_type
@@ -471,7 +475,7 @@ def get_ai_analysis(
         # Tìm mentions chứa keyword
         keyword_pattern = f"%{keyword}%"
         mentions = db.execute(
-            select(Mention)
+            apply_tenant_filter(select(Mention), Mention, current_user)
             .where(
                 or_(
                     Mention.content.ilike(keyword_pattern),

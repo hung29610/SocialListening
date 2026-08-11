@@ -1,6 +1,7 @@
 from sqlalchemy.sql import Select
 from app.core.security import can_access_admin
 from app.models.user import User
+from app.core.ownership import direct_scope_predicates
 
 def apply_tenant_filter(query: Select, model, current_user: User, user_col: str = "user_id", include_unverifiable: bool = False) -> Select:
     """
@@ -8,11 +9,16 @@ def apply_tenant_filter(query: Select, model, current_user: User, user_col: str 
     If the current_user is a super admin, returns the original query (sees all data).
     If the current_user has a current_organization_id, filters by that organization.
     """
-    from app.core.security import can_access_admin
-    
     # Apply verifiable filter for Mention model if needed
     if model.__name__ == 'Mention' and not include_unverifiable:
         query = query.where(model.verifiable_filter())
+
+    # Tenant-facing APIs never expose legacy rows whose durable direct scope is
+    # incomplete. This invariant applies to super-admins too; quarantine
+    # evidence is available only through the dedicated bounded admin surface.
+    predicates = direct_scope_predicates(model)
+    if predicates:
+        query = query.where(*predicates)
         
     if can_access_admin(current_user):
         return query

@@ -15,6 +15,7 @@ from app.models.alert import Alert, AlertSeverity, AlertStatus
 from app.models.crawl import CrawlJob, CrawlJobStatus
 from app.services.crawler_service import crawler_service
 from app.services import ai_service
+from app.core.ownership import has_complete_direct_scope
 
 
 @celery_app.task(name="app.workers.tasks.crawl_source", bind=True)
@@ -39,6 +40,8 @@ async def _crawl_source_async(source_id: int, keyword_group_ids: list[int]):
             
             if not source:
                 return {"error": "Source not found", "source_id": source_id}
+            if not has_complete_direct_scope(source):
+                return {"error": "Source has unresolved tenant ownership"}
             
             # Get keyword groups
             keyword_groups = []
@@ -47,7 +50,7 @@ async def _crawl_source_async(source_id: int, keyword_group_ids: list[int]):
                     select(KeywordGroup).where(KeywordGroup.id == group_id)
                 )
                 group = result.scalar_one_or_none()
-                if group:
+                if group and has_complete_direct_scope(group):
                     # Get keywords for this group
                     keywords_result = await db.execute(
                         select(Keyword).where(Keyword.group_id == group_id, Keyword.is_active == True)
@@ -61,9 +64,11 @@ async def _crawl_source_async(source_id: int, keyword_group_ids: list[int]):
             
             if not keyword_groups:
                 return {"error": "No active keyword groups found"}
-            if not source.organization_id or not source.user_id:
-                return {"error": "Source has unresolved tenant ownership"}
-            if any(item["group"].organization_id != source.organization_id for item in keyword_groups):
+            if any(
+                item["group"].organization_id != source.organization_id
+                or item["group"].user_id != source.user_id
+                for item in keyword_groups
+            ):
                 return {"error": "Source and keyword groups belong to different tenants"}
             
             # Crawl the source
@@ -198,6 +203,7 @@ def analyze_mention(self: Task, mention_id: int, alert_threshold: float = 70.0):
 async def _analyze_mention_async(mention_id: int, alert_threshold: float):
     """Async implementation of analyze_mention"""
     async with AsyncSessionLocal() as db:
+        scope_validated = False
         try:
             # Get mention
             result = await db.execute(select(Mention).where(Mention.id == mention_id))
@@ -208,6 +214,7 @@ async def _analyze_mention_async(mention_id: int, alert_threshold: float):
 
             from app.core.ownership import resolve_async_mention_scope
             await resolve_async_mention_scope(db, mention.id)
+            scope_validated = True
             
             # Analyze with AI synchronously in thread pool
             analysis_result = await asyncio.to_thread(
@@ -285,7 +292,7 @@ async def _analyze_mention_async(mention_id: int, alert_threshold: float):
                 # Re-fetch mention to mark as failed
                 result = await db.execute(select(Mention).where(Mention.id == mention_id))
                 mention = result.scalar_one_or_none()
-                if mention:
+                if mention and scope_validated:
                     mention.verification_status = "failed"
                     mention.verification_error = f"AI analysis failed: {str(e)}"
                     db.add(mention)
@@ -320,6 +327,9 @@ async def _send_alert_async(alert_id: int):
             
             if not alert:
                 return {"error": "Alert not found", "alert_id": alert_id}
+
+            if not has_complete_direct_scope(alert):
+                return {"error": "Alert has unresolved tenant ownership", "alert_id": alert_id}
             
             # Get mention
             result = await db.execute(
@@ -329,6 +339,13 @@ async def _send_alert_async(alert_id: int):
             
             if not mention:
                 return {"error": "Mention not found"}
+            if (
+                not has_complete_direct_scope(mention)
+                or mention.organization_id != alert.organization_id
+                or mention.user_id != alert.user_id
+                or mention.project_id != alert.project_id
+            ):
+                return {"error": "Alert mention has unresolved tenant ownership"}
             
             # Get AI analysis
             result = await db.execute(
@@ -431,6 +448,9 @@ async def _generate_report_async(report_id: int):
             
             if not report:
                 return {"error": "Report not found", "report_id": report_id}
+
+            if not has_complete_direct_scope(report):
+                return {"error": "Report has unresolved tenant ownership", "report_id": report_id}
             
             # Update status to generating
             report.status = ReportStatus.GENERATING
