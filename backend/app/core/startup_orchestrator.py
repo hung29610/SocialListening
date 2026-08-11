@@ -96,7 +96,19 @@ def run_startup_orchestrator(backend_dir: Path, runtime: str) -> StartupOutcome:
             revision,
         )
         result = establish_tenant_readiness()
-        startup_state.set_tenant_readiness(result.ready, result.reason_code)
+        startup_state.set_tenant_readiness(
+            result.ready,
+            result.reason_code,
+            readiness_policy_version=result.readiness_policy_version,
+            blocking_reason_classes=result.blocking_reason_classes,
+            quarantine_eligible=result.quarantine_eligible,
+            conflicting_owner_fields_present=(
+                result.conflicting_owner_fields_present
+            ),
+            deterministic_repair_available=(
+                result.deterministic_repair_available
+            ),
+        )
     except StartupMigrationError:
         startup_state.set_migration_failed("MIGRATION_CONTRACT_FAILED")
         logger.critical(

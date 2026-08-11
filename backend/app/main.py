@@ -412,7 +412,7 @@ def health_check():
 @app.get("/readyz")
 def readiness_check():
     """Bounded readiness check for normal tenant workloads."""
-    state = startup_state.public_snapshot()
+    state = startup_state.public_readiness_snapshot()
     state["database"] = _database_connection_status()
     ready = (
         state["database"] == "connected"

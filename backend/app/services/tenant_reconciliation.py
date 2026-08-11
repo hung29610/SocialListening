@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.ownership import (
     TenantReason,
     TenantScope,
+    has_any_direct_owner_assignment,
     is_fully_ownerless_direct_scope,
     stamp_scope,
 )
@@ -42,6 +43,8 @@ class ReconciliationSummary:
     active_integrity_violations: int = 0
     ownership_conflicts: int = 0
     quarantined_legacy: int = 0
+    blocking_reason_classes: list[str] = field(default_factory=list)
+    conflicting_owner_fields_present: bool = False
 
 
 @dataclass
@@ -343,8 +346,14 @@ def reconcile_tenant_integrity(db: Session, *, dry_run: bool = True, batch_size:
                         TenantReason.USER_ORGANIZATION_MISMATCH,
                     }:
                         summary.ownership_conflicts += 1
+                        if reason not in summary.blocking_reason_classes:
+                            summary.blocking_reason_classes.append(reason)
+                        if has_any_direct_owner_assignment(row):
+                            summary.conflicting_owner_fields_present = True
                     else:
                         summary.active_integrity_violations += 1
+                        if reason not in summary.blocking_reason_classes:
+                            summary.blocking_reason_classes.append(reason)
                     if not dry_run:
                         _record_quarantine(db, decision)
             if not dry_run:

@@ -288,6 +288,15 @@ def is_fully_ownerless_direct_scope(instance) -> bool:
     )
 
 
+def has_any_direct_owner_assignment(instance) -> bool:
+    """Return true when a direct tenant owner field is populated on the row."""
+    required = _DIRECT_REQUIRED.get(getattr(instance, "__tablename__", ""), ())
+    owner_fields = tuple(name for name in required if name in _DIRECT_OWNER_FIELDS)
+    return any(
+        getattr(instance, field_name, None) is not None for field_name in owner_fields
+    )
+
+
 @event.listens_for(Session, "before_flush")
 def reject_unscoped_tenant_writes(session, flush_context, instances):
     """Fail closed for every newly inserted tenant-scoped row."""

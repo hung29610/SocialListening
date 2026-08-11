@@ -327,6 +327,8 @@ def test_fully_ownerless_true_ambiguity_is_quarantine_safe_and_unchanged(db):
     assert first.__dict__ == second.__dict__
     assert first.quarantined_legacy >= 1
     assert first.ownership_conflicts == 0
+    assert first.blocking_reason_classes == []
+    assert first.conflicting_owner_fields_present is False
     assert {
         "organization_id": ambiguous.organization_id,
         "user_id": ambiguous.user_id,
@@ -364,6 +366,8 @@ def test_partially_owned_conflict_remains_readiness_blocker(db):
 
     assert summary.ownership_conflicts >= 1
     assert summary.quarantined_legacy == 0
+    assert "MULTIPLE_ORGANIZATION_CANDIDATES" in summary.blocking_reason_classes
+    assert summary.conflicting_owner_fields_present is True
 
 
 def test_ownerless_ambiguity_is_hidden_from_superadmin_and_exports(db):
